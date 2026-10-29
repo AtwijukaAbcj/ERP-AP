@@ -1,0 +1,247 @@
+{% extends 'base.html' %}
+{% load i18n %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+<nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/">{% trans 'Home' %}</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'assignment:assignment_list' course.slug %}">{% trans 'Assignments' %}</a></li>
+        <li class="breadcrumb-item active">{% if assignment %}{% trans 'Edit' %}{% else %}{% trans 'Create' %}{% endif %}</li>
+    </ol>
+</nav>
+
+<div class="title-1 mb-4">
+    <i class="fas fa-{% if assignment %}edit{% else %}plus{% endif %} me-2"></i>{{ title }}
+</div>
+
+<form method="post" class="row">
+    {% csrf_token %}
+    
+    <!-- Basic Info -->
+    <div class="col-lg-8">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-primary text-white">
+                <i class="fas fa-info-circle me-2"></i>{% trans 'Basic Information' %}
+            </div>
+            <div class="card-body">
+                {{ form.title|as_crispy_field }}
+                {{ form.description|as_crispy_field }}
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        {{ form.assignment_type|as_crispy_field }}
+                    </div>
+                    <div class="col-md-6">
+                        {{ form.group|as_crispy_field }}
+                    </div>
+                </div>
+                
+                <!-- Link to Quiz -->
+                <div class="row mt-3">
+                    <div class="col-md-6">
+                        {{ form.linked_quiz|as_crispy_field }}
+                        <small class="text-muted">
+                            <i class="fas fa-info-circle me-1"></i>
+                            {% trans 'Link this assignment to a quiz to display auto-graded results in SpeedGrader' %}
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Submission Settings -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header">
+                <i class="fas fa-upload me-2"></i>{% trans 'Submission Settings' %}
+            </div>
+            <div class="card-body">
+                {{ form.submission_type|as_crispy_field }}
+                
+                <div class="card bg-light mb-3" id="online-options">
+                    <div class="card-body">
+                        <label class="form-label">{% trans 'Online Entry Options' %}</label>
+                        <div class="form-check">
+                            {{ form.online_entry_text }}
+                            <label class="form-check-label">
+                                <i class="fas fa-keyboard me-1"></i>{% trans 'Text Entry' %}
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            {{ form.online_entry_file }}
+                            <label class="form-check-label">
+                                <i class="fas fa-file-upload me-1"></i>{% trans 'File Upload' %}
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            {{ form.online_entry_url }}
+                            <label class="form-check-label">
+                                <i class="fas fa-link me-1"></i>{% trans 'Website URL' %}
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        {{ form.allowed_file_types|as_crispy_field }}
+                    </div>
+                    <div class="col-md-3">
+                        {{ form.max_file_size|as_crispy_field }}
+                    </div>
+                    <div class="col-md-3">
+                        {{ form.allowed_attempts|as_crispy_field }}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Dates -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header">
+                <i class="fas fa-calendar me-2"></i>{% trans 'Dates' %}
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        {{ form.due_date|as_crispy_field }}
+                    </div>
+                    <div class="col-md-4">
+                        {{ form.available_from|as_crispy_field }}
+                    </div>
+                    <div class="col-md-4">
+                        {{ form.available_until|as_crispy_field }}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Late Policy -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header">
+                <i class="fas fa-clock me-2"></i>{% trans 'Late Policy' %}
+            </div>
+            <div class="card-body">
+                <div class="form-check mb-3">
+                    {{ form.accept_late_submissions }}
+                    <label class="form-check-label">{% trans 'Accept late submissions' %}</label>
+                </div>
+                <div class="row" id="late-options">
+                    <div class="col-md-6">
+                        {{ form.late_penalty_percent|as_crispy_field }}
+                    </div>
+                    <div class="col-md-6">
+                        {{ form.max_late_days|as_crispy_field }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Sidebar -->
+    <div class="col-lg-4">
+        <!-- Grading -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-success text-white">
+                <i class="fas fa-star me-2"></i>{% trans 'Grading' %}
+            </div>
+            <div class="card-body">
+                {{ form.grading_type|as_crispy_field }}
+                {{ form.points_possible|as_crispy_field }}
+                {{ form.rubric|as_crispy_field }}
+                
+                <hr>
+                
+                <div class="form-check mb-2">
+                    {{ form.show_rubric_to_students }}
+                    <label class="form-check-label">{% trans 'Show rubric to students' %}</label>
+                </div>
+                <div class="form-check">
+                    {{ form.anonymous_grading }}
+                    <label class="form-check-label">{% trans 'Anonymous grading' %}</label>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Group Assignment -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header">
+                <i class="fas fa-users me-2"></i>{% trans 'Group Assignment' %}
+            </div>
+            <div class="card-body">
+                <div class="form-check mb-3">
+                    {{ form.is_group_assignment }}
+                    <label class="form-check-label">{% trans 'This is a group assignment' %}</label>
+                </div>
+                <div id="group-options">
+                    {{ form.group_category|as_crispy_field }}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Publish -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header">
+                <i class="fas fa-eye me-2"></i>{% trans 'Visibility' %}
+            </div>
+            <div class="card-body">
+                <div class="form-check">
+                    {{ form.published }}
+                    <label class="form-check-label">{% trans 'Published (visible to students)' %}</label>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Actions -->
+        <div class="d-grid gap-2">
+            <button type="submit" class="btn btn-primary btn-lg">
+                <i class="fas fa-save me-1"></i>{% trans 'Save Assignment' %}
+            </button>
+            <a href="{% url 'assignment:assignment_list' course.slug %}" class="btn btn-outline-secondary">
+                {% trans 'Cancel' %}
+            </a>
+            {% if assignment %}
+            <a href="{% url 'assignment:assignment_delete' course.slug assignment.id %}" 
+               class="btn btn-outline-danger"
+               onclick="return confirm('{% trans 'Delete this assignment?' %}')">
+                <i class="fas fa-trash me-1"></i>{% trans 'Delete' %}
+            </a>
+            {% endif %}
+        </div>
+    </div>
+</form>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Toggle online options visibility
+    const submissionType = document.getElementById('id_submission_type');
+    const onlineOptions = document.getElementById('online-options');
+    
+    function toggleOnlineOptions() {
+        onlineOptions.style.display = submissionType.value === 'online' ? 'block' : 'none';
+    }
+    toggleOnlineOptions();
+    submissionType.addEventListener('change', toggleOnlineOptions);
+    
+    // Toggle late options visibility
+    const acceptLate = document.getElementById('id_accept_late_submissions');
+    const lateOptions = document.getElementById('late-options');
+    
+    function toggleLateOptions() {
+        lateOptions.style.display = acceptLate.checked ? 'flex' : 'none';
+    }
+    toggleLateOptions();
+    acceptLate.addEventListener('change', toggleLateOptions);
+    
+    // Toggle group options visibility
+    const isGroup = document.getElementById('id_is_group_assignment');
+    const groupOptions = document.getElementById('group-options');
+    
+    function toggleGroupOptions() {
+        groupOptions.style.display = isGroup.checked ? 'block' : 'none';
+    }
+    toggleGroupOptions();
+    isGroup.addEventListener('change', toggleGroupOptions);
+});
+</script>
+{% endblock %}

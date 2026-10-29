@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% load i18n %}
+{% load crispy_forms_tags %}
+
+{% block title %}{% trans "Add Class Rep Candidate" %}{% endblock %}
+
+{% block content %}
+<div class="container voting-page">
+    <header class="voting-page-header">
+        <div>
+            <h1>{% trans "Add class representative candidate" %}</h1>
+            <p>{% trans "Select an eligible student and draft election. The election’s program and session are assigned automatically." %}</p>
+        </div>
+        {% if request.GET.election %}
+        <a href="{% url 'manage_class_rep_candidates' request.GET.election %}" class="btn btn-outline-secondary">{% trans "Back to candidates" %}</a>
+        {% else %}
+        <a href="{% url 'view_all_elections' %}" class="btn btn-outline-secondary">{% trans "Back to elections" %}</a>
+        {% endif %}
+    </header>
+    {% include 'snippets/messages.html' %}
+    <div class="card">
+        <div class="card-body p-4">
+            <form method="post" enctype="multipart/form-data" novalidate>
+                {% csrf_token %}
+                {{ form|crispy }}
+                <div class="d-flex justify-content-end mt-4">
+                    <button type="submit" class="btn btn-primary">{% trans "Save candidate" %}</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

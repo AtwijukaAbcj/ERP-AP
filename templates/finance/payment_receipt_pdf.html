@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Payment Receipt {{ payment.pk }}</title>
+    {% include 'includes/document_print_styles.html' %}
+</head>
+<body>
+    {% include 'includes/document_header.html' with title='Official Payment Receipt' subtitle=receipt_number label_1='Receipt number:' value_1=receipt_number label_2='Payment date:' value_2=payment.payment_date|date:"d M Y" label_3='Invoice:' value_3=invoice_number logo_url=logo_url %}
+
+    <h2>Received From</h2>
+    <table style="border:0;">
+        <tbody>
+            <tr>
+                <td style="border:0; width:50%; padding-left:0;">
+                    <strong>{{ invoice.student.student.get_full_name }}</strong><br>
+                    Registration number: {{ invoice.student.registration_number|default:"—" }}<br>
+                    {{ invoice.student.program.title|default:"—" }}
+                </td>
+                <td style="border:0; width:50%;">
+                    Payment method: {{ payment.get_method_display }}<br>
+                    Reference: {{ payment.reference|default:"—" }}<br>
+                    Received by: {{ payment.recorded_by.get_full_name|default:"—" }}
+                </td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2>Payment Details</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Description</th>
+                <th>Invoice</th>
+                <th>Academic Period</th>
+                <th class="text-right">Amount Received</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Student fee payment</td>
+                <td>{{ invoice_number }}</td>
+                <td>{{ invoice.semester|default:"—" }}</td>
+                <td class="text-right">{{ payment.amount|floatformat:2 }}</td>
+            </tr>
+            <tr class="total-row">
+                <td colspan="3" class="text-right">Total Received</td>
+                <td class="text-right">{{ payment.amount|floatformat:2 }}</td>
+            </tr>
+        </tbody>
+    </table>
+    <p class="muted">This receipt confirms the payment recorded against the invoice shown above.</p>
+    {% include 'includes/document_footer.html' %}
+</body>
+</html>

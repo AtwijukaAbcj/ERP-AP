@@ -1,0 +1,378 @@
+{% extends 'base.html' %}
+{% load i18n %}
+{% block title %}{{ title }} | {% trans 'Learning management system' %}{% endblock title %}
+
+{% block content %}
+
+<nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/">{% trans 'Home' %}</a></li>
+        <li class="breadcrumb-item active" aria-current="page">{% trans 'Assessment Hub' %}</li>
+    </ol>
+</nav>
+
+{% include 'snippets/messages.html' %}
+
+<style>
+    .hub-hero {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 24px;
+        padding: 40px;
+        color: white;
+        margin-bottom: 30px;
+        position: relative;
+        overflow: hidden;
+    }
+    .hub-hero::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -20%;
+        width: 500px;
+        height: 500px;
+        background: rgba(255,255,255,0.08);
+        border-radius: 50%;
+    }
+    .hub-hero::after {
+        content: '';
+        position: absolute;
+        bottom: -30%;
+        left: -10%;
+        width: 300px;
+        height: 300px;
+        background: rgba(255,255,255,0.05);
+        border-radius: 50%;
+    }
+    .hub-hero h1 { font-size: 2.2rem; font-weight: 700; margin-bottom: 10px; position: relative; z-index: 1; }
+    .hub-hero p { opacity: 0.9; margin-bottom: 20px; position: relative; z-index: 1; }
+    
+    .quick-stats {
+        display: flex;
+        gap: 20px;
+        flex-wrap: wrap;
+        position: relative;
+        z-index: 1;
+    }
+    .quick-stat {
+        background: rgba(255,255,255,0.15);
+        backdrop-filter: blur(10px);
+        padding: 18px 28px;
+        border-radius: 16px;
+        text-align: center;
+        min-width: 120px;
+    }
+    .quick-stat h3 { font-size: 2rem; margin: 0; font-weight: 700; }
+    .quick-stat p { margin: 5px 0 0 0; font-size: 0.85rem; opacity: 0.9; }
+    
+    .section-card {
+        background: white;
+        border-radius: 20px;
+        padding: 28px;
+        margin-bottom: 25px;
+        box-shadow: 0 4px 25px rgba(0,0,0,0.08);
+        border: 1px solid #eef2f7;
+    }
+    .section-card h4 {
+        color: #2d3748;
+        margin-bottom: 20px;
+        padding-bottom: 15px;
+        border-bottom: 2px solid #eef2f7;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    .section-card h4 i { margin-right: 12px; }
+    .section-card h4 .badge { font-size: 0.8rem; }
+    
+    .action-item {
+        display: flex;
+        align-items: center;
+        padding: 16px 20px;
+        background: linear-gradient(135deg, #f8fafc 0%, #eef2f7 100%);
+        border-radius: 14px;
+        margin-bottom: 12px;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        color: inherit;
+        border-left: 4px solid transparent;
+    }
+    .action-item:hover {
+        transform: translateX(8px);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        border-left-color: #667eea;
+    }
+    .action-item.urgent { border-left-color: #f5576c; background: linear-gradient(135deg, #fff5f5 0%, #fed7d7 100%); }
+    .action-item.warning { border-left-color: #f6ad55; background: linear-gradient(135deg, #fffaf0 0%, #feebc8 100%); }
+    .action-item.success { border-left-color: #38ef7d; background: linear-gradient(135deg, #f0fff4 0%, #c6f6d5 100%); }
+    
+    .action-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 16px;
+        font-size: 1.2rem;
+        color: white;
+    }
+    .action-icon.quiz { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+    .action-icon.assignment { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+    .action-icon.attendance { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); }
+    .action-icon.grade { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); }
+    .action-icon.course { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+    
+    .action-content { flex: 1; }
+    .action-content h6 { margin: 0 0 4px 0; color: #2d3748; font-weight: 600; }
+    .action-content p { margin: 0; font-size: 0.85rem; color: #718096; }
+    .action-arrow { color: #a0aec0; font-size: 1.2rem; }
+    
+    .course-progress-card {
+        background: white;
+        border-radius: 16px;
+        padding: 20px;
+        margin-bottom: 15px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+        border: 1px solid #eef2f7;
+    }
+    .course-progress-card h6 { margin: 0 0 8px 0; color: #2d3748; }
+    .course-progress-card .meta { font-size: 0.8rem; color: #718096; margin-bottom: 12px; }
+    .progress-bar-custom {
+        height: 8px;
+        background: #e2e8f0;
+        border-radius: 4px;
+        overflow: hidden;
+    }
+    .progress-bar-custom .fill {
+        height: 100%;
+        border-radius: 4px;
+        transition: width 0.5s ease;
+    }
+    .progress-bar-custom .fill.excellent { background: linear-gradient(90deg, #38ef7d 0%, #11998e 100%); }
+    .progress-bar-custom .fill.good { background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%); }
+    .progress-bar-custom .fill.warning { background: linear-gradient(90deg, #f6ad55 0%, #f093fb 100%); }
+    .progress-bar-custom .fill.danger { background: linear-gradient(90deg, #f5576c 0%, #f093fb 100%); }
+    
+    .grade-showcase {
+        text-align: center;
+        padding: 30px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 20px;
+        color: white;
+        margin-bottom: 20px;
+    }
+    .grade-showcase h2 { font-size: 3.5rem; margin: 0; font-weight: 800; }
+    .grade-showcase p { margin: 8px 0 0 0; opacity: 0.9; }
+    
+    .empty-state {
+        text-align: center;
+        padding: 40px;
+        color: #718096;
+    }
+    .empty-state i { font-size: 3rem; opacity: 0.3; margin-bottom: 15px; }
+    
+    .view-all-btn {
+        display: inline-block;
+        padding: 10px 20px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 10px;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 0.9rem;
+        transition: all 0.3s;
+    }
+    .view-all-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        color: white;
+    }
+</style>
+
+<!-- Hero Section -->
+<div class="hub-hero">
+    <div class="row align-items-center">
+        <div class="col-lg-8">
+            <h1><i class="fas fa-graduation-cap me-3"></i>{% trans 'My Assessment Hub' %}</h1>
+            <p>{% trans 'Welcome back,' %} {{ user.get_full_name|default:user.username }}! {% trans 'Here\'s your academic overview.' %}</p>
+            
+            <div class="quick-stats">
+                <div class="quick-stat">
+                    <h3>{{ total_courses }}</h3>
+                    <p>{% trans 'Courses' %}</p>
+                </div>
+                <div class="quick-stat">
+                    <h3>{{ gpa }}</h3>
+                    <p>{% trans 'Current GPA' %}</p>
+                </div>
+                <div class="quick-stat">
+                    <h3>{{ cgpa }}</h3>
+                    <p>{% trans 'CGPA' %}</p>
+                </div>
+                <div class="quick-stat">
+                    <h3>{{ total_pending_quizzes }}</h3>
+                    <p>{% trans 'Pending Quizzes' %}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4 text-end d-none d-lg-block">
+            <i class="fas fa-chart-line" style="font-size: 8rem; opacity: 0.15;"></i>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <!-- Pending Actions -->
+        {% if pending_quizzes or pending_assignments or low_attendance_courses %}
+        <div class="section-card">
+            <h4>
+                <span><i class="fas fa-exclamation-circle text-warning"></i>{% trans 'Action Required' %}</span>
+                <span class="badge bg-warning text-dark">{{ total_pending_quizzes|add:total_pending_assignments }} {% trans 'items' %}</span>
+            </h4>
+            
+            {% for item in pending_quizzes %}
+            <a href="{% url 'quiz_index' item.course.slug %}" class="action-item warning">
+                <div class="action-icon quiz"><i class="fas fa-question-circle"></i></div>
+                <div class="action-content">
+                    <h6>{{ item.quiz.title }}</h6>
+                    <p>{{ item.course.title }} - {% trans 'Quiz not attempted' %}</p>
+                </div>
+                <i class="fas fa-chevron-right action-arrow"></i>
+            </a>
+            {% endfor %}
+            
+            {% for item in pending_assignments %}
+            <a href="{% url 'student_course_detail' item.course.id %}" class="action-item urgent">
+                <div class="action-icon assignment"><i class="fas fa-file-alt"></i></div>
+                <div class="action-content">
+                    <h6>{{ item.assignment.title }}</h6>
+                    <p>{{ item.course.title }} - {% if item.assignment.due_date %}{% trans 'Due' %}: {{ item.assignment.due_date|date:"M d" }}{% else %}{% trans 'No deadline' %}{% endif %}</p>
+                </div>
+                <i class="fas fa-chevron-right action-arrow"></i>
+            </a>
+            {% endfor %}
+            
+            {% for item in low_attendance_courses %}
+            <a href="{% url 'student_course_detail' item.course.id %}" class="action-item urgent">
+                <div class="action-icon attendance"><i class="fas fa-user-times"></i></div>
+                <div class="action-content">
+                    <h6>{% trans 'Low Attendance' %}: {{ item.course.title }}</h6>
+                    <p>{{ item.rate }}% ({{ item.present }}/{{ item.total }} {% trans 'classes' %}) - {% trans 'Risk of disqualification' %}</p>
+                </div>
+                <i class="fas fa-chevron-right action-arrow"></i>
+            </a>
+            {% endfor %}
+        </div>
+        {% endif %}
+        
+        <!-- My Courses -->
+        <div class="section-card">
+            <h4>
+                <span><i class="fas fa-book-open text-primary"></i>{% trans 'My Courses' %}</span>
+                <a href="{% url 'student_assessment_recap' %}" class="view-all-btn">{% trans 'View All' %}</a>
+            </h4>
+            
+            {% for tc in current_courses %}
+            <div class="course-progress-card">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h6>{{ tc.course.title }}</h6>
+                        <div class="meta">{{ tc.course.code }} | {{ tc.course.credit }} {% trans 'Credits' %}</div>
+                    </div>
+                    <div class="text-end">
+                        <span class="badge {% if tc.grade == 'A+' or tc.grade == 'A' %}bg-success{% elif tc.grade == 'F' %}bg-danger{% elif tc.grade %}bg-primary{% else %}bg-secondary{% endif %}" style="font-size: 1rem; padding: 8px 16px;">
+                            {{ tc.grade|default:"--" }}
+                        </span>
+                        <div class="mt-1" style="font-size: 0.85rem; color: #718096;">{{ tc.total }}/100</div>
+                    </div>
+                </div>
+                <div class="progress-bar-custom mt-2">
+                    <div class="fill {% if tc.total >= 80 %}excellent{% elif tc.total >= 60 %}good{% elif tc.total >= 45 %}warning{% else %}danger{% endif %}" 
+                         style="width: {{ tc.total }}%"></div>
+                </div>
+                <div class="d-flex justify-content-between mt-2" style="font-size: 0.75rem; color: #a0aec0;">
+                    <span>{% trans 'Assignment' %}: {{ tc.assignment }}/10</span>
+                    <span>{% trans 'Mid' %}: {{ tc.mid_exam }}/15</span>
+                    <span>{% trans 'Quiz' %}: {{ tc.quiz }}/10</span>
+                    <span>{% trans 'Attend' %}: {{ tc.attendance }}/5</span>
+                    <span>{% trans 'Final' %}: {{ tc.final_exam }}/60</span>
+                </div>
+            </div>
+            {% empty %}
+            <div class="empty-state">
+                <i class="fas fa-book"></i>
+                <p>{% trans 'No courses enrolled for this semester.' %}</p>
+                <a href="{% url 'course_registration' %}" class="view-all-btn mt-3">
+                    <i class="fas fa-plus me-2"></i>{% trans 'Register Courses' %}
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <!-- GPA Display -->
+        <div class="grade-showcase">
+            <p style="margin-bottom: 10px;">{% trans 'Current Semester GPA' %}</p>
+            <h2>{{ gpa }}</h2>
+            <p>{% trans 'CGPA' %}: {{ cgpa }}</p>
+        </div>
+        
+        <!-- Quick Links -->
+        <div class="section-card">
+            <h4><i class="fas fa-bolt text-warning"></i>{% trans 'Quick Actions' %}</h4>
+            
+            <a href="{% url 'student_assessment_recap' %}" class="action-item">
+                <div class="action-icon grade"><i class="fas fa-chart-line"></i></div>
+                <div class="action-content">
+                    <h6>{% trans 'Full Assessment Recap' %}</h6>
+                    <p>{% trans 'View detailed progress' %}</p>
+                </div>
+                <i class="fas fa-chevron-right action-arrow"></i>
+            </a>
+            
+            <a href="{% url 'grade_results' %}" class="action-item">
+                <div class="action-icon course"><i class="fas fa-list-ol"></i></div>
+                <div class="action-content">
+                    <h6>{% trans 'Grade Results' %}</h6>
+                    <p>{% trans 'View semester results' %}</p>
+                </div>
+                <i class="fas fa-chevron-right action-arrow"></i>
+            </a>
+            
+            <a href="{% url 'quiz_progress' %}" class="action-item">
+                <div class="action-icon quiz"><i class="fas fa-clipboard-list"></i></div>
+                <div class="action-content">
+                    <h6>{% trans 'Quiz Progress' %}</h6>
+                    <p>{% trans 'Track quiz attempts' %}</p>
+                </div>
+                <i class="fas fa-chevron-right action-arrow"></i>
+            </a>
+            
+            <a href="{% url 'user_course_list' %}" class="action-item">
+                <div class="action-icon assignment"><i class="fas fa-book-open"></i></div>
+                <div class="action-content">
+                    <h6>{% trans 'Course Materials' %}</h6>
+                    <p>{% trans 'Access course content' %}</p>
+                </div>
+                <i class="fas fa-chevron-right action-arrow"></i>
+            </a>
+        </div>
+        
+        <!-- Semester Info -->
+        <div class="section-card">
+            <h4><i class="fas fa-calendar-alt text-info"></i>{% trans 'Current Period' %}</h4>
+            {% if current_semester %}
+            <div class="text-center py-3">
+                <h5 class="mb-1">{{ current_semester }} {% trans 'Semester' %}</h5>
+                <p class="text-muted mb-0">{{ current_session }}</p>
+            </div>
+            {% else %}
+            <p class="text-muted text-center">{% trans 'No active semester' %}</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% endblock content %}

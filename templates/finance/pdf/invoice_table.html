@@ -1,0 +1,56 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Invoice Table</title>
+    {% include 'includes/document_print_styles.html' %}
+</head>
+<body>
+
+{% now "d M Y" as generated_date %}
+{% include 'includes/document_header.html' with title='Invoice List' subtitle=invoices|length|add:' records' label_1='Generated:' value_1=generated_date label_2='Total Invoices:' value_2=invoices|length label_3='' value_3='' logo_url=logo_url %}
+
+<table>
+    <thead>
+        <tr>
+            <th>#</th>
+            <th>Student</th>
+            <th>Reg #</th>
+            <th>Invoice #</th>
+            <th>Semester</th>
+            <th>Fee Categories</th>
+            <th>Total</th>
+            <th>Paid</th>
+            <th>Balance</th>
+            <th>Status</th>
+            <th>Date Issued</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for invoice in invoices %}
+        <tr>
+            <td>{{ forloop.counter }}</td>
+            <td>{{ invoice.student.student.get_full_name }}</td>
+            <td>{{ invoice.student.registration_number }}</td>
+            <td>INV{{ invoice.id|stringformat:"05d" }}</td>
+            <td>{{ invoice.semester.get_semester_display }}</td>
+            <td>
+                {% for item in invoice.items.all %}
+                    {{ item.category.name }}{% if not forloop.last %}, {% endif %}
+                {% endfor %}
+            </td>
+            <td>{{ invoice.total_amount }}</td>
+            <td>{{ invoice.paid_amount }}</td>
+            <td>{{ invoice.balance }}</td>
+            <td>{{ invoice.status|title }}</td>
+            <td>{{ invoice.date_issued|date:"d M Y" }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% include 'includes/document_footer.html' %}
+
+</body>
+</html>

@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+{% load i18n permission_tags %}
+{% block title %}{{ quotation.quotation_number }}{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    {% include 'snippets/messages.html' %}
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <div>
+            <h1 class="h3 mb-1">{{ quotation.quotation_number }}</h1>
+            <p class="text-muted mb-0">{{ quotation.supplier.name }} · {{ quotation.get_status_display }}</p>
+        </div>
+        <div class="d-flex gap-2">
+            {% if quotation.document %}<a class="btn btn-outline-primary" target="_blank" rel="noopener" href="{% url 'procurement:purchase_quotation_print' quotation.pk %}">{% trans 'Open supplier document' %}</a>{% endif %}
+            <a class="btn btn-outline-secondary" href="{% url 'procurement:purchase_quotation_list' %}">{% trans 'Back' %}</a>
+        </div>
+    </div>
+    <div class="card shadow-sm mb-3">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-6"><strong>{% trans 'Supplier reference' %}</strong><div>{{ quotation.reference|default:"—" }}</div></div>
+                <div class="col-md-6"><strong>{% trans 'Purchase requisition' %}</strong><div>{{ quotation.requisition|default:"—" }}</div></div>
+                <div class="col-md-6"><strong>{% trans 'Date received' %}</strong><div>{{ quotation.date_received|date:"d M Y" }}</div></div>
+                <div class="col-md-6"><strong>{% trans 'Valid until' %}</strong><div>{{ quotation.valid_until|date:"d M Y"|default:"—" }}</div></div>
+                <div class="col-md-6"><strong>{% trans 'Supplier document' %}</strong><div>{% if quotation.document %}<a href="{% url 'procurement:purchase_quotation_print' quotation.pk %}" target="_blank" rel="noopener">{% trans 'Open attached quotation' %}</a>{% else %}<span class="text-muted">{% trans 'No document attached' %}</span>{% endif %}</div></div>
+            </div>
+            {% if quotation.notes %}<hr><p class="mb-0">{{ quotation.notes|linebreaksbr }}</p>{% endif %}
+        </div>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-bordered align-middle">
+            <thead><tr><th>{% trans 'Description' %}</th><th class="text-end">{% trans 'Quantity' %}</th><th class="text-end">{% trans 'Unit price' %}</th><th class="text-end">{% trans 'Line total' %}</th></tr></thead>
+            <tbody>
+            {% for item in quotation.items.all %}
+                <tr><td>{{ item.description }}</td><td class="text-end">{{ item.quantity }}</td><td class="text-end">{{ item.unit_price|floatformat:2 }}</td><td class="text-end">{{ item.line_total|floatformat:2 }}</td></tr>
+            {% endfor %}
+                <tr class="table-light fw-bold"><td colspan="3" class="text-end">{% trans 'Total' %}</td><td class="text-end">{{ quotation.total_amount|floatformat:2 }}</td></tr>
+            </tbody>
+        </table>
+    </div>
+    {% has_module_permission 'procurement_requisitions_edit' as can_update %}
+    {% if can_update and status_choices %}
+    <form method="post" action="{% url 'procurement:purchase_quotation_change_status' quotation.pk %}" class="d-flex flex-wrap align-items-end gap-2 mt-4">
+        {% csrf_token %}
+        <div>
+            <label for="quotation-status" class="form-label">{% trans 'Update status' %}</label>
+            <select class="form-select" name="status" id="quotation-status">
+                {% for value, label in status_choices %}
+                <option value="{{ value }}" {% if quotation.status == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <button type="submit" class="btn btn-primary">{% trans 'Save status' %}</button>
+    </form>
+    {% endif %}
+</div>
+{% endblock %}

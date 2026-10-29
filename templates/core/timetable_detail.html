@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+{% load i18n %}
+{% block title %}{{ timetable.semester }} - {{ timetable.academic_year }}{% endblock %}
+{% load static %}
+
+
+{% block content %}
+<nav style="--bs-breadcrumb-divider: '>'" aria-label="breadcrumb">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="{% url 'timetable_list' %}">Home</a></li>
+    <li class="breadcrumb-item active" aria-current="page">Timetables</li>
+  </ol>
+</nav>
+
+<h3 class="mb-4">{{ timetable.semester }} - {{ timetable.academic_year }}</h3>
+
+<table class="table table-bordered">
+  <thead>
+    <tr>
+      <th>#</th>
+      <th>Day</th>
+      <th>Time</th>
+      <th>Course</th>
+      <th>Lecturer</th>
+      <th>Room</th>
+      <th>{% trans "Online" %}</th>
+
+    </tr>
+  </thead>
+  <tbody>
+    {% for entry in timetable.entries.all %}
+    <tr>
+      <td>{{ forloop.counter }}</td>
+      <td>{{ entry.day }}</td>
+      <td>{{ entry.start_time }} - {{ entry.end_time }}</td>
+      <td>{{ entry.course.title }}</td>
+      <td>{{ entry.lecturer.get_full_name }}</td>
+      <td>{{ entry.room.name }}</td>
+      {% if entry.is_online %}
+      <td><a href="{{ entry.meeting_link }}" class="btn btn-outline-success btn-sm" target="_blank">{% trans "Join" %}</a></td>
+      {% else %}
+          <td class="text-muted">N/A</td>
+      {% endif %}
+
+    </tr>
+    {% empty %}
+    <tr>
+      <td colspan="6" class="text-center text-muted">No entries yet for this timetable.</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<div class="text-end mt-3">
+  <a href="{% url 'add_timetable_entry' timetable.id %}" class="btn btn-primary">
+    <i class="fas fa-plus"></i> Add Entry
+  </a>
+</div>
+{% endblock %}

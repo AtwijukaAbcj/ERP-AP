@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+{% block title %}Finance Dashboard{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <h2>Finance Dashboard</h2>
+    <hr>
+    <div class="row gy-3">
+        <div class="col-md-3">
+            <a href="{% url 'finance:invoice_list' %}" class="btn btn-primary w-100">Manage Invoices</a>
+        </div>
+        <div class="col-md-3">
+            <a href="{% url 'finance:student_invoices' %}" class="btn btn-secondary w-100">Student Invoices</a>
+        </div>
+        <div class="col-md-3">
+            <a href="{% url 'finance:fee_category_list' %}" class="btn btn-info w-100">Manage Fee Categories</a>
+        </div>
+        <div class="col-md-3">
+            <a href="{% url 'finance:staff_category_list' %}" class="btn btn-success w-100">Staff Categories</a>
+        </div>
+        <div class="col-md-3">
+            <a href="{% url 'finance:staff_list' %}" class="btn btn-warning w-100">Staff</a>
+        </div>
+        <div class="col-md-3">
+            <a href="{% url 'finance:staff_department_list' %}" class="btn btn-outline-primary w-100">Staff Departments</a>
+        </div>
+        <div class="col-md-3">
+            <a href="{% url 'finance:payroll_list' %}" class="btn btn-info w-100">Payroll</a>
+        </div>
+        <div class="col-md-3">
+            <a href="{% url 'finance:expense_category_list' %}" class="btn btn-dark w-100">Expense Categories</a>
+        </div>
+        <div class="col-md-3">
+            <a href="{% url 'finance:expense_list' %}" class="btn btn-danger w-100">Expenses</a>
+        </div>
+        <div class="col-md-3">
+            <a href="{% url 'finance:petty_cash_list' %}" class="btn btn-secondary w-100">Petty Cash</a>
+        </div>
+        <div class="col-md-3">
+            <a href="{% url 'finance:accounts_payable_list' %}" class="btn btn-primary w-100">Accounts Payable</a>
+        </div>
+        <div class="col-md-3">
+            <a href="{% url 'finance:accounts_receivable_list' %}" class="btn btn-success w-100">Accounts Receivable</a>
+        </div>
+        <div class="col-md-3">
+            <a href="{% url 'procurement:dashboard' %}" class="btn btn-dark w-100">Procurement</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

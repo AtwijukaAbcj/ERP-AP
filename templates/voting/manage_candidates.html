@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block title %}{% trans "Manage Candidates" %} | {{ election.title }}{% endblock %}
+
+{% block content %}
+<div class="container voting-page">
+    <header class="voting-page-header">
+        <div>
+            <h1>{% trans "Candidate roster" %}</h1>
+            <p>{{ election.title }} · {% if is_classrep %}{{ election.program.title }} · {{ election.session.session }}{% else %}{% trans "Student election" %}{% endif %}</p>
+        </div>
+        {% if election.is_active %}
+            {% if is_classrep %}
+                <span class="voting-status is-active">{% trans "Roster locked while voting is open" %}</span>
+            {% else %}
+                <span class="voting-status is-active">{% trans "Roster locked while voting is open" %}</span>
+            {% endif %}
+        {% elif is_classrep %}
+            <a href="{% url 'add_class_rep_candidate' %}?election={{ election.pk }}" class="btn btn-primary">{% trans "Add candidate" %}</a>
+        {% else %}
+            <a href="{% url 'add_candidate' %}?election={{ election.pk }}" class="btn btn-primary">{% trans "Add candidate" %}</a>
+        {% endif %}
+    </header>
+
+    {% include 'snippets/messages.html' %}
+    {% if has_votes %}
+        <div class="alert alert-warning" role="alert">
+            {% trans "This roster is locked to protect election integrity." %}
+        </div>
+    {% endif %}
+
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>{% trans "Candidate" %}</th>
+                        <th>{% trans "Manifesto" %}</th>
+                        <th>{% trans "Photo" %}</th>
+                        <th>{% trans "Actions" %}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for candidate in candidates %}
+                    <tr>
+                        <td>{{ candidate.student.student.get_full_name }}</td>
+                        <td>{{ candidate.manifesto|default:"—"|truncatewords:24 }}</td>
+                        <td>
+                                            {% if candidate.photo %}
+                                <img src="{{ candidate.photo.url }}" alt="{% blocktrans with name=candidate.student.student.get_full_name %}Photo of {{ name }}{% endblocktrans %}" class="rounded-circle" width="48" height="48" style="object-fit: cover;">
+                            {% else %}—{% endif %}
+                        </td>
+                        <td>
+                            {% if has_votes %}
+                                <span class="text-muted">{% trans "Roster locked" %}</span>
+                            {% elif is_classrep %}
+                                <a href="{% url 'edit_class_rep_candidate' candidate.pk %}" class="btn btn-sm btn-outline-primary">{% trans "Edit" %}</a>
+                            {% else %}
+                                <a href="{% url 'edit_candidate' candidate.pk %}" class="btn btn-sm btn-outline-primary">{% trans "Edit" %}</a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="4" class="text-center text-muted py-4">{% trans "No candidates have been added to this election." %}</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

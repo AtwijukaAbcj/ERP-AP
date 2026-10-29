@@ -1,0 +1,74 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Institutional Report</title>
+  {% include 'includes/document_print_styles.html' %}
+</head>
+<body>
+  {% if semester %}
+    {% include 'includes/document_header.html' with title='Institutional Report' subtitle=semester.session.session label_1='Generated:' value_1=generated_at|date:"d M Y H:i" label_2='Semester:' value_2=semester.semester label_3='' value_3='' logo_url=logo_url %}
+  {% else %}
+    {% include 'includes/document_header.html' with title='Institutional Report' subtitle='All academic periods' label_1='Generated:' value_1=generated_at|date:"d M Y H:i" label_2='' value_2='' label_3='' value_3='' logo_url=logo_url %}
+  {% endif %}
+
+  <h2>Admissions and Student Body</h2>
+  <table>
+    <tr><th>Metric</th><th>Count</th></tr>
+    <tr><td>Total students</td><td>{{ student_count }}</td></tr>
+    <tr><td>Active students</td><td>{{ active_student_count }}</td></tr>
+    <tr><td>Applications</td><td>{{ admission_total }}</td></tr>
+    <tr><td>Active lecturers</td><td>{{ lecturer_count }}</td></tr>
+    {% for row in students_by_level %}
+    <tr><td>Students at level {{ row.level|default:"Unassigned" }}</td><td>{{ row.count }}</td></tr>
+    {% endfor %}
+    {% for row in lecturers_by_qualification %}
+    <tr><td>Lecturers: {{ row.qualification|default:"Qualification not recorded" }}</td><td>{{ row.count }}</td></tr>
+    {% endfor %}
+  </table>
+
+  <h2>Academics and Attendance</h2>
+  <table>
+    <tr><th>Metric</th><th>Value</th></tr>
+    <tr><td>Active enrollments</td><td>{{ active_enrollment_count }}</td></tr>
+    <tr><td>Average score</td><td>{{ average_score|floatformat:2 }}</td></tr>
+    <tr><td>Overall attendance rate (%)</td><td>{{ attendance_rate|floatformat:2 }}</td></tr>
+    {% for row in attendance_by_status %}
+    <tr><td>Attendance: {{ row.status }}</td><td>{{ row.count }}</td></tr>
+    {% endfor %}
+  </table>
+  <table>
+    <tr><th>Course</th><th>Enrollments</th><th>Average Score</th></tr>
+    {% for row in course_performance %}
+    <tr>
+      <td>{{ row.course__code }} - {{ row.course__title }}</td>
+      <td>{{ row.enrollment_count }}</td>
+      <td>{{ row.average_score|default:0|floatformat:2 }}</td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="3">No course results are available.</td></tr>
+    {% endfor %}
+  </table>
+
+  <h2>Course Resources</h2>
+  <table>
+    <tr><th>Resource type</th><th>Count</th></tr>
+    {% for resource, count in course_resource_counts.items %}
+    <tr><td>{{ resource|title }}</td><td>{{ count }}</td></tr>
+    {% endfor %}
+  </table>
+
+  <h2>Clinical, Finance, and Procurement</h2>
+  <table>
+    <tr><th>Metric</th><th>Value</th></tr>
+    <tr><td>Clinical placements</td><td>{{ clinical_placement_count }}</td></tr>
+    <tr><td>Invoices</td><td>{{ invoice_count }}</td></tr>
+    <tr><td>Invoice total</td><td>{{ invoice_total|floatformat:2 }}</td></tr>
+    <tr><td>Payments recorded</td><td>{{ amount_paid|floatformat:2 }}</td></tr>
+    <tr><td>Outstanding balance</td><td>{{ outstanding|floatformat:2 }}</td></tr>
+    <tr><td>Approved purchase orders</td><td>{{ approved_order_count }}</td></tr>
+    <tr><td>Approved order total</td><td>{{ approved_order_total|floatformat:2 }}</td></tr>
+  </table>
+  {% include 'includes/document_footer.html' %}
+</body>
+</html>

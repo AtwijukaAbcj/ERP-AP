@@ -1,0 +1,207 @@
+{% extends 'base.html' %}
+{% block title %}Manage Invoices{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4"><i class="fas fa-file-invoice-dollar me-2"></i>Manage Invoices</h2>
+
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+        <!-- Left: Create Invoice Button -->
+        <a href="{% url 'finance:create_invoice' %}" class="btn btn-success">
+            <i class="fas fa-plus-circle"></i> Create Invoice
+        </a>
+        <a href="{% url 'finance:generate_semester_invoices' %}" class="btn btn-outline-success">
+            <i class="fas fa-users"></i> Generate Current Semester Invoices
+        </a>
+    
+        <!-- Right: Export Buttons -->
+        <div class="d-flex gap-2">
+            <a href="{% url 'finance:export_invoice_table_pdf' %}" class="btn btn-danger">
+                <i class="fas fa-file-pdf"></i> Export PDF
+            </a>
+            <a href="{% url 'finance:export_invoice_table_csv' %}" class="btn btn-primary">
+                <i class="fas fa-file-csv"></i> Export CSV
+            </a>
+        </div>
+    </div>
+    
+
+    <div class="table-responsive invoice-table-responsive">
+        <table class="table table-bordered table-hover align-middle invoice-table">
+            <thead class="table-light">
+                <tr>
+                    <th>#</th>
+                    <th>Student</th>
+                    <th>Registration #</th>
+                    <th>Invoice #</th>
+                    <th>Semester</th>
+                    <th>Categories</th>
+                    <th>Total Amount</th>
+                    <th>Paid</th>
+                    <th>Balance</th>
+                    <th>Status</th>
+                    <th>Date Issued</th>
+                    <th class="invoice-actions-column">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for invoice in invoices %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td class="invoice-actions-column">
+                        {% if invoice.student and invoice.student.student %}
+                            {{ invoice.student.student.first_name }} {{ invoice.student.student.last_name }}
+                        {% else %}
+                            <span class="text-muted">N/A</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if invoice.student.registration_number %}
+                            {{ invoice.student.registration_number }}
+                        {% else %}
+                            <span class="text-muted">N/A</span>
+                        {% endif %}
+                    </td>
+                    <td>INV{{ invoice.id|stringformat:"05d" }}</td>
+                    <td>
+                        {% if invoice.semester %}
+                            {{ invoice.semester.get_semester_display }}
+                        {% else %}
+                            <span class="text-muted">N/A</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% for item in invoice.items.all %}
+                            {% if item.category %}{{ item.category.name }}{% else %}Fee category removed{% endif %}{% if not forloop.last %}, {% endif %}
+                        {% empty %}
+                            <span class="text-muted">—</span>
+                        {% endfor %}
+                    </td>
+                    <td>{{ invoice.total_amount|floatformat:0 }}</td>
+                    <td>{{ invoice.paid_amount|floatformat:0 }}</td>
+                    <td>{{ invoice.balance|floatformat:0 }}</td>
+                    <td>
+                        <span class="badge 
+                            {% if invoice.status == 'paid' %}bg-success
+                            {% elif invoice.status == 'partial' %}bg-info text-dark
+                            {% else %}bg-warning text-dark{% endif %}"
+                            title="Paid: {{ invoice.paid_amount }} / {{ invoice.total_amount }}">
+                            {{ invoice.status|title }}
+                        </span>
+                    </td>
+                    <td>{{ invoice.date_issued|date:"d M Y" }}</td>
+                    <td>
+                        <div class="dropdown invoice-action-dropdown">
+                            <button
+                                class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center justify-content-center"
+                                type="button"
+                                id="invoiceActions{{ invoice.id }}"
+                                data-bs-toggle="dropdown"
+                                data-bs-display="static"
+                                aria-expanded="false"
+                                aria-label="Invoice actions"
+                                title="Invoice actions"
+                                style="width: 36px; height: 36px;"
+                            >
+                                <i class="fas fa-ellipsis-v"></i>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="invoiceActions{{ invoice.id }}">
+                                <li>
+                                    <a href="{% url 'finance:view_invoice' invoice.id %}" class="dropdown-item">
+                                        <i class="fas fa-eye me-2 text-info"></i>View
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="{% url 'finance:edit_invoice' invoice.id %}" class="dropdown-item">
+                                        <i class="fas fa-edit me-2 text-warning"></i>Edit
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="{% url 'finance:download_invoice_pdf' invoice.id %}" class="dropdown-item">
+                                        <i class="fas fa-file-pdf me-2 text-danger"></i>Download PDF
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="12" class="text-center text-muted">No invoices found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block header %}
+<style>
+    .invoice-table-responsive {
+        overflow-x: auto;
+    }
+
+    .invoice-table {
+        min-width: 1280px;
+    }
+
+    .invoice-actions-column {
+        min-width: 148px;
+        white-space: nowrap;
+    }
+
+    .invoice-action-dropdown .dropdown-menu {
+        z-index: 1085;
+    }
+</style>
+{% endblock %}
+
+{% block js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('.invoice-action-dropdown [data-bs-toggle="dropdown"]').forEach(function (button) {
+            button.addEventListener('show.bs.dropdown', function () {
+                var menu = button.parentNode.querySelector('.dropdown-menu');
+                if (!menu) {
+                    return;
+                }
+                button._menuOriginalParent = menu.parentNode;
+                button._menuOriginalNextSibling = menu.nextSibling;
+                document.body.appendChild(menu);
+                menu.style.position = 'fixed';
+                menu.style.zIndex = '1085';
+            });
+
+            button.addEventListener('shown.bs.dropdown', function () {
+                var menu = document.body.querySelector('.dropdown-menu[aria-labelledby="' + button.id + '"]');
+                if (!menu) {
+                    return;
+                }
+                var rect = button.getBoundingClientRect();
+                var menuRect = menu.getBoundingClientRect();
+                var top = rect.bottom + 4;
+                if (top + menuRect.height > window.innerHeight && rect.top - menuRect.height - 4 >= 8) {
+                    top = rect.top - menuRect.height - 4;
+                }
+                menu.style.top = Math.max(8, top) + 'px';
+                menu.style.left = Math.max(
+                    8,
+                    Math.min(rect.right - menuRect.width, window.innerWidth - menuRect.width - 8)
+                ) + 'px';
+            });
+
+            button.addEventListener('hidden.bs.dropdown', function () {
+                var menu = document.body.querySelector('.dropdown-menu[aria-labelledby="' + button.id + '"]');
+                if (menu && button._menuOriginalParent) {
+                    button._menuOriginalParent.insertBefore(menu, button._menuOriginalNextSibling);
+                    menu.style.position = '';
+                    menu.style.top = '';
+                    menu.style.left = '';
+                    menu.style.zIndex = '';
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}

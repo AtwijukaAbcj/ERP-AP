@@ -1,0 +1,102 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <h1 class="h3 mb-0">{% trans "Clinical placement" %}</h1>
+        <a class="btn btn-outline-secondary" href="{% url 'clinical:placement_list' %}">{% trans "Back to placements" %}</a>
+    </div>
+    {% include 'snippets/messages.html' %}
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4"><strong>{% trans "Student" %}</strong><br>{{ placement.student.registration_number|default:placement.student }}</div>
+                <div class="col-md-4"><strong>{% trans "Ward" %}</strong><br>{{ placement.ward.name }} — {{ placement.ward.facility }}</div>
+                <div class="col-md-4"><strong>{% trans "Supervisor" %}</strong><br>{{ placement.supervisor.get_full_name }}</div>
+                <div class="col-md-4"><strong>{% trans "Semester" %}</strong><br>{{ placement.semester }}{% if placement.semester.session %} {{ placement.semester.session.session }}{% endif %}</div>
+                <div class="col-md-4"><strong>{% trans "Dates" %}</strong><br>{{ placement.starts_on }} – {{ placement.ends_on }}</div>
+                <div class="col-md-4"><strong>{% trans "Status" %}</strong><br>{{ placement.get_status_display }}</div>
+                <div class="col-12"><strong>{% trans "Learning objectives" %}</strong><br>{{ placement.learning_objectives|default:"—"|linebreaksbr }}</div>
+                <div class="col-12"><strong>{% trans "Verified clinical hours" %}</strong><br>{{ verified_hours }}</div>
+            </div>
+        </div>
+        {% if can_manage and placement.status != "completed" and placement.status != "cancelled" %}
+        <div class="card-footer d-flex gap-2">
+            <form method="post" action="{% url 'clinical:placement_change_status' placement.pk %}">
+                {% csrf_token %}
+                {% if placement.status == "planned" %}
+                <input type="hidden" name="status" value="in_progress">
+                <button class="btn btn-success" type="submit">{% trans "Start placement" %}</button>
+                {% elif placement.status == "in_progress" %}
+                <input type="hidden" name="status" value="completed">
+                <button class="btn btn-success" type="submit">{% trans "Complete placement" %}</button>
+                {% endif %}
+            </form>
+            <form method="post" action="{% url 'clinical:placement_change_status' placement.pk %}">
+                {% csrf_token %}
+                <input type="hidden" name="status" value="cancelled">
+                <button class="btn btn-outline-danger" type="submit">{% trans "Cancel placement" %}</button>
+            </form>
+        </div>
+        {% endif %}
+    </div>
+
+    {% if form %}
+    <div class="card mb-4">
+        <div class="card-header">{% trans "Submit clinical log entry" %}</div>
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                {{ form.as_p }}
+                <button class="btn btn-primary" type="submit">{% trans "Submit for supervisor review" %}</button>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+
+    <h2 class="h4">{% trans "Clinical logbook" %}</h2>
+    <div class="table-responsive">
+        <table class="table table-bordered align-middle">
+            <thead><tr><th>{% trans "Date / Shift" %}</th><th>{% trans "Competency" %}</th><th>{% trans "Activity" %}</th><th>{% trans "Hours" %}</th><th>{% trans "Review" %}</th></tr></thead>
+            <tbody>
+                {% for entry in placement.log_entries.all %}
+                <tr>
+                    <td>{{ entry.date }}<br>{{ entry.get_shift_display }}</td>
+                    <td>{{ entry.competency }}</td>
+                    <td>{{ entry.activity|linebreaksbr }}{% if entry.reflection %}<hr>{{ entry.reflection|linebreaksbr }}{% endif %}</td>
+                    <td>{{ entry.hours }}</td>
+                    <td>
+                        <strong>{{ entry.get_status_display }}</strong>
+                        {% if entry.supervisor_feedback %}<p class="mb-0 mt-1">{{ entry.supervisor_feedback|linebreaksbr }}</p>{% endif %}
+                        {% if entry.status == "pending" %}
+                        {% if can_review and placement.supervisor_id == request.user.pk or request.user.is_superuser %}
+                        <form method="post" action="{% url 'clinical:log_entry_review' entry.pk %}" class="mt-2">
+                            {% csrf_token %}
+                            <textarea name="supervisor_feedback" class="form-control mb-2" rows="2" placeholder="{% trans 'Feedback (required when returning)' %}"></textarea>
+                            <button class="btn btn-sm btn-success" name="status" value="verified" type="submit">{% trans "Verify" %}</button>
+                            <button class="btn btn-sm btn-outline-warning" name="status" value="returned" type="submit">{% trans "Return" %}</button>
+                        </form>
+                        {% endif %}
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="5" class="text-muted">{% trans "No clinical log entries have been submitted." %}</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if placement.status_history.all %}
+    <h2 class="h4 mt-4">{% trans "Placement history" %}</h2>
+    <ul class="list-group">
+        {% for change in placement.status_history.all %}
+        <li class="list-group-item">{{ change.from_status }} → {{ change.to_status }} · {{ change.changed_at }}{% if change.reason %} — {{ change.reason }}{% endif %}</li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+</div>
+{% endblock %}

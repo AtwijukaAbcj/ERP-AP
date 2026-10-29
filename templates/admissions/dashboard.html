@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% load permission_tags %}
+
+{% block title %}Admissions{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-1">Admissions</h1>
+        <p class="text-muted mb-0">Applicant intake and review workflow</p>
+    </div>
+    <div class="d-flex gap-2">
+        {% has_permission "admissions.manage_applications" as can_manage_statuses %}
+        {% if request.user.is_superuser or request.user.is_registrar or can_manage_statuses %}
+        <a class="btn btn-outline-primary" href="{% url 'admissions:application_status_settings' %}">Manage statuses</a>
+        {% endif %}
+        <a class="btn btn-primary" href="{% url 'admissions:application_list' %}">View applications</a>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    {% for status, count in status_counts %}
+    <div class="col-sm-6 col-lg-3">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="text-muted small">{{ status }}</div>
+                <div class="fs-3 fw-semibold">{{ count }}</div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% has_permission "admissions.manage_applications" as can_manage %}
+{% if request.user.is_superuser or request.user.is_registrar or can_manage %}
+<a class="btn btn-outline-primary" href="{% url 'admissions:application_create' %}">Create application</a>
+{% endif %}
+{% endblock %}

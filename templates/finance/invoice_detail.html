@@ -1,0 +1,151 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+{% block title %}Invoice #{{ invoice.id }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0">Invoice #{{ invoice.id }}</h4>
+        </div>
+        <div class="card-body">
+            {% include 'snippets/messages.html' %}
+            {% include 'includes/document_header.html' with title='Student Invoice' subtitle='INV'|add:invoice.id|stringformat:"05d" label_1='Invoice Number:' value_1='INV'|add:invoice.id|stringformat:"05d" label_2='Date Issued:' value_2=invoice.date_issued|date:"d M Y" label_3='Status:' value_3=invoice.get_status_display %}
+
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <h5>Student Information</h5>
+                    <p><strong>Name:</strong>
+                        {% if invoice.student and invoice.student.student %}
+                            {{ invoice.student.student.first_name }} {{ invoice.student.student.last_name }}
+                        {% else %}
+                            <span class="text-muted">N/A</span>
+                        {% endif %}
+                    </p>
+                    <p><strong>Program:</strong>
+                        {% if invoice.student.program %}
+                            {{ invoice.student.program.title }}
+                        {% else %}
+                            <span class="text-muted">N/A</span>
+                        {% endif %}
+                    </p>
+                    <p><strong>Level:</strong>
+                        {% if invoice.student.level %}
+                            {{ invoice.student.level }}
+                        {% else %}
+                            <span class="text-muted">N/A</span>
+                        {% endif %}
+                    </p>
+                    <p><strong>Semester:</strong>
+                        {% if invoice.semester %}
+                            {{ invoice.semester.get_semester_display }}
+                        {% else %}
+                            <span class="text-muted">N/A</span>
+                        {% endif %}
+                    </p>
+                </div>
+
+                <div class="col-md-6">
+                    <h5>Invoice Details</h5>
+                    <p><strong>Status:</strong>
+                        <span class="badge 
+                            {% if invoice.status == 'paid' %}bg-success
+                            {% elif invoice.status == 'partial' %}bg-info text-dark
+                            {% else %}bg-warning text-dark{% endif %}">
+                            {{ invoice.get_status_display }}
+                        </span>
+                    </p>
+                    <p><strong>Date Issued:</strong> {{ invoice.date_issued|date:"d M Y" }}</p>
+                    <p><strong>Due Date:</strong> {{ invoice.due_date|date:"d M Y" }}</p>
+                </div>
+            </div>
+
+            <hr>
+            <h5>Invoice Breakdown</h5>
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Fee Category</th>
+                        <th>Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in invoice.items.all %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td>
+                            {% if item.category %}
+                                {{ item.category.name }}
+                            {% else %}
+                                <span class="text-muted">N/A</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ item.amount }}</td>
+                    </tr>
+                    {% endfor %}
+                    <tr>
+                        <th colspan="2">Total Amount</th>
+                        <th>{{ invoice.total_amount }}</th>
+                    </tr>
+                    <tr>
+                        <th colspan="2">Paid Amount</th>
+                        <th>{{ invoice.paid_amount }}</th>
+                    </tr>
+                    <tr>
+                        <th colspan="2">Balance</th>
+                        <th>{{ balance|floatformat:2 }}</th>
+                    </tr>
+                </tbody>
+            </table>
+
+            <hr>
+            <h5>Payment History</h5>
+            <div class="table-responsive">
+                <table class="table table-sm table-striped">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Method</th>
+                            <th>Reference</th>
+                            <th>Received By</th>
+                            <th class="text-end">Amount</th>
+                            <th>Receipt</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for payment in invoice.payments.all %}
+                        <tr>
+                            <td>{{ payment.payment_date|date:"d M Y" }}</td>
+                            <td>{{ payment.get_method_display }}</td>
+                            <td>{{ payment.reference|default:"—" }}</td>
+                            <td>{{ payment.recorded_by|default:"—" }}</td>
+                            <td class="text-end">{{ payment.amount|floatformat:2 }}</td>
+                            <td><a href="{% url 'finance:download_payment_receipt_pdf' payment.pk %}" target="_blank">PDF</a></td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="6" class="text-muted">No recorded payments.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            {% if balance > 0 %}
+            <form method="post" action="{% url 'finance:record_invoice_payment' invoice.id %}" class="card card-body bg-light mt-3">
+                {% csrf_token %}
+                <h6>Record Payment</h6>
+                {{ payment_form|crispy }}
+                <div><button type="submit" class="btn btn-success">Record Payment</button></div>
+            </form>
+            {% endif %}
+
+            <div class="text-end mt-3">
+                <a href="{% url 'finance:download_invoice_pdf' invoice.id %}" class="btn btn-outline-danger">
+                    <i class="fas fa-file-pdf"></i> Download PDF
+                </a>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}

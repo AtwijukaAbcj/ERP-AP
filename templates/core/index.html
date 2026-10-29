@@ -1,0 +1,356 @@
+{% extends 'base.html' %}
+{% load i18n %}
+{% block title %}{{ title }} | {% trans 'Learning management system' %}{% endblock title %}
+{% load static %}
+
+{% block content %}
+<style>
+    .page-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 30px;
+        flex-wrap: wrap;
+        gap: 15px;
+    }
+    
+    .page-title {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: #1f2937;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    
+    .page-title i {
+        color: #914c77;
+        background: linear-gradient(135deg, rgba(145, 76, 119, 0.1) 0%, rgba(145, 76, 119, 0.05) 100%);
+        padding: 12px;
+        border-radius: 12px;
+    }
+    
+    .btn-add-post {
+        background: linear-gradient(135deg, #914c77 0%, #7a3d64 100%);
+        border: none;
+        padding: 12px 24px;
+        border-radius: 10px;
+        color: #fff;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.3s ease;
+        text-decoration: none;
+    }
+    
+    .btn-add-post:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(145, 76, 119, 0.3);
+        color: #fff;
+    }
+    
+    .btn-add-post i {
+        background: none !important;
+        border-radius: 0 !important;
+    }
+    
+    .legend-wrapper {
+        display: flex;
+        gap: 20px;
+        margin-bottom: 25px;
+    }
+    
+    .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.9rem;
+        color: #6b7280;
+    }
+    
+    .legend-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+    }
+    
+    .legend-dot.news {
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    }
+    
+    .legend-dot.events {
+        background: linear-gradient(135deg, #914c77 0%, #7a3d64 100%);
+    }
+    
+    .news-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+        gap: 24px;
+    }
+    
+    .news-card {
+        background: #fff;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+        transition: all 0.3s ease;
+        border: 1px solid rgba(0, 0, 0, 0.05);
+    }
+    
+    .news-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.1);
+    }
+    
+    .card-header-ne {
+        padding: 18px 20px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    
+    .card-header-ne.news {
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    }
+    
+    .card-header-ne.events {
+        background: linear-gradient(135deg, #914c77 0%, #7a3d64 100%);
+    }
+    
+    .card-header-ne .title {
+        color: #fff;
+        font-weight: 600;
+        font-size: 1.05rem;
+        margin: 0;
+        flex: 1;
+        line-height: 1.4;
+    }
+    
+    .card-header-ne .dropdown-toggle::after {
+        display: none;
+    }
+    
+    .menu-btn {
+        background: rgba(255
+
+,255,255,0.2);
+        border: none;
+        padding: 8px;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .menu-btn:hover {
+        background: rgba(255,255,255,0.3);
+    }
+    
+    .menu-btn i {
+        color: #fff;
+        font-size: 0.9rem;
+        background: none !important;
+        border-radius: 0 !important;
+    }
+    
+    .card-body-ne {
+        padding: 20px;
+        min-height: 120px;
+        color: #4b5563;
+        line-height: 1.7;
+        font-size: 0.95rem;
+    }
+    
+    .card-footer-ne {
+        padding: 12px 20px;
+        background: #f9fafb;
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        border-top: 1px solid #f3f4f6;
+    }
+    
+    .card-footer-ne .timestamp {
+        color: #9ca3af;
+        font-size: 0.85rem;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    
+    .card-footer-ne .timestamp i {
+        background: none !important;
+        border-radius: 0 !important;
+    }
+    
+    .dropdown-menu {
+        border: none;
+        border-radius: 12px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+        padding: 8px;
+    }
+    
+    .dropdown-item {
+        padding: 10px 16px;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        transition: all 0.2s ease;
+    }
+    
+    .dropdown-item:hover {
+        background: #f3f4f6;
+    }
+    
+    .dropdown-item i {
+        width: 18px;
+        background: none !important;
+        border-radius: 0 !important;
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        background: #fff;
+        border-radius: 16px;
+        border: 2px dashed #e5e7eb;
+    }
+    
+    .empty-state i {
+        font-size: 4rem;
+        color: #d1d5db;
+        margin-bottom: 20px;
+        background: none !important;
+        border-radius: 0 !important;
+    }
+    
+    .empty-state h4 {
+        color: #6b7280;
+        font-weight: 500;
+        margin: 0;
+    }
+</style>
+
+<div class="page-header">
+    <h1 class="page-title">
+        <i class="fas fa-newspaper"></i>
+        {% trans 'News' %} &amp; {% trans 'Events' %}
+    </h1>
+    {% if request.user.is_superuser %}
+    <a class="btn-add-post" href="{% url 'add_item' %}">
+        <i class="fas fa-plus"></i>{% trans 'Add New Post' %}
+    </a>
+    {% endif %}
+</div>
+
+{% include 'snippets/messages.html' %}
+
+<div class="legend-wrapper">
+    <div class="legend-item">
+        <span class="legend-dot news"></span> {% trans 'News' %}
+    </div>
+    <div class="legend-item">
+        <span class="legend-dot events"></span> {% trans 'Events' %}
+    </div>
+</div>
+
+{% if items %}
+<div class="news-grid">
+    {% for item in items %}
+    <div class="news-card">
+        <div class="card-header-ne {% if item.posted_as == 'News' %}news{% else %}events{% endif %}">
+            <h3 class="title">{{ item.title|title }}</h3>
+            {% if request.user.is_superuser %}
+            <div class="dropdown">
+                <button class="menu-btn" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fas fa-ellipsis-v"></i>
+                </button>
+                <div class="dropdown-menu dropdown-menu-end">
+                    <a class="dropdown-item" href="{% url 'edit_post' pk=item.id %}">
+                        <i class="fas fa-pencil-alt me-2 text-primary"></i>{% trans 'Edit' %}
+                    </a>
+                    <a class="dropdown-item" href="{% url 'delete_post' pk=item.id %}">
+                        <i class="fas fa-trash-alt me-2 text-danger"></i>{% trans 'Delete' %}
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        
+        <div class="card-body-ne">
+            {{ item.summary }}
+        </div>
+        
+        <div class="card-footer-ne">
+            <span class="timestamp">
+                <i class="fas fa-clock"></i>
+                {% if item.event_date %}
+                {{ item.event_date|date:"M j, Y" }}
+                {% else %}
+                {{ item.updated_date|timesince }} {% trans 'ago' %}
+                {% endif %}
+            </span>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+    <i class="fa-regular fa-folder-open"></i>
+    <h4>{% trans 'School news and events will appear here.' %}</h4>
+</div>
+{% endif %}
+
+<section class="mt-5" aria-labelledby="school-calendar-heading">
+    <h2 id="school-calendar-heading" class="page-title mb-3">
+        <i class="fas fa-calendar-alt"></i>{% trans 'School Calendar' %}
+    </h2>
+    <div class="row g-3">
+        <div class="col-lg-6">
+            <div class="card h-100">
+                <div class="card-header fw-semibold">{% trans 'Upcoming Events' %}</div>
+                <div class="list-group list-group-flush">
+                    {% for event in upcoming_events %}
+                    <div class="list-group-item">
+                        <div class="fw-semibold">{{ event.title }}</div>
+                        <small class="text-muted">
+                            {{ event.event_date|date:"M j, Y" }}
+                            {% if event.semester %} · {{ event.semester.session.session }} / {{ event.semester.semester }}{% endif %}
+                        </small>
+                        {% if event.summary %}<p class="mb-0 mt-1">{{ event.summary }}</p>{% endif %}
+                    </div>
+                    {% empty %}
+                    <div class="list-group-item text-muted">{% trans 'No upcoming events are scheduled.' %}</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card h-100">
+                <div class="card-header fw-semibold">{% trans 'Academic Periods' %}</div>
+                <div class="list-group list-group-flush">
+                    {% for period in school_calendar %}
+                    <div class="list-group-item">
+                        <div class="fw-semibold">{{ period.session.session|default:"-" }} / {{ period.semester }}</div>
+                        <small class="text-muted">
+                            {% trans 'Registration' %}:
+                            {{ period.registration_open_date|date:"M j, Y"|default:"-" }} –
+                            {{ period.registration_close_date|date:"M j, Y"|default:"-" }}
+                        </small>
+                        <br>
+                        <small class="text-muted">
+                            {% trans 'Add/drop' %}:
+                            {{ period.add_drop_open_date|date:"M j, Y"|default:"-" }} –
+                            {{ period.add_drop_close_date|date:"M j, Y"|default:"-" }}
+                        </small>
+                    </div>
+                    {% empty %}
+                    <div class="list-group-item text-muted">{% trans 'No academic periods are configured.' %}</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+{% endblock content %}

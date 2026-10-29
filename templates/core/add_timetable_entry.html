@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+{% load i18n %}
+{% load crispy_forms_tags %}
+
+{% block title %}Add Timetable Entry | {% trans 'Learning management system' %}{% endblock title %}
+
+{% block content %}
+<nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="{% url 'home' %}">{% trans 'Home' %}</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'timetable_list' %}">{% trans 'Timetables' %}</a></li>
+    <li class="breadcrumb-item active" aria-current="page">{% trans 'Add Entry' %}</li>
+  </ol>
+</nav>
+
+{% include 'snippets/messages.html' %}
+
+<div class="row">
+  <div class="col-md-8 mx-auto">
+    <div class="card">
+      <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">{% trans 'Add Timetable Entry' %}</h5>
+      </div>
+      <div class="card-body">
+        <form method="post">
+          {% csrf_token %}
+          {{ form.non_field_errors }}
+          {{ form.timetable }}
+          {{ form.course|as_crispy_field }}
+          {{ form.lecturer|as_crispy_field }}
+          {{ form.day|as_crispy_field }}
+          {{ form.start_time|as_crispy_field }}
+          {{ form.end_time|as_crispy_field }}
+          {{ form.room|as_crispy_field }}
+
+          <div class="form-check mt-3 mb-2">
+            {{ form.is_online }} {{ form.is_online.label_tag }}
+          </div>
+
+          <div id="meeting-link-wrapper" class="mb-3" style="display: none;">
+            {{ form.meeting_link.label_tag }} {{ form.meeting_link }}
+          </div>
+
+          <div class="d-flex justify-content-between">
+            <button type="submit" class="btn btn-primary">{% trans 'Save Entry' %}</button>
+            <a href="{% url 'timetable_detail' timetable.id %}" class="btn btn-secondary">{% trans 'Back to Timetable' %}</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Toggle meeting link visibility
+  document.addEventListener("DOMContentLoaded", function () {
+    const onlineCheckbox = document.getElementById("id_is_online");
+    const linkWrapper = document.getElementById("meeting-link-wrapper");
+
+    function toggleMeetingLink() {
+      linkWrapper.style.display = onlineCheckbox.checked ? "block" : "none";
+    }
+
+    onlineCheckbox.addEventListener("change", toggleMeetingLink);
+    toggleMeetingLink();  // Initial state
+  });
+</script>
+{% endblock content %}

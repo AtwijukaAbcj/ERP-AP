@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+{% block title %}Budgets{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <h2>Budgets</h2>
+    <a href="{% url 'finance:budget_add' %}" class="btn btn-primary mb-3">+ Add Budget</a>
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Department</th>
+                    <th>Fiscal Year</th>
+                    <th>Amount</th>
+                    <th>Requested By</th>
+                    <th>Approved</th>
+                    <th>Approved At</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for budget in budgets %}
+                <tr>
+                    <td>{{ budget.title }}</td>
+                    <td>{{ budget.department }}</td>
+                    <td>{{ budget.fiscal_year }}</td>
+                    <td>{{ budget.amount }}</td>
+                    <td>{{ budget.requested_by.get_full_name if budget.requested_by else '—' }}</td>
+                    <td>{{ budget.approved|yesno:"Yes,No" }}</td>
+                    <td>{{ budget.approved_at|date:'SHORT_DATETIME_FORMAT' }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="7">No budgets found.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

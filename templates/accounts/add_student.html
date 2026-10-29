@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+{% load i18n %}
+{% load crispy_forms_tags %}
+
+{% block title %}Add Student | {% trans 'LMS' %}{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="/">{% trans 'Home' %}</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'student_list' %}">{% trans 'Students' %}</a></li>
+    <li class="breadcrumb-item active" aria-current="page">{% trans 'Add' %}</li>
+  </ol>
+</nav>
+
+<h4 class="mb-3 fw-bold"><i class="fas fa-user-graduate me-2"></i>{% trans 'Student Add Form' %}</h4>
+{% include 'snippets/messages.html' %}
+
+<form method="POST" novalidate>
+    {% csrf_token %}
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card mb-3">
+                <div class="card-body">
+                    <h5 class="card-title">{% trans 'Personal Info' %}</h5>
+                    {{ form.first_name|as_crispy_field }}
+                    {{ form.last_name|as_crispy_field }}
+                    {{ form.gender|as_crispy_field }}
+                    {{ form.email|as_crispy_field }}
+                    {{ form.phone|as_crispy_field }}
+                    {{ form.address|as_crispy_field }}
+                    {{ form.date_of_birth|as_crispy_field }}
+                    {{ form.next_of_kin_name|as_crispy_field }}
+                    {{ form.next_of_kin_phone|as_crispy_field }}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card mb-3">
+                <div class="card-body">
+                    <h5 class="card-title">{% trans 'Academic Info' %}</h5>
+                    {{ form.program|as_crispy_field }}
+                    {{ form.level|as_crispy_field }}
+                    {{ form.year|as_crispy_field }}
+                    {{ form.semester|as_crispy_field }}
+                    {{ form.registration_number|as_crispy_field }}
+                    {{ form.cohort|as_crispy_field }}
+                    {{ form.admission_date|as_crispy_field }}
+                    {{ form.expected_completion_date|as_crispy_field }}
+                </div>
+            </div>
+        </div>
+    </div>
+    <button class="btn btn-primary" type="submit">{% trans 'Save Student' %}</button>
+</form>
+{% endblock %}

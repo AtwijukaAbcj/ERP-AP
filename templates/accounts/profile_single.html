@@ -1,0 +1,453 @@
+{% extends 'base.html' %}
+{% load i18n %}
+{% load crispy_forms_tags %}
+{% block title %} {{ title }} | {% trans 'Learning management system' %}{% endblock title %}
+
+{% load static %}
+
+
+{% block content %}
+<style>
+    .profile-container {
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+    
+    .profile-card {
+        background: #fff;
+        border-radius: 20px;
+        overflow: hidden;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+        margin-bottom: 25px;
+    }
+    
+    .profile-sidebar {
+        background: linear-gradient(180deg, #914c77 0%, #7a3d64 100%);
+        padding: 30px;
+        text-align: center;
+        position: relative;
+    }
+    
+    .profile-sidebar::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 60%;
+        background: linear-gradient(to top, rgba(0,0,0,0.2), transparent);
+    }
+    
+    .profile-avatar-wrapper {
+        position: relative;
+        z-index: 1;
+        margin-bottom: 20px;
+    }
+    
+    .profile-avatar-img {
+        width: 150px;
+        height: 150px;
+        border-radius: 50%;
+        border: 5px solid rgba(255, 255, 255, 0.3);
+        object-fit: cover;
+        background: #fff;
+        transition: all 0.3s ease;
+    }
+    
+    .profile-avatar-img:hover {
+        transform: scale(1.05);
+        border-color: rgba(255, 255, 255, 0.5);
+    }
+    
+    .profile-sidebar-info {
+        position: relative;
+        z-index: 1;
+        color: #fff;
+    }
+    
+    .profile-sidebar-name {
+        font-size: 1.4rem;
+        font-weight: 700;
+        margin-bottom: 8px;
+    }
+    
+    .profile-sidebar-meta {
+        font-size: 0.9rem;
+        opacity: 0.9;
+        margin-bottom: 5px;
+    }
+    
+    .profile-sidebar-role {
+        display: inline-block;
+        padding: 6px 16px;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 500;
+        margin-top: 10px;
+    }
+    
+    .profile-actions {
+        padding: 20px;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        position: relative;
+        z-index: 1;
+    }
+    
+    .profile-actions a {
+        display: flex;
+        align-items: center;
+        padding: 12px 16px;
+        color: #fff;
+        text-decoration: none;
+        border-radius: 10px;
+        transition: all 0.3s ease;
+        margin-bottom: 8px;
+        font-size: 0.95rem;
+    }
+    
+    .profile-actions a:last-child {
+        margin-bottom: 0;
+    }
+    
+    .profile-actions a:hover {
+        background: rgba(255, 255, 255, 0.15);
+    }
+    
+    .profile-actions a i {
+        margin-right: 12px;
+        width: 20px;
+        text-align: center;
+        background: none !important;
+        border-radius: 0 !important;
+    }
+    
+    .profile-main {
+        padding: 30px;
+    }
+    
+    .info-section {
+        margin-bottom: 30px;
+    }
+    
+    .info-section:last-child {
+        margin-bottom: 0;
+    }
+    
+    .info-section-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 20px;
+        padding-bottom: 12px;
+        border-bottom: 2px solid #f1f5f9;
+    }
+    
+    .info-section-header i {
+        color: #914c77;
+        font-size: 1.1rem;
+        background: linear-gradient(135deg, rgba(145, 76, 119, 0.1) 0%, rgba(145, 76, 119, 0.05) 100%);
+        padding: 12px;
+        border-radius: 10px;
+    }
+    
+    .info-section-header h3 {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #1f2937;
+        margin: 0;
+    }
+    
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        gap: 16px;
+    }
+    
+    .info-item {
+        display: flex;
+        flex-direction: column;
+        padding: 16px;
+        background: #f9fafb;
+        border-radius: 12px;
+        transition: all 0.3s ease;
+    }
+    
+    .info-item:hover {
+        background: #f1f5f9;
+    }
+    
+    .info-item-label {
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #6b7280;
+        font-weight: 600;
+        margin-bottom: 6px;
+    }
+    
+    .info-item-value {
+        font-size: 1rem;
+        color: #1f2937;
+        font-weight: 500;
+    }
+    
+    .courses-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    
+    .courses-list li a {
+        display: inline-block;
+        padding: 10px 18px;
+        background: linear-gradient(135deg, rgba(145, 76, 119, 0.1) 0%, rgba(145, 76, 119, 0.05) 100%);
+        color: #914c77;
+        border-radius: 25px;
+        text-decoration: none;
+        font-weight: 500;
+        font-size: 0.9rem;
+        transition: all 0.3s ease;
+        border: 1px solid rgba(145, 76, 119, 0.2);
+    }
+    
+    .courses-list li a:hover {
+        background: linear-gradient(135deg, #914c77 0%, #7a3d64 100%);
+        color: #fff;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(145, 76, 119, 0.3);
+    }
+    
+    .no-courses {
+        color: #ef4444;
+        font-style: italic;
+    }
+    
+    @media (max-width: 768px) {
+        .info-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .profile-avatar-img {
+            width: 120px;
+            height: 120px;
+        }
+    }
+</style>
+
+{% if user.is_authenticated %}
+
+<nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/">{% trans 'Home' %}</a></li>
+        <li class="breadcrumb-item active" aria-current="page">{{ user.get_full_name }}</li>
+    </ol>
+</nav>
+
+{% include 'snippets/messages.html' %}
+
+<div class="profile-container">
+    <div class="row g-4">
+        <!-- Profile Sidebar -->
+        <div class="col-lg-4">
+            <div class="profile-card">
+                <div class="profile-sidebar">
+                    <div class="profile-avatar-wrapper">
+                        <img src="{{ user.picture.url }}" class="profile-avatar-img" alt="{{ user.get_full_name }}">
+                    </div>
+                    <div class="profile-sidebar-info">
+                        <h2 class="profile-sidebar-name">{{ user.get_full_name|title }}</h2>
+                        <p class="profile-sidebar-meta">
+                            <i class="fas fa-at me-1"></i> {{ user.username }}
+                        </p>
+                        <span class="profile-sidebar-role">
+                            <i class="fas fa-user-tag me-1"></i> {{ user.get_user_role }}
+                        </span>
+                    </div>
+                    
+                    {% if request.user.is_superuser %}
+                    <div class="profile-actions">
+                        {% if user.is_student %}
+                        <a href="{% url 'student_edit' pk=user.id %}">
+                            <i class="fas fa-user-edit"></i>{% trans 'Edit Profile' %}
+                        </a>
+                        <a href="{% url 'student_program_edit' user.id %}">
+                            <i class="fas fa-exchange-alt"></i>{% trans 'Change Program' %}
+                        </a>
+                        {% endif %}
+                        {% if user.is_lecturer %}
+                        <a href="{% url 'staff_edit' pk=user.id %}">
+                            <i class="fas fa-user-edit"></i>{% trans 'Edit Profile' %}
+                        </a>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Profile Main Content -->
+        <div class="col-lg-8">
+            <div class="profile-card">
+                <div class="profile-main">
+                    {% if edit_mode %}
+                    <form action="" method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <div class="info-section">
+                            <div class="info-section-header">
+                                <i class="fas fa-user-edit"></i>
+                                <h3>{% trans 'Edit Profile' %}</h3>
+                            </div>
+                            <div class="info-grid">
+                                {{ form.first_name|as_crispy_field }}
+                                {{ form.last_name|as_crispy_field }}
+                                {{ form.email|as_crispy_field }}
+                                {{ form.gender|as_crispy_field }}
+                                {{ form.phone|as_crispy_field }}
+                                {{ form.address|as_crispy_field }}
+                                {{ form.picture|as_crispy_field }}
+                            </div>
+                        </div>
+                        {% if user.is_student %}
+                        <div class="info-section">
+                            <div class="info-section-header">
+                                <i class="fas fa-graduation-cap"></i>
+                                <h3>{% trans 'Student Details' %}</h3>
+                            </div>
+                            <div class="info-grid">
+                                {{ form.registration_number|as_crispy_field }}
+                                {{ form.level|as_crispy_field }}
+                                {{ form.year|as_crispy_field }}
+                                {{ form.semester|as_crispy_field }}
+                                {{ form.program|as_crispy_field }}
+                            </div>
+                        </div>
+                        {% endif %}
+                        <div class="mt-4">
+                            <button type="submit" class="btn btn-primary">{% trans 'Save Changes' %}</button>
+                            <a href="{% url 'profile_single' user.id %}" class="btn btn-secondary">{% trans 'Cancel' %}</a>
+                        </div>
+                    </form>
+                    {% else %}
+                    {% if user.is_lecturer %}
+                    <!-- Lecturer Courses Section -->
+                    <div class="info-section">
+                        <div class="info-section-header">
+                            <i class="fas fa-book-open"></i>
+                            <h3>{% trans 'My Courses' %}</h3>
+                        </div>
+                        {% if courses %}
+                        <ul class="courses-list">
+                            {% for course in courses %}
+                            <li><a href="{{ course.get_absolute_url }}">{{ course }}</a></li>
+                            {% endfor %}
+                        </ul>
+                        {% else %}
+                        <p class="no-courses">{% trans 'No courses assigned!' %}</p>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+
+                    <!-- Personal Info Section -->
+                    <div class="info-section">
+                        <div class="info-section-header">
+                            <i class="fas fa-user"></i>
+                            <h3>{% trans 'Personal Info' %}</h3>
+                        </div>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <span class="info-item-label">{% trans 'First Name' %}</span>
+                                <span class="info-item-value">{{ user.first_name|title }}</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-item-label">{% trans 'Last Name' %}</span>
+                                <span class="info-item-value">{{ user.last_name|title }}</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-item-label">{% trans 'ID No.' %}</span>
+                                <span class="info-item-value">{{ user.username }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {% if user.is_student %}
+                    <!-- Applicant Info Section -->
+                    <div class="info-section">
+                        <div class="info-section-header">
+                            <i class="fas fa-graduation-cap"></i>
+                            <h3>{% trans 'Applicant Info' %}</h3>
+                        </div>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <span class="info-item-label">{% trans 'School' %}</span>
+                                <span class="info-item-value">Unity College</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-item-label">{% trans 'Level' %}</span>
+                                <span class="info-item-value">{{ level.level }}</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-item-label">{% trans 'Program' %}</span>
+                                <span class="info-item-value">{{ student.program }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Contact Info Section -->
+                    <div class="info-section">
+                        <div class="info-section-header">
+                            <i class="fas fa-phone-square-alt"></i>
+                            <h3>{% trans 'Contact Info' %}</h3>
+                        </div>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <span class="info-item-label">{% trans 'Email' %}</span>
+                                <span class="info-item-value">{{ user.email }}</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-item-label">{% trans 'Tel No.' %}</span>
+                                <span class="info-item-value">{{ user.phone|default:"-" }}</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-item-label">{% trans 'Address/City' %}</span>
+                                <span class="info-item-value">{{ user.address|default:"-" }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Important Dates Section -->
+                    <div class="info-section">
+                        <div class="info-section-header">
+                            <i class="fas fa-calendar-day"></i>
+                            <h3>{% trans 'Important Dates' %}</h3>
+                        </div>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <span class="info-item-label">{% trans 'Last Login' %}</span>
+                                <span class="info-item-value">{{ user.last_login|default:"-" }}</span>
+                            </div>
+                            {% if current_semester and current_session %}
+                            <div class="info-item">
+                                <span class="info-item-label">{% trans 'Academic Year' %}</span>
+                                <span class="info-item-value">{{ current_semester }} {% trans 'Semester' %} {{ current_session }}</span>
+                            </div>
+                            {% endif %}
+                            <div class="info-item">
+                                <span class="info-item-label">{% trans 'Registered Date' %}</span>
+                                <span class="info-item-value">{{ user.date_joined|date }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endif %}
+
+{% endblock content %}

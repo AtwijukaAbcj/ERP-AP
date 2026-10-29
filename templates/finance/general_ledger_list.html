@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+{% block title %}General Ledger{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <h2>General Ledger Entries</h2>
+    <a href="{% url 'finance:general_ledger_add' %}" class="btn btn-primary mb-3">+ Add Ledger Entry</a>
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Account</th>
+                    <th>Description</th>
+                    <th>Reference</th>
+                    <th>Debit</th>
+                    <th>Credit</th>
+                    <th>Created By</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for entry in entries %}
+                <tr>
+                    <td>{{ entry.date }}</td>
+                    <td>{{ entry.account.code }} - {{ entry.account.name }}</td>
+                    <td>{{ entry.description }}</td>
+                    <td>{{ entry.reference }}</td>
+                    <td>{{ entry.debit }}</td>
+                    <td>{{ entry.credit }}</td>
+                    <td>{{ entry.created_by.get_full_name if entry.created_by else '—' }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="7">No general ledger entries found.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

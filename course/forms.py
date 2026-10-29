@@ -1,0 +1,133 @@
+from django import forms
+from accounts.models import User
+from .models import Program, Course, CourseAllocation, Upload, UploadVideo
+from .models import Faculty
+
+class ProgramForm(forms.ModelForm):
+    class Meta:
+        model = Program
+        fields = "__all__"
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["title"].widget.attrs.update({"class": "form-control"})
+        self.fields["summary"].widget.attrs.update({"class": "form-control"})
+        self.fields["faculty"].widget.attrs.update({"class": "form-select"})  # ← add this
+
+
+class CourseAddForm(forms.ModelForm):
+    class Meta:
+        model = Course
+        fields = "__all__"
+
+    def __init__(self, *args, **kwargs):
+        program = kwargs.pop('program', None)  # ✅ Pop it BEFORE super()
+        super().__init__(*args, **kwargs)
+
+        self.fields["title"].widget.attrs.update({"class": "form-control"})
+        self.fields["code"].widget.attrs.update({"class": "form-control"})
+        self.fields["credit"].widget.attrs.update({"class": "form-control"})
+        self.fields["summary"].widget.attrs.update({"class": "form-control"})
+        self.fields["level"].widget.attrs.update({"class": "form-control"})
+        self.fields["year"].widget.attrs.update({"class": "form-control"})
+        self.fields["semester"].widget.attrs.update({"class": "form-control"})
+        self.fields["is_elective"].widget.attrs.update({"class": "form-check-input"})
+
+        if program:
+            self.fields["program"].initial = program
+            self.fields["program"].disabled 
+
+class CourseAllocationForm(forms.ModelForm):
+    courses = forms.ModelMultipleChoiceField(
+        queryset=Course.objects.none(),  # default to none, will be set in __init__
+        widget=forms.CheckboxSelectMultiple(
+            attrs={"class": "browser-default checkbox"}
+        ),
+        required=True,
+    )
+    lecturer = forms.ModelChoiceField(
+        queryset=User.objects.none(),  # default to none, will be set in __init__
+        widget=forms.Select(attrs={"class": "browser-default custom-select"}),
+        label="lecturer",
+    )
+
+    class Meta:
+        model = CourseAllocation
+        fields = ["lecturer", "courses"]
+
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)  # ✅ Get the logged-in user
+        super(CourseAllocationForm, self).__init__(*args, **kwargs)
+
+        if user and getattr(user, 'is_faculty_admin', False):
+            self.fields["lecturer"].queryset = User.objects.filter(is_lecturer=True, faculty=user.faculty)
+            self.fields["courses"].queryset = Course.objects.filter(program__faculty=user.faculty).order_by("level")
+        elif user and getattr(user, 'is_superuser', False):
+            self.fields["lecturer"].queryset = User.objects.filter(is_lecturer=True)
+            self.fields["courses"].queryset = Course.objects.all().order_by("level")
+        else:
+            # Default empty if the user is not a faculty admin or superuser
+            self.fields["lecturer"].queryset = User.objects.none()
+            self.fields["courses"].queryset = Course.objects.none()
+
+
+class EditCourseAllocationForm(forms.ModelForm):
+    courses = forms.ModelMultipleChoiceField(
+        queryset=Course.objects.all().order_by("level"),
+        widget=forms.CheckboxSelectMultiple,
+        required=True,
+    )
+    lecturer = forms.ModelChoiceField(
+        queryset=User.objects.filter(is_lecturer=True),
+        widget=forms.Select(attrs={"class": "browser-default custom-select"}),
+        label="lecturer",
+    )
+
+    class Meta:
+        model = CourseAllocation
+        fields = ["lecturer", "courses"]
+
+    def __init__(self, *args, **kwargs):
+        #    user = kwargs.pop('user')
+        super(EditCourseAllocationForm, self).__init__(*args, **kwargs)
+        self.fields["lecturer"].queryset = User.objects.filter(is_lecturer=True)
+
+
+# Upload files to specific course
+class UploadFormFile(forms.ModelForm):
+    class Meta:
+        model = Upload
+        fields = (
+            "title",
+            "file",
+        )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["title"].widget.attrs.update({"class": "form-control"})
+        self.fields["file"].widget.attrs.update({"class": "form-control"})
+
+
+# Upload video to specific course
+class UploadFormVideo(forms.ModelForm):
+    class Meta:
+        model = UploadVideo
+        fields = (
+            "title",
+            "video",
+        )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["title"].widget.attrs.update({"class": "form-control"})
+        self.fields["video"].widget.attrs.update({"class": "form-control"})
+
+
+class FacultyForm(forms.ModelForm):
+    class Meta:
+        model = Faculty
+        fields = ['name', 'description']
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Enter Faculty Name'}),
+            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Optional description'}),
+        }

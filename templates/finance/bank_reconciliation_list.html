@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+{% block title %}Bank Reconciliations{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <h2>Bank Reconciliations</h2>
+    <a href="{% url 'finance:bank_reconciliation_add' %}" class="btn btn-primary mb-3">+ Add Reconciliation</a>
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Bank Name</th>
+                    <th>Statement Date</th>
+                    <th>Book Balance</th>
+                    <th>Bank Balance</th>
+                    <th>Reconciled</th>
+                    <th>Reconciled By</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for reconciliation in reconciliations %}
+                <tr>
+                    <td>{{ reconciliation.bank_name }}</td>
+                    <td>{{ reconciliation.statement_date }}</td>
+                    <td>{{ reconciliation.book_balance }}</td>
+                    <td>{{ reconciliation.bank_balance }}</td>
+                    <td>{{ reconciliation.reconciled|yesno:"Yes,No" }}</td>
+                    <td>{{ reconciliation.reconciled_by.get_full_name if reconciliation.reconciled_by else '—' }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="6">No bank reconciliations found.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

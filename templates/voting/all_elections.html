@@ -1,0 +1,176 @@
+{% extends 'base.html' %}
+{% load i18n %}
+{% block title %}{{ title }} | {% trans "Voting" %}{% endblock %}
+
+{% block content %}
+<div class="container voting-page">
+    <header class="voting-page-header">
+        <div>
+            <h1>{% trans "Voting administration" %}</h1>
+            <p>{% trans "Prepare elections and polls, manage candidate lists, and open or close voting." %}</p>
+        </div>
+        <div class="voting-actions">
+            <a href="{% url 'add_election' %}" class="btn btn-primary"><i class="fas fa-plus me-1" aria-hidden="true"></i>{% trans "Student election" %}</a>
+            <a href="{% url 'add_class_rep_election' %}" class="btn btn-outline-primary">{% trans "Class representative election" %}</a>
+            <a href="{% url 'add_poll' %}" class="btn btn-outline-secondary">{% trans "Poll" %}</a>
+        </div>
+    </header>
+    {% include 'snippets/messages.html' %}
+    <div class="alert alert-light border mb-4">
+        <strong>{% trans "Recommended setup:" %}</strong>
+        {% trans "Create a draft, add at least two candidates or poll choices, review the setup, and then activate voting. Results become visible after voting is closed." %}
+    </div>
+
+    <section>
+        <div class="voting-section-heading">
+            <h2><i class="fas fa-users me-2" aria-hidden="true"></i>{% trans "Student elections" %}</h2>
+            <span class="text-muted small">{{ elections|length }} {% trans "total" %}</span>
+        </div>
+        <div class="card">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>{% trans "Election" %}</th>
+                            <th>{% trans "Candidates" %}</th>
+                            <th>{% trans "Status" %}</th>
+                            <th>{% trans "Created" %}</th>
+                            <th>{% trans "Actions" %}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for election in elections %}
+                        <tr>
+                            <td class="fw-semibold">{{ election.title }}</td>
+                            <td>{{ election.candidate_count }}</td>
+                            <td>
+                                {% if election.is_active %}<span class="voting-status is-active">{% trans "Voting open" %}</span>
+                                {% else %}<span class="voting-status is-draft">{% trans "Draft / closed" %}</span>{% endif %}
+                            </td>
+                            <td>{{ election.created_at|date:"M j, Y" }}</td>
+                            <td>
+                                <div class="voting-actions">
+                                    {% if not election.is_active and not election.vote_count %}
+                                    <a href="{% url 'manage_election_candidates' election.id %}" class="btn btn-sm btn-outline-primary">{% trans "Candidates" %}</a>
+                                    <a href="{% url 'edit_election' election.id %}" class="btn btn-sm btn-outline-secondary">{% trans "Edit" %}</a>
+                                    {% endif %}
+                                    <form method="post" action="{% url 'toggle_election_status' election.id %}">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-sm {% if election.is_active %}btn-outline-danger{% else %}btn-primary{% endif %}">
+                                            {% if election.is_active %}{% trans "Close voting" %}{% else %}{% trans "Activate" %}{% endif %}
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="5"><div class="voting-empty-state m-3">{% trans "No student elections created yet." %}</div></td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <section>
+        <div class="voting-section-heading">
+            <h2><i class="fas fa-user-graduate me-2" aria-hidden="true"></i>{% trans "Class representative elections" %}</h2>
+            <span class="text-muted small">{{ classrep_elections|length }} {% trans "total" %}</span>
+        </div>
+        <div class="card">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>{% trans "Election" %}</th>
+                            <th>{% trans "Program" %}</th>
+                            <th>{% trans "Session" %}</th>
+                            <th>{% trans "Candidates" %}</th>
+                            <th>{% trans "Status" %}</th>
+                            <th>{% trans "Actions" %}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for election in classrep_elections %}
+                        <tr>
+                            <td class="fw-semibold">{{ election.title }}</td>
+                            <td>{{ election.program.title }}</td>
+                            <td>{{ election.session.session }}</td>
+                            <td>{{ election.candidate_count }}</td>
+                            <td>
+                                {% if election.is_active %}<span class="voting-status is-active">{% trans "Voting open" %}</span>
+                                {% else %}<span class="voting-status is-draft">{% trans "Draft / closed" %}</span>{% endif %}
+                            </td>
+                            <td>
+                                <div class="voting-actions">
+                                    {% if not election.is_active and not election.vote_count %}
+                                    <a href="{% url 'manage_class_rep_candidates' election.id %}" class="btn btn-sm btn-outline-primary">{% trans "Candidates" %}</a>
+                                    <a href="{% url 'edit_class_rep_election' election.id %}" class="btn btn-sm btn-outline-secondary">{% trans "Edit" %}</a>
+                                    {% endif %}
+                                    <form method="post" action="{% url 'toggle_classrep_election_status' election.id %}">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-sm {% if election.is_active %}btn-outline-danger{% else %}btn-primary{% endif %}">
+                                            {% if election.is_active %}{% trans "Close voting" %}{% else %}{% trans "Activate" %}{% endif %}
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="6"><div class="voting-empty-state m-3">{% trans "No class representative elections created yet." %}</div></td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <section>
+        <div class="voting-section-heading">
+            <h2><i class="fas fa-square-poll-vertical me-2" aria-hidden="true"></i>{% trans "Opinion polls" %}</h2>
+            <span class="text-muted small">{{ polls|length }} {% trans "total" %}</span>
+        </div>
+        <div class="card">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>{% trans "Poll" %}</th>
+                            <th>{% trans "Choices" %}</th>
+                            <th>{% trans "Status" %}</th>
+                            <th>{% trans "Created" %}</th>
+                            <th>{% trans "Actions" %}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for poll in polls %}
+                        <tr>
+                            <td class="fw-semibold">{{ poll.question }}</td>
+                            <td>{{ poll.choice_count }}</td>
+                            <td>
+                                {% if poll.is_active %}<span class="voting-status is-active">{% trans "Voting open" %}</span>
+                                {% else %}<span class="voting-status is-draft">{% trans "Draft / closed" %}</span>{% endif %}
+                            </td>
+                            <td>{{ poll.created_at|date:"M j, Y" }}</td>
+                            <td>
+                                {% if not poll.is_active and not poll.vote_count %}
+                                <a href="{% url 'edit_poll' poll.id %}" class="btn btn-sm btn-outline-secondary">{% trans "Edit" %}</a>
+                                {% endif %}
+                                <form method="post" action="{% url 'toggle_poll_status' poll.id %}">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm {% if poll.is_active %}btn-outline-danger{% else %}btn-primary{% endif %}">
+                                        {% if poll.is_active %}{% trans "Close poll" %}{% else %}{% trans "Activate" %}{% endif %}
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="5"><div class="voting-empty-state m-3">{% trans "No polls created yet." %}</div></td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+</div>
+{% endblock %}

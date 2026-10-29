@@ -1,0 +1,69 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Invoice #{{ invoice.id }}</title>
+    {% include 'includes/document_print_styles.html' %}
+</head>
+<body>
+
+    {% with invoice_number='INV'|add:invoice.id|stringformat:"05d" %}
+        {% include 'includes/document_header.html' with title='Student Invoice' subtitle=invoice_number label_1='Invoice Number:' value_1=invoice_number label_2='Date Issued:' value_2=invoice.date_issued|date:"F d, Y" label_3='Due Date:' value_3=invoice.due_date|date:"F d, Y" logo_url=logo_url %}
+    {% endwith %}
+    <table style="border:0; margin-bottom:18px;">
+    <tr>
+        <td style="width:50%; border:0; padding:0 12px 0 0;">
+            <h2>Bill To</h2>
+            <p><strong>{{ invoice.student.student.get_full_name }}</strong></p>
+            <p>Registration number: {{ invoice.student.registration_number|default:"—" }}</p>
+            <p>{{ invoice.student.program.title|default:"—" }} · {{ invoice.student.level|default:"—" }}</p>
+        </td>
+        <td style="width:50%; border:0; padding:0 0 0 12px;">
+            <h2>Academic Period</h2>
+            <p><strong>Semester:</strong> {{ invoice.semester.get_semester_display|default:"—" }}</p>
+            <p><strong>Academic year:</strong> {{ invoice.semester.session.session|default:"—" }}</p>
+            <p><strong>Status:</strong> {{ invoice.get_status_display }}</p>
+        </td>
+    </tr>
+    </table>
+    
+
+    <div class="section">
+        <h2>Invoice Breakdown</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Fee Category</th>
+                    <th class="text-right">Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in items %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ item.category.name }}</td>
+                    <td class="text-right">{{ item.amount }}</td>
+                </tr>
+                {% endfor %}
+                <tr>
+                    <td colspan="2"><strong>Total Amount</strong></td>
+                    <td class="text-right"><strong>{{ invoice.total_amount }}</strong></td>
+                </tr>
+                <tr>
+                    <td colspan="2"><strong>Paid Amount</strong></td>
+                    <td class="text-right"><strong>{{ invoice.paid_amount }}</strong></td>
+                </tr>
+                <tr>
+                    <td colspan="2"><strong>Balance</strong></td>
+                    <td class="text-right"><strong>{{ balance|floatformat:2 }}</strong></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    {% include 'includes/document_footer.html' %}
+
+</body>
+</html>

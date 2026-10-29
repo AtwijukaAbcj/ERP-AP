@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags i18n %}
+
+{% block title %}{% if is_editing %}{% trans "Edit Draft Poll" %}{% else %}{% trans "Create Poll" %}{% endif %}{% endblock %}
+
+{% block content %}
+<div class="container voting-page">
+    <header class="voting-page-header">
+        <div>
+            <h1>{% if is_editing %}{% trans "Edit poll draft" %}{% else %}{% trans "Create an opinion poll" %}{% endif %}</h1>
+            <p>{% trans "Add at least two answer choices. The poll remains a draft until activated from the voting overview." %}</p>
+        </div>
+        <a href="{% url 'view_all_elections' %}" class="btn btn-outline-secondary">{% trans "Back to voting" %}</a>
+    </header>
+    {% include 'snippets/messages.html' %}
+    <div class="card">
+        <div class="card-body p-4">
+            <form method="post" novalidate>
+                {% csrf_token %}
+                {{ poll_form|crispy }}
+                <fieldset class="mt-4">
+                    <legend class="h5">{% trans "Answer choices" %}</legend>
+                    <p class="text-muted small">{% trans "Provide at least two choices." %}</p>
+                    {{ formset.management_form }}
+                    {% for form in formset %}
+                        <div class="row align-items-center mb-2">
+                            <div class="col">{{ form.choice_text|as_crispy_field }}</div>
+                            {% if formset.can_delete and form.instance.pk %}
+                            <div class="col-auto">{{ form.DELETE|as_crispy_field }}</div>
+                            {% endif %}
+                            {% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
+                        </div>
+                    {% endfor %}
+                </fieldset>
+                <div class="d-flex justify-content-end gap-2 mt-4">
+                    <a href="{% url 'view_all_elections' %}" class="btn btn-outline-secondary">{% trans "Cancel" %}</a>
+                    <button type="submit" class="btn btn-primary">{% if is_editing %}{% trans "Save draft" %}{% else %}{% trans "Create draft" %}{% endif %}</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

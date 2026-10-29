@@ -1,0 +1,37 @@
+{% extends 'registration/registration_base.html' %}
+{% load i18n %}
+
+{% block title %}{% trans 'Enter Verification Code' %}{% endblock title %}
+
+{% block content %}
+<div class="col-md-4 mx-auto mt-5">
+  <div class="card">
+    <div class="form-title">
+      <i class="fas fa-key me-2"></i>
+      {% trans 'Enter the verification code sent to your email' %}
+    </div>
+    <div class="card-body">
+      {% if messages %}
+        <div class="mb-3">
+          {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}" role="alert">{{ message }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+      <form action="{% url 'verify_code' %}" method="POST">
+        {% csrf_token %}
+        
+        <div class="form-group mb-3">
+          <label for="verification_code"><i class="fas fa-key me-2"></i>{% trans 'Verification Code' %}</label>
+          <input type="text" name="verification_code" id="verification_code" class="form-control" required>
+        </div>
+        
+        <button type="submit" class="btn btn-primary" id="verify-btn"><i class="fas fa-check-circle"></i><small>{% trans 'VERIFY CODE' %}</small></button>
+      </form>
+      {% if form.errors %}
+          <span class="text-danger"><i class="fas fa-exclamation-circle"></i> {% trans 'Invalid or expired verification code.' %}</span><br>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock content %}

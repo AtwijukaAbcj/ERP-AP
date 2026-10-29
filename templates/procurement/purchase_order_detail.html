@@ -1,0 +1,131 @@
+{% extends 'base.html' %}
+{% load i18n %}
+{% block title %}Purchase Order {{ order.order_number }}{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'home' %}">{% trans 'Home' %}</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'procurement:purchase_order_list' %}">{% trans 'Purchase Orders' %}</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{{ order.order_number }}</li>
+        </ol>
+    </nav>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">{% trans 'Purchase Order' %} {{ order.order_number }}</h5>
+            <div>
+                <a href="{% url 'procurement:purchase_order_print' order.id %}" target="_blank" class="btn btn-outline-light btn-sm me-2">{% trans 'Print' %}</a>
+                <a href="{% url 'procurement:purchase_order_list' %}" class="btn btn-outline-light btn-sm">{% trans 'Back' %}</a>
+            </div>
+        </div>
+        <div class="card-body">
+            {% if order.requisition %}
+                {% with requisition_title=order.requisition.title %}
+                    {% if site_settings.logo %}
+                        {% include 'includes/document_header.html' with title='Purchase Order' subtitle=order.order_number label_1='Order Date:' value_1=order.order_date label_2='Status:' value_2=order.approved|yesno:'Approved,Pending' label_3='Requisition:' value_3=requisition_title logo_url=site_settings.logo.url %}
+                    {% else %}
+                        {% include 'includes/document_header.html' with title='Purchase Order' subtitle=order.order_number label_1='Order Date:' value_1=order.order_date label_2='Status:' value_2=order.approved|yesno:'Approved,Pending' label_3='Requisition:' value_3=requisition_title %}
+                    {% endif %}
+                {% endwith %}
+            {% else %}
+                {% if site_settings.logo %}
+                    {% include 'includes/document_header.html' with title='Purchase Order' subtitle=order.order_number label_1='Order Date:' value_1=order.order_date label_2='Status:' value_2=order.approved|yesno:'Approved,Pending' label_3='' value_3='' logo_url=site_settings.logo.url %}
+                {% else %}
+                    {% include 'includes/document_header.html' with title='Purchase Order' subtitle=order.order_number label_1='Order Date:' value_1=order.order_date label_2='Status:' value_2=order.approved|yesno:'Approved,Pending' label_3='' value_3='' %}
+                {% endif %}
+            {% endif %}
+
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <h6>{% trans 'From' %}</h6>
+                    <p class="mb-1 fw-bold">{{ site_settings.school_name }}</p>
+                    <p class="mb-1">{{ site_settings.school_address|linebreaksbr }}</p>
+                    <p class="mb-1">{% trans 'Email' %}: {{ site_settings.school_email }}</p>
+                    <p class="mb-0">{% trans 'Phone' %}: {{ site_settings.school_phone }}</p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <h6>{% trans 'To' %}</h6>
+                    <p class="mb-1 fw-bold">{{ order.supplier.name }}</p>
+                    <p class="mb-1">{{ order.supplier.address|linebreaksbr }}</p>
+                    <p class="mb-1">{% trans 'Email' %}: {{ order.supplier.email }}</p>
+                    <p class="mb-0">{% trans 'Phone' %}: {{ order.supplier.phone }}</p>
+                </div>
+            </div>
+
+            <div class="row mb-4">
+                <div class="col-md-4">
+                    <p class="mb-1"><strong>{% trans 'Order number' %}</strong></p>
+                    <p>{{ order.order_number }}</p>
+                </div>
+                <div class="col-md-4">
+                    <p class="mb-1"><strong>{% trans 'Order date' %}</strong></p>
+                    <p>{{ order.order_date }}</p>
+                </div>
+                <div class="col-md-4">
+                    <p class="mb-1"><strong>{% trans 'Status' %}</strong></p>
+                    <p>{% if order.approved %}{% trans 'Approved' %}{% else %}{% trans 'Pending' %}{% endif %}</p>
+                </div>
+                {% if order.quotation %}
+                <div class="col-md-4">
+                    <p class="mb-1"><strong>{% trans 'Supplier quotation' %}</strong></p>
+                    <p><a href="{% url 'procurement:purchase_quotation_detail' order.quotation.pk %}">{{ order.quotation.quotation_number }}</a></p>
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="table-responsive mb-4">
+                <table class="table table-bordered align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>{% trans 'Description' %}</th>
+                            <th class="text-end">{% trans 'Quantity' %}</th>
+                            <th class="text-end">{% trans 'Unit Price' %}</th>
+                            <th class="text-end">{% trans 'Line Total' %}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in order.items.all %}
+                        <tr>
+                            <td>{{ item.description }}</td>
+                            <td class="text-end">{{ item.quantity }}</td>
+                            <td class="text-end">{{ item.unit_price }}</td>
+                            <td class="text-end">{{ item.line_total }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-center text-muted">{% trans 'No items added to this order.' %}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <th colspan="3" class="text-end">{% trans 'Subtotal' %}</th>
+                            <th class="text-end">{{ order.items_total }}</th>
+                        </tr>
+                        <tr>
+                            <th colspan="3" class="text-end">{% trans 'Total Amount' %}</th>
+                            <th class="text-end">{{ order.total_amount }}</th>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+
+            <div class="row">
+                <div class="col-md-4">
+                    <p class="mb-1"><strong>{% trans 'Prepared by' %}</strong></p>
+                    <div class="border-top pt-3 mt-2"></div>
+                </div>
+                <div class="col-md-4">
+                    <p class="mb-1"><strong>{% trans 'Approved by' %}</strong></p>
+                    <div class="border-top pt-3 mt-2"></div>
+                </div>
+                <div class="col-md-4">
+                    <p class="mb-1"><strong>{% trans 'Received by' %}</strong></p>
+                    <div class="border-top pt-3 mt-2"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

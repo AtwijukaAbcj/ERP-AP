@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Generate Semester Invoices{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0">Generate Invoices for {{ semester }}</h4>
+        </div>
+        <div class="card-body">
+            {% include 'snippets/messages.html' %}
+            <p>
+                Active students will be invoiced for semester-wide fees and any
+                fee categories assigned specifically to them. Students with an
+                existing invoice for this semester will be skipped.
+            </p>
+            <form method="post">
+                {% csrf_token %}
+                {{ form|crispy }}
+                <button class="btn btn-primary" type="submit">Generate Invoices</button>
+                <a class="btn btn-secondary" href="{% url 'finance:invoice_list' %}">Cancel</a>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

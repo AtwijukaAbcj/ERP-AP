@@ -1,0 +1,301 @@
+{% extends 'base.html' %}
+{% load i18n %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+<nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/">{% trans 'Home' %}</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'programs' %}">{% trans 'Programs' %}</a></li>
+        <li class="breadcrumb-item"><a href="{{ course.get_absolute_url }}">{{ course.title|truncatechars:20 }}</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'assignment:assignment_list' course.slug %}">{% trans 'Assignments' %}</a></li>
+        <li class="breadcrumb-item active">{{ assignment.title|truncatechars:25 }}</li>
+    </ol>
+</nav>
+
+<div class="row">
+    <!-- Main Content -->
+    <div class="col-lg-8">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    {% if assignment.assignment_type == 'quiz' %}
+                    <i class="fas fa-question-circle me-2"></i>
+                    {% elif assignment.assignment_type == 'project' %}
+                    <i class="fas fa-project-diagram me-2"></i>
+                    {% else %}
+                    <i class="fas fa-file-alt me-2"></i>
+                    {% endif %}
+                    {{ assignment.title }}
+                </h5>
+                {% if request.user.is_lecturer or request.user.is_superuser %}
+                <div class="btn-group btn-group-sm">
+                    <a href="{% url 'assignment:speedgrader' course.slug assignment.id %}" class="btn btn-light">
+                        <i class="fas fa-bolt me-1"></i>{% trans 'SpeedGrader' %}
+                    </a>
+                    <a href="{% url 'assignment:assignment_edit' course.slug assignment.id %}" class="btn btn-outline-light">
+                        <i class="fas fa-edit"></i>
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                {% if assignment.description %}
+                <div class="mb-4">
+                    <h6 class="text-muted">{% trans 'Instructions' %}</h6>
+                    <div class="p-3 bg-light rounded">
+                        {{ assignment.description|linebreaks }}
+                    </div>
+                </div>
+                {% endif %}
+                
+                <!-- Assignment Details -->
+                <div class="row mb-4">
+                    <div class="col-md-4">
+                        <small class="text-muted d-block">{% trans 'Points' %}</small>
+                        <strong>{{ assignment.points_possible }}</strong>
+                    </div>
+                    <div class="col-md-4">
+                        <small class="text-muted d-block">{% trans 'Due Date' %}</small>
+                        {% if assignment.due_date %}
+                        <strong {% if assignment.is_past_due %}class="text-danger"{% endif %}>
+                            {{ assignment.due_date|date:"M d, Y H:i" }}
+                        </strong>
+                        {% else %}
+                        <span class="text-muted">{% trans 'No due date' %}</span>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-4">
+                        <small class="text-muted d-block">{% trans 'Submission Type' %}</small>
+                        <strong>{{ assignment.get_submission_type_display }}</strong>
+                    </div>
+                </div>
+                
+                {% if assignment.is_group_assignment %}
+                <div class="alert alert-info">
+                    <i class="fas fa-users me-2"></i>
+                    {% trans 'This is a group assignment. Submit on behalf of your group.' %}
+                </div>
+                {% endif %}
+                
+                {% if assignment.accept_late_submissions and assignment.late_penalty_percent > 0 %}
+                <div class="alert alert-warning">
+                    <i class="fas fa-clock me-2"></i>
+                    {% trans 'Late submissions accepted with' %} {{ assignment.late_penalty_percent }}% {% trans 'penalty per day' %}.
+                    {% if assignment.max_late_days > 0 %}
+                    {% trans 'Maximum' %} {{ assignment.max_late_days }} {% trans 'days late' %}.
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Rubric (if available) -->
+        {% if rubric %}
+        <div class="card shadow-sm mb-4">
+            <div class="card-header">
+                <i class="fas fa-table me-2"></i>{% trans 'Rubric' %}: {{ rubric.title }}
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-bordered mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width: 30%">{% trans 'Criterion' %}</th>
+                            <th>{% trans 'Ratings' %}</th>
+                            <th style="width: 15%">{% trans 'Points' %}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for criterion in rubric.criteria.all %}
+                        <tr>
+                            <td>{{ criterion.description }}</td>
+                            <td>
+                                {% for rating in criterion.ratings.all %}
+                                <span class="badge bg-secondary me-1">{{ rating.description }} ({{ rating.points }})</span>
+                                {% endfor %}
+                            </td>
+                            <td class="text-center">{{ criterion.points }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot class="table-light">
+                        <tr>
+                            <td colspan="2" class="text-end"><strong>{% trans 'Total' %}</strong></td>
+                            <td class="text-center"><strong>{{ rubric.total_points }}</strong></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Submission Form (Students) -->
+        {% if request.user.is_student and assignment.is_available %}
+        <div class="card shadow-sm">
+            <div class="card-header bg-success text-white">
+                <i class="fas fa-upload me-2"></i>{% trans 'Submit Assignment' %}
+            </div>
+            <div class="card-body">
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    
+                    {% if 'text' in assignment.online_entry_options %}
+                    <div class="mb-3">
+                        <label class="form-label">{% trans 'Text Entry' %}</label>
+                        {{ form.text_entry }}
+                    </div>
+                    {% endif %}
+                    
+                    {% if 'file' in assignment.online_entry_options %}
+                    <div class="mb-3">
+                        <label class="form-label">{% trans 'File Upload' %}</label>
+                        {{ form.file_upload }}
+                        <small class="text-muted d-block mt-1">
+                            {% trans 'Max size' %}: {{ assignment.max_file_size }} MB
+                            {% if assignment.allowed_file_types != 'any' %}
+                            | {% trans 'Allowed' %}: {{ assignment.get_allowed_file_types_display }}
+                            {% endif %}
+                        </small>
+                    </div>
+                    {% endif %}
+                    
+                    {% if 'url' in assignment.online_entry_options %}
+                    <div class="mb-3">
+                        <label class="form-label">{% trans 'Website URL' %}</label>
+                        {{ form.url_submission }}
+                    </div>
+                    {% endif %}
+                    
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-paper-plane me-1"></i>{% trans 'Submit' %}
+                    </button>
+                </form>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- Sidebar -->
+    <div class="col-lg-4">
+        <!-- Submission Status -->
+        {% if submission %}
+        <div class="card shadow-sm mb-4">
+            <div class="card-header {% if submission.status == 'graded' %}bg-success{% elif submission.status == 'late' %}bg-warning{% else %}bg-primary{% endif %} text-white">
+                <i class="fas fa-check-circle me-2"></i>{% trans 'Your Submission' %}
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <small class="text-muted d-block">{% trans 'Status' %}</small>
+                    <span class="badge 
+                        {% if submission.status == 'graded' %}bg-success
+                        {% elif submission.status == 'late' %}bg-warning text-dark
+                        {% elif submission.status == 'submitted' %}bg-primary
+                        {% else %}bg-secondary{% endif %}">
+                        {{ submission.get_status_display }}
+                    </span>
+                </div>
+                
+                <div class="mb-3">
+                    <small class="text-muted d-block">{% trans 'Submitted' %}</small>
+                    <span>{{ submission.submitted_at|date:"M d, Y H:i" }}</span>
+                </div>
+                
+                {% if submission.score is not None %}
+                <div class="mb-3">
+                    <small class="text-muted d-block">{% trans 'Score' %}</small>
+                    <h4>
+                        {{ submission.final_score|floatformat:1 }} / {{ assignment.points_possible }}
+                        {% if submission.late_penalty_applied > 0 %}
+                        <small class="text-danger">({{ submission.late_penalty_applied }}% {% trans 'late penalty' %})</small>
+                        {% endif %}
+                    </h4>
+                    <div class="progress" style="height: 8px;">
+                        <div class="progress-bar {% if submission.percentage >= 70 %}bg-success{% elif submission.percentage >= 50 %}bg-warning{% else %}bg-danger{% endif %}" 
+                             style="width: {{ submission.percentage }}%"></div>
+                    </div>
+                </div>
+                {% endif %}
+                
+                {% if submission.feedback %}
+                <div class="mb-3">
+                    <small class="text-muted d-block">{% trans 'Feedback' %}</small>
+                    <div class="p-2 bg-light rounded">
+                        {{ submission.feedback|linebreaks }}
+                    </div>
+                </div>
+                {% endif %}
+                
+                <!-- Submission Content -->
+                {% if submission.text_entry %}
+                <div class="mb-3">
+                    <small class="text-muted d-block">{% trans 'Your Text' %}</small>
+                    <div class="p-2 bg-light rounded" style="max-height: 200px; overflow-y: auto;">
+                        {{ submission.text_entry|truncatewords:50 }}
+                    </div>
+                </div>
+                {% endif %}
+                
+                {% if submission.file_upload %}
+                <div class="mb-3">
+                    <small class="text-muted d-block">{% trans 'Uploaded File' %}</small>
+                    <a href="{% url 'assignment:submission_download' submission.id %}" class="btn btn-sm btn-outline-primary">
+                        <i class="fas fa-download me-1"></i>{{ submission.original_filename|truncatechars:30 }}
+                    </a>
+                </div>
+                {% endif %}
+                
+                {% if submission.url_submission %}
+                <div class="mb-3">
+                    <small class="text-muted d-block">{% trans 'URL' %}</small>
+                    <a href="{{ submission.url_submission }}" target="_blank">
+                        {{ submission.url_submission|truncatechars:40 }}
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Assignment Info Card -->
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <i class="fas fa-info-circle me-2"></i>{% trans 'Details' %}
+            </div>
+            <div class="card-body">
+                <table class="table table-sm table-borderless mb-0">
+                    <tr>
+                        <td class="text-muted">{% trans 'Type' %}</td>
+                        <td>{{ assignment.get_assignment_type_display }}</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">{% trans 'Grading' %}</td>
+                        <td>{{ assignment.get_grading_type_display }}</td>
+                    </tr>
+                    {% if assignment.group %}
+                    <tr>
+                        <td class="text-muted">{% trans 'Group' %}</td>
+                        <td>{{ assignment.group.name }}</td>
+                    </tr>
+                    {% endif %}
+                    <tr>
+                        <td class="text-muted">{% trans 'Attempts' %}</td>
+                        <td>{% if assignment.allowed_attempts == 0 %}{% trans 'Unlimited' %}{% else %}{{ assignment.allowed_attempts }}{% endif %}</td>
+                    </tr>
+                    {% if assignment.available_from %}
+                    <tr>
+                        <td class="text-muted">{% trans 'Available From' %}</td>
+                        <td>{{ assignment.available_from|date:"M d, Y H:i" }}</td>
+                    </tr>
+                    {% endif %}
+                    {% if assignment.available_until %}
+                    <tr>
+                        <td class="text-muted">{% trans 'Available Until' %}</td>
+                        <td>{{ assignment.available_until|date:"M d, Y H:i" }}</td>
+                    </tr>
+                    {% endif %}
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block title %}{% trans "Respond to Poll" %}{% endblock %}
+
+{% block content %}
+<div class="container voting-page">
+    <header class="voting-page-header">
+        <div>
+            <h1>{{ poll.question }}</h1>
+            <p>{% trans "Choose one answer. Your response cannot be changed after submission." %}</p>
+        </div>
+        <a href="{% url 'poll_list' %}" class="btn btn-outline-secondary">{% trans "Back to polls" %}</a>
+    </header>
+    {% include 'snippets/messages.html' %}
+    <div class="card">
+        <div class="card-body p-4">
+            <form method="post" action="{% url 'vote_poll' poll.pk %}">
+                {% csrf_token %}
+                <fieldset>
+                    <legend class="h5 mb-3">{% trans "Select one response" %}</legend>
+                    {% for choice in poll.choices.all %}
+                    <label class="voting-candidate-choice mb-2">
+                        <input class="voting-candidate-radio" type="radio" name="choice" value="{{ choice.pk }}" required>
+                        <span>{{ choice.choice_text }}</span>
+                    </label>
+                    {% empty %}
+                    <div class="voting-empty-state">{% trans "This poll has no choices." %}</div>
+                    {% endfor %}
+                </fieldset>
+                <div class="d-flex justify-content-end mt-4">
+                    <button class="btn btn-primary" type="submit"><i class="fas fa-lock me-1" aria-hidden="true"></i>{% trans "Submit response" %}</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

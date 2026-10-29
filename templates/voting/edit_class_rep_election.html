@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+{% load i18n crispy_forms_tags %}
+
+{% block title %}{% trans "Edit Class Representative Election" %}{% endblock %}
+
+{% block content %}
+<div class="container voting-page">
+    <header class="voting-page-header">
+        <div>
+            <h1>{% trans "Edit class representative election" %}</h1>
+            <p>{{ election.program.title }} · {{ election.session.session }}. {% trans "Only draft elections can be edited." %}</p>
+        </div>
+        <a href="{% url 'view_all_elections' %}" class="btn btn-outline-secondary">{% trans "Back to elections" %}</a>
+    </header>
+    {% include 'snippets/messages.html' %}
+    <div class="card">
+        <div class="card-body p-4">
+            <form method="post" novalidate>
+                {% csrf_token %}
+                {{ form|crispy }}
+                <div class="d-flex justify-content-end gap-2 mt-4">
+                    <a href="{% url 'view_all_elections' %}" class="btn btn-outline-secondary">{% trans "Cancel" %}</a>
+                    <button type="submit" class="btn btn-primary">{% trans "Save changes" %}</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,116 @@
+{% extends 'base.html' %}
+{% load i18n %}
+{% block title %}{{ title }} | {% trans 'Learning management system' %}{% endblock title %}
+{% load crispy_forms_tags %}
+{% load static %}
+
+{% block content %}
+
+<nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/">{% trans 'Home' %}</a></li>
+        <li class="breadcrumb-item active" aria-current="page">{% trans 'Admin Panel' %}</li>
+    </ol>
+</nav>  
+
+<div class="title-1"><i class="fas fa-user-tie"></i>{% trans 'Admin Panel' %}</div>
+<br>
+<br>
+
+{% include 'snippets/messages.html' %}
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-6">
+            <div class="border-bottom">
+                {% trans 'Manage' %}<a class="link" href="{% url 'lecturer_list' %}"> {% trans 'Lecturers' %} &raquo;</a>
+                <p class="text-muted">CRUD (Create, Retrieve, Update &amp; Delete) lecturers</p>
+            </div>
+
+            <div class="border-bottom mt-3">
+                {% trans 'Add' %}<a class="link" href="{% url 'add_lecturer' %}"> {% trans 'Lecturer' %} &raquo;</a>
+                <p class="text-muted">Create new lecturer accounts</p>
+            </div>
+
+            <div class="border-bottom mt-3">
+                {% trans 'Manage' %}<a class="link" href="{% url 'student_list' %}"> {% trans 'Students' %} &raquo;</a>
+            <p class="text-muted">CRUD (Create, Retrieve, Update &amp; Delete) {% trans 'students' %}</p>
+            </div>
+
+            <div class="border-bottom mt-3">
+                {% trans 'Add' %}<a class="link" href="{% url 'add_student' %}"> {% trans 'Student' %} &raquo;</a>
+                <p class="text-muted">Create new student accounts</p>
+            </div>
+
+            <div class="border-bottom mt-3">
+                {% trans 'Manage' %}<a class="link" href="{% url 'user_list' %}"> {% trans 'Users' %} &raquo;</a>
+                <p class="text-muted">View and manage all registered users</p>
+            </div>
+
+            <div class="border-bottom mt-3">
+                {% trans 'Manage' %}<a class="link" href="{% url 'role_list' %}"> {% trans 'Roles' %} &raquo;</a>
+                <p class="text-muted">View and manage role definitions</p>
+            </div>
+
+            <div class="border-bottom mt-3">
+                {% trans 'Manage' %}<a class="link" href="{% url 'permission_list' %}"> {% trans 'Permissions' %} &raquo;</a>
+                <p class="text-muted">View and manage permission definitions</p>
+            </div>
+
+            <div class="border-bottom mt-3">
+                {% trans 'Manage' %}<a class="link" href="{% url 'role_permission_list' %}"> {% trans 'Role Permissions' %} &raquo;</a>
+                <p class="text-muted">Assign permissions to roles</p>
+            </div>
+
+            <div class="border-bottom mt-3">
+                {% trans 'Manage' %}<a class="link" href="{% url 'assign_modules' %}"> {% trans 'User Module Access' %} &raquo;</a>
+                <p class="text-muted">Give specific users access to modules</p>
+            </div>
+
+            <div class="border-bottom mt-3">
+                {% trans 'Manage' %}<a class="link" href="{% url 'session_list' %}"> {% trans 'Session' %} &raquo;</a>
+            <p class="text-muted">CRUD (Create, Retrieve, Update &amp; Delete) {% trans 'sessions' %}</p>
+            </div>
+
+            <div class="mt-3">
+                {% trans 'Manage' %}<a class="link" href="{% url 'semester_list' %}"> {% trans 'Semester' %} &raquo;</a>
+            <p class="text-muted">CRUD (Create, Retrieve, Update &amp; Delete) {% trans 'semesters' %}</p>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="border-bottom">
+                {% trans 'Course Add' %} &amp; {% trans 'Drop' %}
+                <label class="switch switch-text switch-success switch-pill" style="float: right;">
+                <input type="checkbox" class="switch-input" checked="true">
+                <span data-on="On" data-off="Off" class="switch-label"></span>
+                <span class="switch-handle"></span>
+                </label>
+                <p class="text-muted">{% trans 'Switch' %} 
+                    <i class="info-text py-0 px-2 bg-success text-light">ON</i> or <i class="info-text py-0 px-2 bg-danger text-light">OFF</i>
+                </p>
+            </div>
+
+            <div class="border-bottom mt-3">
+                {% trans 'Manage' %}<a class="link" href="{% url 'programs' %}"> {% trans 'Programs' %} &amp; {% trans 'Courses' %} &raquo;</a>
+            <p class="text-muted">CRUD (Create, Retrieve, Update &amp; Delete) {% trans 'programs' %}</p>
+            </div>
+
+            <div class="border-bottom mt-3">
+                {% trans 'Manage' %}<a class="link" href="{% url 'course_allocation_view' %}"> {% trans 'Course Allocations' %} &raquo;</a>
+            <p class="text-muted">CRUD (Create, Retrieve, Update &amp; Delete) {% trans 'course allocations' %}</p>
+            </div>
+
+            <div class="border-bottom mt-3">
+                {% trans 'Manage' %}<a class="link" href="{% url 'course_enrollment' %}"> {% trans 'Course Enrollments' %} &raquo;</a>
+                <p class="text-muted">{% trans 'Enroll eligible students and safely drop course enrollments.' %}</p>
+            </div>
+
+            <div class="mt-3">
+                {% trans 'Manage' %}<a class="link" href="{% url 'home' %}"> {% trans 'News' %} &amp; {% trans 'Events' %} &raquo;</a>
+            <p class="text-muted">CRUD (Create, Retrieve, Update &amp; Delete) {% trans 'News' %} &amp; {% trans 'Events' %}</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

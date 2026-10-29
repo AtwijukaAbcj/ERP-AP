@@ -1,0 +1,127 @@
+{% extends 'base.html' %}
+{% load i18n %}
+{% block title %}{% trans "Institutional Reports" %}{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <div>
+            <h2 class="mb-1">{% trans "Institutional Reports" %}</h2>
+            <p class="text-muted mb-0">
+                {% trans "Generated" %}: {{ generated_at|date:"Y-m-d H:i" }}
+                {% if semester %} · {{ semester.session.session }} / {{ semester.get_semester_display|default:semester.semester }}{% else %} · {% trans "All academic periods" %}{% endif %}
+            </p>
+        </div>
+        <a class="btn btn-outline-primary" href="{% url 'export_institutional_report_csv' %}{% if semester %}?semester={{ semester.pk }}{% endif %}">
+            {% trans "Download CSV" %}
+        </a>
+        <a class="btn btn-outline-secondary" href="{% url 'export_institutional_report_pdf' %}{% if semester %}?semester={{ semester.pk }}{% endif %}">
+            {% trans "Download PDF" %}
+        </a>
+    </div>
+
+    <form method="get" class="card card-body mb-4">
+        <label for="semester-filter" class="form-label">{% trans "Academic period" %}</label>
+        <div class="d-flex gap-2">
+            <select id="semester-filter" name="semester" class="form-select">
+                <option value="">{% trans "Current period (or all periods if none is current)" %}</option>
+                {% for option in semesters %}
+                <option value="{{ option.pk }}" {% if semester.pk == option.pk %}selected{% endif %}>
+                    {{ option.session.session|default:"-" }} / {{ option.semester }}
+                </option>
+                {% endfor %}
+            </select>
+            <button class="btn btn-primary" type="submit">{% trans "Apply" %}</button>
+        </div>
+    </form>
+
+    <h3 class="h5">{% trans "Admissions & Student Body" %}</h3>
+    <div class="row g-3 mb-4">
+        <div class="col-md-4"><div class="card card-body h-100"><span class="text-muted">{% trans "Students" %}</span><strong class="fs-3">{{ student_count }}</strong><small>{% trans "Active" %}: {{ active_student_count }}</small></div></div>
+        <div class="col-md-4"><div class="card card-body h-100"><span class="text-muted">{% trans "Applications" %}</span><strong class="fs-3">{{ admission_total }}</strong>
+            {% for item in admissions_by_status %}<small>{{ item.status|title }}: {{ item.count }}</small>{% endfor %}
+        </div></div>
+        <div class="col-md-4"><div class="card card-body h-100"><span class="text-muted">{% trans "Active lecturers" %}</span><strong class="fs-3">{{ lecturer_count }}</strong></div></div>
+    </div>
+
+    <h3 class="h5">{% trans "Academics, Results & Clinical Training" %}</h3>
+    <div class="row g-3 mb-4">
+        <div class="col-md-3"><div class="card card-body h-100"><span class="text-muted">{% trans "Active enrollments" %}</span><strong class="fs-3">{{ active_enrollment_count }}</strong><small>{% trans "Dropped" %}: {{ dropped_enrollment_count }}</small></div></div>
+        <div class="col-md-3"><div class="card card-body h-100"><span class="text-muted">{% trans "Average score" %}</span><strong class="fs-3">{{ average_score|floatformat:2 }}</strong><small>{% trans "Pass" %}: {{ pass_count }} · {% trans "Fail" %}: {{ fail_count }}</small></div></div>
+        <div class="col-md-3"><div class="card card-body h-100"><span class="text-muted">{% trans "Clinical placements" %}</span><strong class="fs-3">{{ clinical_placement_count }}</strong><small>{% trans "In progress" %}: {{ active_clinical_placement_count }}</small></div></div>
+        <div class="col-md-3"><div class="card card-body h-100"><span class="text-muted">{% trans "Enrollment period" %}</span><strong class="fs-5">{% if semester %}{{ semester.session.session|default:"-" }} / {{ semester.semester }}{% else %}{% trans "All periods" %}{% endif %}</strong></div></div>
+    </div>
+
+    <h3 class="h5">{% trans "Finance & Procurement" %}</h3>
+    <div class="row g-3 mb-4">
+        <div class="col-md-3"><div class="card card-body h-100"><span class="text-muted">{% trans "Invoice total" %}</span><strong class="fs-4">{{ invoice_total|floatformat:2 }}</strong><small>{{ invoice_count }} {% trans "invoices" %}</small></div></div>
+        <div class="col-md-3"><div class="card card-body h-100"><span class="text-muted">{% trans "Payments recorded" %}</span><strong class="fs-4">{{ amount_paid|floatformat:2 }}</strong><small>{% trans "Outstanding" %}: {{ outstanding|floatformat:2 }}</small></div></div>
+        <div class="col-md-3"><div class="card card-body h-100"><span class="text-muted">{% trans "Approved purchase orders" %}</span><strong class="fs-3">{{ approved_order_count }}</strong><small>{% trans "Value" %}: {{ approved_order_total|floatformat:2 }}</small></div></div>
+        <div class="col-md-3"><div class="card card-body h-100"><span class="text-muted">{% trans "Open requisitions" %}</span><strong class="fs-3">{{ open_requisition_count }}</strong><small>{% trans "Pending payment vouchers" %}: {{ pending_voucher_count }}</small></div></div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header"><h3 class="h6 mb-0">{% trans "Student distribution by programme" %}</h3></div>
+        <div class="table-responsive">
+            <table class="table table-striped mb-0">
+                <thead><tr><th>{% trans "Programme" %}</th><th>{% trans "Students" %}</th></tr></thead>
+                <tbody>
+                    {% for item in students_by_program %}
+                    <tr><td>{{ item.program__title|default:"-" }}</td><td>{{ item.count }}</td></tr>
+                    {% empty %}
+                    <tr><td colspan="2">{% trans "No student records found." %}</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <h3 class="h5">{% trans "Student Demographics & Attendance" %}</h3>
+        <div class="row g-3 mb-4">
+            <div class="col-md-4">
+                <div class="card card-body h-100">
+                    <span class="text-muted">{% trans "Overall attendance rate" %}</span>
+                    <strong class="fs-3">{{ attendance_rate|floatformat:2 }}%</strong>
+                    {% for item in attendance_by_status %}<small>{{ item.status|title }}: {{ item.count }}</small>{% endfor %}
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card card-body h-100">
+                    <span class="text-muted">{% trans "Students by level" %}</span>
+                    {% for item in students_by_level %}<small>{{ item.level|default:"Unassigned" }}: {{ item.count }}</small>{% empty %}<small>{% trans "No student records found." %}</small>{% endfor %}
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card card-body h-100">
+                    <span class="text-muted">{% trans "Lecturers by qualification" %}</span>
+                    {% for item in lecturers_by_qualification %}<small>{{ item.qualification|default:"Not recorded" }}: {{ item.count }}</small>{% empty %}<small>{% trans "No staff qualification records found." %}</small>{% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header"><h3 class="h6 mb-0">{% trans "Course performance and enrollment" %}</h3></div>
+            <div class="table-responsive">
+                <table class="table table-striped mb-0">
+                    <thead><tr><th>{% trans "Course" %}</th><th>{% trans "Active enrollments" %}</th><th>{% trans "Average score" %}</th></tr></thead>
+                    <tbody>
+                        {% for item in course_performance %}
+                        <tr><td>{{ item.course__code }} — {{ item.course__title }}</td><td>{{ item.enrollment_count }}</td><td>{{ item.average_score|default:0|floatformat:2 }}</td></tr>
+                        {% empty %}
+                        <tr><td colspan="3">{% trans "No course results found for this period." %}</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header"><h3 class="h6 mb-0">{% trans "Course resources" %}</h3></div>
+            <div class="card-body d-flex flex-wrap gap-4">
+                <span>{% trans "Courses" %}: <strong>{{ course_resource_counts.courses }}</strong></span>
+                <span>{% trans "Documents" %}: <strong>{{ course_resource_counts.documents }}</strong></span>
+                <span>{% trans "Videos" %}: <strong>{{ course_resource_counts.videos }}</strong></span>
+                <span>{% trans "Assignments" %}: <strong>{{ course_resource_counts.assignments }}</strong></span>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

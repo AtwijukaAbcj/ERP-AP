@@ -1,0 +1,229 @@
+{% extends 'base.html' %}
+{% load i18n permission_tags %}
+{% has_module_permission 'procurement_requisitions_edit' as can_edit %}
+{% has_module_permission 'procurement_requisitions_delete' as can_delete %}
+{% block title %}Purchase Requisitions{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'home' %}">{% trans 'Home' %}</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{% trans 'Purchase Requisitions' %}</li>
+        </ol>
+    </nav>
+
+    <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">{% trans 'Purchase Requisitions' %}</h5>
+            <div>
+                {% has_module_permission 'procurement_requisitions_export' as can_export %}
+                {% if can_export %}
+                    <a href="{% url 'procurement:export_purchase_requisition_csv' %}" class="btn btn-outline-light btn-sm me-1">CSV</a>
+                    <a href="{% url 'procurement:export_purchase_requisition_excel' %}" class="btn btn-outline-light btn-sm me-1">Excel</a>
+                {% endif %}
+                <a href="{% url 'procurement:purchase_requisition_add' %}" class="btn btn-outline-light btn-sm">+ {% trans 'Add Requisition' %}</a>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>{% trans 'Title' %}</th>
+                            <th>{% trans 'Department' %}</th>
+                            <th>{% trans 'Requested By' %}</th>
+                            <th>{% trans 'Status' %}</th>
+                            <th>{% trans 'Request document' %}</th>
+                            <th>{% trans 'Quotations' %}</th>
+                            <th>{% trans 'Total Amount' %}</th>
+                            <th>{% trans 'Required By' %}</th>
+                            <th>{% trans 'Actions' %}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for requisition in requisitions %}
+                        <tr>
+                            <td>{{ requisition.title }}</td>
+                            <td>{{ requisition.department }}</td>
+                            <td>{{ requisition.requested_by }}</td>
+                            <td>
+                                {% if requisition.status %}
+                                    {{ requisition.status.name }}
+                                {% else %}
+                                    N/A
+                                {% endif %}
+                                {% for event in requisition.status_history.all|slice:":3" %}
+                                    <div class="small text-muted">{{ event.changed_at|date:"d M Y H:i" }} · {{ event.to_status|title }}{% if event.changed_by %} · {{ event.changed_by.get_full_name|default:event.changed_by.username }}{% endif %}{% if event.comment %}: {{ event.comment|truncatechars:90 }}{% endif %}</div>
+                                {% endfor %}
+                            </td>
+                            <td>{% if requisition.attachments %}<a href="{{ requisition.attachments.url }}" target="_blank" rel="noopener">{% trans 'Open attachment' %}</a>{% else %}—{% endif %}</td>
+                            <td>
+                                {% for quotation in requisition.quotations.all %}
+                                    <a href="{% url 'procurement:purchase_quotation_detail' quotation.pk %}">{{ quotation.supplier.name }} — {{ quotation.total_amount|floatformat:2 }}</a>{% if quotation.status == "accepted" %} ({% trans 'Selected' %}){% endif %}{% if not forloop.last %}<br>{% endif %}
+                                {% empty %}—
+                                {% endfor %}
+                            </td>
+                            <td>{{ requisition.total_amount }}</td>
+                            <td>{{ requisition.required_by }}</td>
+                            <td>
+                                <div class="dropdown requisition-actions-dropdown">
+                                    <button class="btn btn-sm btn-outline-secondary p-0 d-flex align-items-center justify-content-center" type="button" id="requisitionActions{{ requisition.id }}" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false" aria-label="{% trans 'Requisition actions' %}" style="width: 36px; height: 36px;">
+                                        <i class="fas fa-ellipsis-v" aria-hidden="true"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="requisitionActions{{ requisition.id }}" style="min-width: 180px;">
+                                        {% if can_submit and requisition.requested_by_id == request.user.pk or can_review %}
+                                            {% if requisition.status.slug == 'draft' or requisition.status.slug == 'returned' %}
+                                            <li>
+                                                <form method="post" action="{% url 'procurement:purchase_requisition_transition' requisition.id %}">
+                                                    {% csrf_token %}
+                                                    <input type="hidden" name="action" value="submit">
+                                                    <button type="submit" class="dropdown-item">{% trans 'Submit' %}</button>
+                                                </form>
+                                            </li>
+                                            {% endif %}
+                                        {% endif %}
+                                        {% for rule in requisition.available_workflow_rules %}
+                                        <li>
+                                            <button type="button" class="dropdown-item{% if rule.to_status.slug == 'rejected' %} text-danger{% endif %}" data-bs-toggle="modal" data-bs-target="#requisitionActionModal" data-action-url="{% url 'procurement:purchase_requisition_transition' requisition.id %}" data-action="rule:{{ rule.id }}" data-action-label="{{ rule.action_label|escape }}" data-requisition-title="{{ requisition.title|escape }}" data-reason-required="{% if rule.requires_reason or rule.to_status.slug == 'approved' or rule.to_status.slug == 'rejected' or rule.to_status.slug == 'returned' %}true{% else %}false{% endif %}">
+                                                {{ rule.action_label }}
+                                            </button>
+                                        </li>
+                                        {% endfor %}
+                                        {% if can_edit and requisition.status.slug == 'draft' or can_edit and requisition.status.slug == 'returned' %}
+                                        <li><a class="dropdown-item" href="{% url 'procurement:purchase_requisition_edit' requisition.id %}">{% trans 'Edit' %}</a></li>
+                                        {% endif %}
+                                        {% if can_delete %}
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li>
+                                            <form method="post" action="{% url 'procurement:purchase_requisition_delete' requisition.id %}">
+                                                {% csrf_token %}
+                                                <button type="submit" class="dropdown-item text-danger" onclick="return confirm('{% trans 'Delete this requisition?' %}')">{% trans 'Delete' %}</button>
+                                            </form>
+                                        </li>
+                                        {% endif %}
+                                    </ul>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="9">{% trans 'No purchase requisitions found.' %}</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="requisitionActionModal" tabindex="-1" aria-labelledby="requisitionActionTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form method="post" id="requisitionActionForm">
+                {% csrf_token %}
+                <input type="hidden" name="action" id="requisitionActionValue">
+                <div class="modal-header">
+                    <h2 class="modal-title fs-5" id="requisitionActionTitle"></h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{% trans 'Close' %}"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted" id="requisitionActionPrompt"></p>
+                    <label for="requisitionActionReason" class="form-label">{% trans 'Reason' %}</label>
+                    <textarea class="form-control" id="requisitionActionReason" name="comment" rows="3" required maxlength="2000" placeholder="{% trans 'Enter a brief reason for this action' %}"></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{% trans 'Cancel' %}</button>
+                    <button type="submit" class="btn btn-primary" id="requisitionActionSubmit"></button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block js %}
+{{ block.super }}
+<style>
+    .requisition-actions-dropdown .dropdown-menu {
+        z-index: 1085;
+    }
+</style>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    document.querySelectorAll(".requisition-actions-dropdown [data-bs-toggle='dropdown']").forEach(function (button) {
+        button.addEventListener("show.bs.dropdown", function () {
+            const menu = button.parentNode.querySelector(".dropdown-menu");
+            if (!menu) {
+                return;
+            }
+            button._menuOriginalParent = menu.parentNode;
+            button._menuOriginalNextSibling = menu.nextSibling;
+            document.body.appendChild(menu);
+            menu.style.position = "fixed";
+            menu.style.zIndex = "1085";
+        });
+
+        button.addEventListener("shown.bs.dropdown", function () {
+            const menu = document.body.querySelector(
+                '.requisition-actions-dropdown .dropdown-menu[aria-labelledby="' + button.id + '"]'
+            ) || document.body.querySelector(
+                '.dropdown-menu[aria-labelledby="' + button.id + '"]'
+            );
+            if (!menu) {
+                return;
+            }
+            const rect = button.getBoundingClientRect();
+            const menuRect = menu.getBoundingClientRect();
+            let top = rect.bottom + 4;
+            if (top + menuRect.height > window.innerHeight && rect.top - menuRect.height - 4 >= 8) {
+                top = rect.top - menuRect.height - 4;
+            }
+            const left = Math.min(
+                rect.right - menuRect.width,
+                window.innerWidth - menuRect.width - 8
+            );
+            menu.style.top = Math.max(8, top) + "px";
+            menu.style.left = Math.max(8, left) + "px";
+        });
+
+        button.addEventListener("hidden.bs.dropdown", function () {
+            const menu = document.body.querySelector(
+                '.dropdown-menu[aria-labelledby="' + button.id + '"]'
+            );
+            if (menu && button._menuOriginalParent) {
+                button._menuOriginalParent.insertBefore(menu, button._menuOriginalNextSibling);
+                menu.style.position = "";
+                menu.style.top = "";
+                menu.style.left = "";
+                menu.style.zIndex = "";
+            }
+        });
+    });
+
+    const modal = document.getElementById("requisitionActionModal");
+    const form = document.getElementById("requisitionActionForm");
+    const reason = document.getElementById("requisitionActionReason");
+    if (!modal || !form || typeof bootstrap === "undefined") {
+        return;
+    }
+
+    modal.addEventListener("show.bs.modal", function (event) {
+        const trigger = event.relatedTarget;
+        if (!trigger) {
+            return;
+        }
+        const actionLabel = trigger.dataset.actionLabel;
+        const requisitionTitle = trigger.dataset.requisitionTitle;
+        form.action = trigger.dataset.actionUrl;
+        document.getElementById("requisitionActionValue").value = trigger.dataset.action;
+        document.getElementById("requisitionActionTitle").textContent = actionLabel;
+        document.getElementById("requisitionActionPrompt").textContent =
+            actionLabel + " — " + requisitionTitle;
+        document.getElementById("requisitionActionSubmit").textContent = actionLabel;
+        reason.value = "";
+        reason.required = trigger.dataset.reasonRequired === "true";
+        document.querySelector('label[for="requisitionActionReason"]').textContent =
+            reason.required ? "Reason" : "Reason (optional)";
+    });
+});
+</script>
+{% endblock %}

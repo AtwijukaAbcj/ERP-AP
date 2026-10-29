@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block content %}
+<nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/">{% trans 'Home' %}</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'assignment:assignment_list' course.slug %}">{% trans 'Assignments' %}</a></li>
+        <li class="breadcrumb-item active">{% trans 'Student Groups' %}</li>
+    </ol>
+</nav>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h3><i class="fas fa-users me-2 text-primary"></i>{% trans 'Student Groups' %}</h3>
+        <p class="text-muted mb-0">{% trans 'Manage groups for collaborative assignments' %}</p>
+    </div>
+    <a href="{% url 'assignment:student_group_create' course.slug %}" class="btn btn-primary">
+        <i class="fas fa-plus me-1"></i>{% trans 'New Group' %}
+    </a>
+</div>
+
+{% if groups %}
+<div class="row">
+    {% for group in groups %}
+    <div class="col-md-6 col-lg-4 mb-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="mb-0">{{ group.name }}</h6>
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-link text-muted" data-bs-toggle="dropdown">
+                        <i class="fas fa-ellipsis-v"></i>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li>
+                            <a class="dropdown-item" href="{% url 'assignment:student_group_edit' course.slug group.id %}">
+                                <i class="fas fa-edit me-2"></i>{% trans 'Edit' %}
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <a class="dropdown-item text-danger" href="{% url 'assignment:student_group_delete' course.slug group.id %}">
+                                <i class="fas fa-trash me-2"></i>{% trans 'Delete' %}
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <small class="text-muted text-uppercase">{% trans 'Members' %} ({{ group.members.count }})</small>
+                </div>
+                
+                {% if group.members.exists %}
+                <ul class="list-unstyled mb-0">
+                    {% for member in group.members.all|slice:":5" %}
+                    <li class="d-flex align-items-center mb-2">
+                        <div class="avatar bg-primary text-white rounded-circle me-2 d-flex align-items-center justify-content-center" 
+                             style="width: 32px; height: 32px; font-size: 12px;">
+                            {{ member.student.first_name|slice:":1" }}{{ member.student.last_name|slice:":1" }}
+                        </div>
+                        <div>
+                            <div class="small">{{ member.student.get_full_name }}</div>
+                            <small class="text-muted">{{ member.student.email }}</small>
+                        </div>
+                    </li>
+                    {% endfor %}
+                    {% if group.members.count > 5 %}
+                    <li class="text-muted small mt-2">
+                        + {{ group.members.count|add:"-5" }} {% trans 'more members' %}
+                    </li>
+                    {% endif %}
+                </ul>
+                {% else %}
+                <p class="text-muted small mb-0">{% trans 'No members yet' %}</p>
+                {% endif %}
+            </div>
+            <div class="card-footer bg-transparent">
+                <small class="text-muted">
+                    {% trans 'Created' %}: {{ group.created_at|date:"M d, Y" }}
+                </small>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="card shadow-sm">
+    <div class="card-body text-center py-5">
+        <i class="fas fa-users fa-4x text-muted mb-3"></i>
+        <h5 class="text-muted">{% trans 'No student groups yet' %}</h5>
+        <p class="text-muted">{% trans 'Create groups to enable collaborative assignments' %}</p>
+        <a href="{% url 'assignment:student_group_create' course.slug %}" class="btn btn-primary">
+            <i class="fas fa-plus me-1"></i>{% trans 'Create First Group' %}
+        </a>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

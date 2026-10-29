@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Registrar Account Created</title>
+</head>
+<body>
+  <h2>Hello {{ user.get_full_name }},</h2>
+  <p>Your account as Academic Registrar has been successfully created.</p>
+  <p><strong>Username:</strong> {{ user.username }}</p>
+  <p><strong>Password:</strong> {{ password }}</p>
+  <p>You can log in at <a href="http://{{ request.get_host }}/accounts/login/">Login Page</a>.</p>
+</body>
+</html>

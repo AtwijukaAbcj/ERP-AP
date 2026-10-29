@@ -1,0 +1,423 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load static %}
+
+{% block title %}Assessment Dashboard (Admin) | {% trans 'Learning Management System' %}{% endblock %}
+
+{% block content %}
+<nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/">{% trans 'Home' %}</a></li>
+        <li class="breadcrumb-item active" aria-current="page">{% trans 'Assessment Dashboard' %}</li>
+    </ol>
+</nav>
+
+<div class="title-1 mb-4"><i class="fas fa-clipboard-check me-2"></i>{% trans 'Assessment Dashboard' %} <small class="text-muted">(Admin View)</small></div>
+
+{% include 'snippets/messages.html' %}
+
+<style>
+    .stat-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 16px;
+        padding: 24px;
+        color: white;
+        margin-bottom: 20px;
+        transition: transform 0.2s;
+    }
+    .stat-card:hover { transform: translateY(-3px); }
+    .stat-card.assignments { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); }
+    .stat-card.exams { background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%); }
+    .stat-card.practice { background: linear-gradient(135deg, #4776E6 0%, #8E54E9 100%); }
+    .stat-card.pending { background: linear-gradient(135deg, #ff9a56 0%, #ff6a00 100%); }
+    .stat-card.graded { background: linear-gradient(135deg, #00c6fb 0%, #005bea 100%); }
+    .stat-card.passed { background: linear-gradient(135deg, #56ab2f 0%, #a8e063 100%); }
+    .stat-icon { font-size: 2.5rem; opacity: 0.8; }
+    .stat-number { font-size: 2.2rem; font-weight: 700; }
+    .stat-label { font-size: 0.9rem; opacity: 0.9; }
+    
+    .section-card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+        margin-bottom: 24px;
+    }
+    .section-header {
+        background: #f8f9fc;
+        padding: 16px 20px;
+        border-bottom: 1px solid #eee;
+        border-radius: 12px 12px 0 0;
+        font-weight: 600;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .section-body { padding: 20px; }
+    
+    .assessment-item {
+        display: flex;
+        align-items: center;
+        padding: 12px;
+        border-radius: 8px;
+        transition: background 0.2s;
+        margin-bottom: 8px;
+    }
+    .assessment-item:hover { background: #f8f9fc; }
+    .assessment-icon {
+        width: 42px;
+        height: 42px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 14px;
+        font-size: 1.1rem;
+    }
+    .assessment-icon.assignment { background: #d4edda; color: #155724; }
+    .assessment-icon.exam { background: #f8d7da; color: #721c24; }
+    .assessment-icon.practice { background: #cce5ff; color: #004085; }
+    
+    .progress-circle {
+        position: relative;
+        width: 120px;
+        height: 120px;
+        margin: 0 auto;
+    }
+    .progress-circle svg { transform: rotate(-90deg); }
+    .progress-circle .bg { stroke: #e9ecef; }
+    .progress-circle .progress-ring { stroke: #28a745; transition: stroke-dashoffset 1s; }
+    .progress-circle .text {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 1.5rem;
+        font-weight: 700;
+    }
+    
+    .grade-badge {
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+    .grade-badge.pass { background: #d4edda; color: #155724; }
+    .grade-badge.fail { background: #f8d7da; color: #721c24; }
+    .grade-badge.pending { background: #fff3cd; color: #856404; }
+    
+    .attempt-row { border-bottom: 1px solid #f0f0f0; padding: 12px 0; }
+    .attempt-row:last-child { border-bottom: none; }
+</style>
+
+<!-- Stats Overview -->
+<div class="row mb-4">
+    <div class="col-lg-2 col-md-4 col-6">
+        <div class="stat-card assignments">
+            <div class="text-center">
+                <i class="fas fa-tasks stat-icon mb-2"></i>
+                <div class="stat-number">{{ total_assignments }}</div>
+                <div class="stat-label">{% trans 'Assignments' %}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-2 col-md-4 col-6">
+        <div class="stat-card exams">
+            <div class="text-center">
+                <i class="fas fa-file-alt stat-icon mb-2"></i>
+                <div class="stat-number">{{ total_exams }}</div>
+                <div class="stat-label">{% trans 'Exams' %}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-2 col-md-4 col-6">
+        <div class="stat-card practice">
+            <div class="text-center">
+                <i class="fas fa-brain stat-icon mb-2"></i>
+                <div class="stat-number">{{ total_practice }}</div>
+                <div class="stat-label">{% trans 'Practice' %}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-2 col-md-4 col-6">
+        <div class="stat-card pending">
+            <div class="text-center">
+                <i class="fas fa-hourglass-half stat-icon mb-2"></i>
+                <div class="stat-number">{{ pending_marking }}</div>
+                <div class="stat-label">{% trans 'Pending' %}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-2 col-md-4 col-6">
+        <div class="stat-card graded">
+            <div class="text-center">
+                <i class="fas fa-check-circle stat-icon mb-2"></i>
+                <div class="stat-number">{{ graded_count }}</div>
+                <div class="stat-label">{% trans 'Graded' %}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-2 col-md-4 col-6">
+        <div class="stat-card passed">
+            <div class="text-center">
+                <i class="fas fa-trophy stat-icon mb-2"></i>
+                <div class="stat-number">{{ passed_count }}</div>
+                <div class="stat-label">{% trans 'Passed' %}</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Main Content -->
+    <div class="col-lg-8">
+        <!-- Grading Overview -->
+        <div class="section-card">
+            <div class="section-header">
+                <span><i class="fas fa-chart-pie me-2"></i>{% trans 'Grading Overview' %}</span>
+            </div>
+            <div class="section-body">
+                <div class="row align-items-center">
+                    <div class="col-md-4 text-center">
+                        <div class="progress-circle">
+                            <svg width="120" height="120">
+                                <circle class="bg" cx="60" cy="60" r="50" fill="none" stroke-width="10"/>
+                                {% with pass_rate=passed_count|add:0 %}
+                                {% if graded_count > 0 %}
+                                <circle class="progress-ring" cx="60" cy="60" r="50" fill="none" stroke-width="10"
+                                    stroke-dasharray="314"
+                                    stroke-dashoffset="{% widthratio passed_count graded_count 314 %}"/>
+                                {% else %}
+                                <circle class="progress-ring" cx="60" cy="60" r="50" fill="none" stroke-width="10"
+                                    stroke-dasharray="314" stroke-dashoffset="314"/>
+                                {% endif %}
+                                {% endwith %}
+                            </svg>
+                            <div class="text">
+                                {% if graded_count > 0 %}
+                                {{ passed_count|floatformat:0 }}%
+                                {% else %}
+                                0%
+                                {% endif %}
+                            </div>
+                        </div>
+                        <p class="text-muted mt-2">{% trans 'Pass Rate' %}</p>
+                    </div>
+                    <div class="col-md-8">
+                        <div class="row">
+                            <div class="col-6 mb-3">
+                                <div class="p-3 bg-light rounded">
+                                    <h4 class="mb-0 text-primary">{{ total_enrollments }}</h4>
+                                    <small class="text-muted">{% trans 'Total Enrollments' %}</small>
+                                </div>
+                            </div>
+                            <div class="col-6 mb-3">
+                                <div class="p-3 bg-light rounded">
+                                    <h4 class="mb-0 text-success">{{ graded_count }}</h4>
+                                    <small class="text-muted">{% trans 'Graded' %}</small>
+                                </div>
+                            </div>
+                            <div class="col-6 mb-3">
+                                <div class="p-3 bg-light rounded">
+                                    <h4 class="mb-0 text-warning">{{ ungraded_count }}</h4>
+                                    <small class="text-muted">{% trans 'Ungraded' %}</small>
+                                </div>
+                            </div>
+                            <div class="col-6 mb-3">
+                                <div class="p-3 bg-light rounded">
+                                    <h4 class="mb-0 text-info">{{ avg_score|floatformat:1 }}%</h4>
+                                    <small class="text-muted">{% trans 'Average Score' %}</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Grades -->
+        <div class="section-card">
+            <div class="section-header">
+                <span><i class="fas fa-graduation-cap me-2"></i>{% trans 'Recent Grades' %}</span>
+            </div>
+            <div class="section-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>{% trans 'Student' %}</th>
+                                <th>{% trans 'Course' %}</th>
+                                <th>{% trans 'Total' %}</th>
+                                <th>{% trans 'Grade' %}</th>
+                                <th>{% trans 'Status' %}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for tc in recent_grades %}
+                            <tr>
+                                <td>{{ tc.student.student.get_full_name|default:tc.student }}</td>
+                                <td><small>{{ tc.course.code }}</small></td>
+                                <td><strong>{{ tc.total }}</strong></td>
+                                <td>
+                                    <span class="grade-badge {% if tc.comment == 'PASS' %}pass{% else %}fail{% endif %}">
+                                        {{ tc.grade }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if tc.comment == 'PASS' %}
+                                    <span class="text-success"><i class="fas fa-check"></i> {% trans 'Pass' %}</span>
+                                    {% else %}
+                                    <span class="text-danger"><i class="fas fa-times"></i> {% trans 'Fail' %}</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center text-muted py-4">
+                                    {% trans 'No grades recorded yet.' %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quiz Attempts -->
+        <div class="section-card">
+            <div class="section-header">
+                <span><i class="fas fa-history me-2"></i>{% trans 'Recent Quiz Attempts' %}</span>
+                <span class="badge bg-primary">{{ total_attempts }} {% trans 'Total' %}</span>
+            </div>
+            <div class="section-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>{% trans 'User' %}</th>
+                                <th>{% trans 'Quiz' %}</th>
+                                <th>{% trans 'Course' %}</th>
+                                <th>{% trans 'Score' %}</th>
+                                <th>{% trans 'Date' %}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for attempt in recent_attempts %}
+                            <tr>
+                                <td>{{ attempt.user.get_full_name|default:attempt.user.username }}</td>
+                                <td>{{ attempt.quiz.title|truncatechars:25 }}</td>
+                                <td><small>{{ attempt.quiz.course.code }}</small></td>
+                                <td>
+                                    <span class="badge bg-{% if attempt.get_percent_correct >= 50 %}success{% else %}danger{% endif %}">
+                                        {{ attempt.get_percent_correct }}%
+                                    </span>
+                                </td>
+                                <td><small>{{ attempt.end|timesince }} ago</small></td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center text-muted py-4">
+                                    {% trans 'No quiz attempts yet.' %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="col-lg-4">
+        <!-- Quick Actions -->
+        <div class="section-card">
+            <div class="section-header">
+                <span><i class="fas fa-bolt me-2"></i>{% trans 'Quick Actions' %}</span>
+            </div>
+            <div class="section-body">
+                <a href="{% url 'admin:quiz_quiz_changelist' %}" class="btn btn-primary w-100 mb-2">
+                    <i class="fas fa-plus me-2"></i>{% trans 'Manage All Quizzes' %}
+                </a>
+                <a href="{% url 'quiz_marking' %}" class="btn btn-warning w-100 mb-2">
+                    <i class="fas fa-check-double me-2"></i>{% trans 'Mark Quiz Attempts' %}
+                    {% if pending_marking > 0 %}<span class="badge bg-light text-dark ms-1">{{ pending_marking }}</span>{% endif %}
+                </a>
+                <a href="{% url 'quiz_progress' %}" class="btn btn-info w-100 mb-2">
+                    <i class="fas fa-chart-pie me-2"></i>{% trans 'Quiz Progress' %}
+                </a>
+                <a href="{% url 'course_progress' %}" class="btn btn-secondary w-100 mb-2">
+                    <i class="fas fa-chart-bar me-2"></i>{% trans 'Course Progress' %}
+                </a>
+                <a href="{% url 'admin:result_takencourse_changelist' %}" class="btn btn-outline-primary w-100">
+                    <i class="fas fa-table me-2"></i>{% trans 'All Student Grades' %}
+                </a>
+            </div>
+        </div>
+
+        <!-- Assignments -->
+        <div class="section-card">
+            <div class="section-header">
+                <span><i class="fas fa-tasks me-2 text-success"></i>{% trans 'Assignments' %}</span>
+                <span class="badge bg-success">{{ total_assignments }}</span>
+            </div>
+            <div class="section-body" style="max-height: 250px; overflow-y: auto;">
+                {% for quiz in assignments %}
+                <div class="assessment-item">
+                    <div class="assessment-icon assignment"><i class="fas fa-tasks"></i></div>
+                    <div class="flex-grow-1">
+                        <div>{{ quiz.title|truncatechars:20 }}</div>
+                        <small class="text-muted">{{ quiz.course.code }}</small>
+                    </div>
+                </div>
+                {% empty %}
+                <p class="text-muted text-center py-3">{% trans 'No assignments.' %}</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Exams -->
+        <div class="section-card">
+            <div class="section-header">
+                <span><i class="fas fa-file-alt me-2 text-danger"></i>{% trans 'Exams' %}</span>
+                <span class="badge bg-danger">{{ total_exams }}</span>
+            </div>
+            <div class="section-body" style="max-height: 250px; overflow-y: auto;">
+                {% for quiz in exams %}
+                <div class="assessment-item">
+                    <div class="assessment-icon exam"><i class="fas fa-file-alt"></i></div>
+                    <div class="flex-grow-1">
+                        <div>{{ quiz.title|truncatechars:20 }}</div>
+                        <small class="text-muted">{{ quiz.course.code }}</small>
+                    </div>
+                </div>
+                {% empty %}
+                <p class="text-muted text-center py-3">{% trans 'No exams.' %}</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Practice Quizzes -->
+        <div class="section-card">
+            <div class="section-header">
+                <span><i class="fas fa-brain me-2 text-primary"></i>{% trans 'Practice Quizzes' %}</span>
+                <span class="badge bg-primary">{{ total_practice }}</span>
+            </div>
+            <div class="section-body" style="max-height: 250px; overflow-y: auto;">
+                {% for quiz in practice_quizzes %}
+                <div class="assessment-item">
+                    <div class="assessment-icon practice"><i class="fas fa-brain"></i></div>
+                    <div class="flex-grow-1">
+                        <div>{{ quiz.title|truncatechars:20 }}</div>
+                        <small class="text-muted">{{ quiz.course.code }}</small>
+                    </div>
+                </div>
+                {% empty %}
+                <p class="text-muted text-center py-3">{% trans 'No practice quizzes.' %}</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

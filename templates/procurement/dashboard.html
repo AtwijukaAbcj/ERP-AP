@@ -1,0 +1,109 @@
+{% extends 'base.html' %}
+{% load i18n permission_tags %}
+{% block title %}Procurement Dashboard{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'home' %}">{% trans 'Home' %}</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{% trans 'Procurement Dashboard' %}</li>
+        </ol>
+    </nav>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-body d-flex justify-content-between align-items-center">
+            <div>
+                <h2 class="mb-1">{% trans 'Procurement Dashboard' %}</h2>
+                <p class="text-muted mb-0">{% trans 'Manage suppliers, plans, requisitions, quotations, and purchase orders.' %}</p>
+            </div>
+            <a href="{% url 'procurement:supplier_add' %}" class="btn btn-primary">{% trans 'Add Supplier' %}</a>
+        </div>
+    </div>
+
+    <div class="row gy-4">
+        <div class="col-md-2">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h5 class="card-title">{% trans 'Suppliers' %}</h5>
+                    <p class="display-6 mb-0">{{ supplier_count }}</p>
+                    <p class="text-muted mb-2">{% trans 'Active suppliers' %}</p>
+                    <a href="{% url 'procurement:supplier_list' %}" class="stretched-link"></a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h5 class="card-title">{% trans 'Categories' %}</h5>
+                    <p class="display-6 mb-0">{{ supplier_category_count }}</p>
+                    <p class="text-muted mb-2">{% trans 'Supplier categories' %}</p>
+                    <a href="{% url 'procurement:supplier_category_list' %}" class="stretched-link"></a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h5 class="card-title">{% trans 'Departments' %}</h5>
+                    <p class="display-6 mb-0">{{ department_count }}</p>
+                    <p class="text-muted mb-2">{% trans 'Procurement departments' %}</p>
+                    <a href="{% url 'procurement:procurement_department_list' %}" class="stretched-link"></a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h5 class="card-title">{% trans 'Statuses' %}</h5>
+                    <p class="display-6 mb-0">{{ status_count }}</p>
+                    <p class="text-muted mb-2">{% trans 'Procurement statuses' %}</p>
+                    <a href="{% url 'procurement:procurement_status_list' %}" class="stretched-link"></a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h5 class="card-title">{% trans 'Procurement Plans' %}</h5>
+                    <p class="display-6 mb-0">{{ plan_count }}</p>
+                    <p class="text-muted mb-2">{% trans 'Plans created' %}</p>
+                    <a href="{% url 'procurement:procurement_plan_list' %}" class="stretched-link"></a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h5 class="card-title">{% trans 'Requisitions' %}</h5>
+                    <p class="display-6 mb-0">{{ requisition_count }}</p>
+                    <p class="text-muted mb-2">{% trans 'Purchase requests' %}</p>
+                    <a href="{% url 'procurement:purchase_requisition_list' %}" class="stretched-link"></a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h5 class="card-title">{% trans 'Purchase Orders' %}</h5>
+                    <p class="display-6 mb-0">{{ order_count }}</p>
+                    <p class="text-muted mb-2">{% trans 'Orders issued' %}</p>
+                    <a href="{% url 'procurement:purchase_order_list' %}" class="stretched-link"></a>
+                </div>
+            </div>
+        </div>
+        {% has_module_permission 'procurement_requisitions' as can_view_quotations %}
+        {% if can_view_quotations %}
+        <div class="col-md-2">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h5 class="card-title">{% trans 'Supplier Quotations' %}</h5>
+                    <p class="display-6 mb-0">{{ quotation_count }}</p>
+                    <p class="text-muted mb-2">{% trans 'Offers received' %}</p>
+                    <a href="{% url 'procurement:purchase_quotation_list' %}" class="stretched-link"></a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

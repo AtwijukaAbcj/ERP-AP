@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block title %}Vote for {{ election.title }}{% endblock %}
+
+{% block content %}
+<div class="container voting-page">
+    <header class="voting-page-header">
+        <div>
+            <h1><i class="fas fa-vote-yea me-2" aria-hidden="true"></i>{{ election.title }}</h1>
+            <p>{% trans "Review the candidates and select one. Your vote cannot be changed after submission." %}</p>
+        </div>
+        <a href="{% url 'election_list' %}" class="btn btn-outline-secondary">{% trans "Back to elections" %}</a>
+    </header>
+
+    {% if error %}
+        <div class="alert alert-danger" role="alert">{{ error }}</div>
+    {% endif %}
+
+    <form method="post" action="{% url 'vote_election' election.id %}">
+        {% csrf_token %}
+        <div class="row justify-content-center">
+            {% for candidate in election.candidates.all %}
+            <div class="col-md-4 mb-4">
+                <article class="voting-candidate-card">
+                    <div class="card-body p-3">
+                        {% if candidate.photo %}
+                            <img src="{{ candidate.photo.url }}" alt="Candidate Photo"
+                                 class="voting-candidate-photo mb-3">
+                        {% else %}
+                            <div class="voting-candidate-photo d-grid place-items-center mb-3 text-muted">{% trans "No photo provided" %}</div>
+                        {% endif %}
+
+                        <h2 class="h5 fw-semibold mb-1">{{ candidate.student.student.get_full_name }}</h2>
+
+                        {% if candidate.manifesto %}
+                            <p class="text-muted small mb-3">{{ candidate.manifesto }}</p>
+                        {% endif %}
+
+                        <div class="mt-auto">
+                            <input class="voting-candidate-radio" type="radio" name="candidate"
+                                   id="cand{{ forloop.counter }}" value="{{ candidate.id }}" required>
+                            <label class="voting-candidate-choice" for="cand{{ forloop.counter }}">
+                                <span>{% trans "Select this candidate" %}</span>
+                            </label>
+                        </div>
+                    </div>
+                </article>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="text-center mt-4">
+            <button type="submit" class="btn btn-primary btn-lg px-5">
+                <i class="fas fa-lock me-2" aria-hidden="true"></i>{% trans "Submit my vote" %}
+            </button>
+            <p class="small text-muted mt-2">{% trans "Your selection is final once submitted." %}</p>
+        </div>
+    </form>
+</div>
+{% endblock %}

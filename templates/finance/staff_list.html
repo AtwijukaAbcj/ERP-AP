@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+{% block title %}Staff{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <h2>Staff</h2>
+    <div class="mb-3 d-flex flex-wrap gap-2">
+        {% if can_manage_staff %}
+        <a href="{% url 'finance:staff_add' %}" class="btn btn-primary">+ Add Staff</a>
+        <a href="{% url 'finance:staff_category_list' %}" class="btn btn-outline-secondary">Staff Categories</a>
+        {% endif %}
+        {% if can_view_departments %}
+        <a href="{% url 'finance:staff_department_list' %}" class="btn btn-outline-primary">Departments</a>
+        {% endif %}
+    </div>
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Employee ID</th>
+                    <th>Category</th>
+                    <th>Department</th>
+                    <th>Job Title</th>
+                    <th>Date Hired</th>
+                    <th>Status</th>
+                    {% if can_manage_staff %}<th>Actions</th>{% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for staff in staff_members %}
+                <tr>
+                    <td>{{ staff.user.get_full_name }}</td>
+                    <td>{{ staff.employee_id }}</td>
+                    <td>{{ staff.category }}</td>
+                    <td>{{ staff.department|default:"-" }}</td>
+                    <td>{{ staff.job_title }}</td>
+                    <td>{{ staff.date_hired }}</td>
+                    <td>{{ staff.is_active|yesno:"Active,Inactive" }}</td>
+                    {% if can_manage_staff %}
+                    <td><a href="{% url 'finance:staff_edit' staff.pk %}" class="btn btn-sm btn-outline-primary">Edit</a></td>
+                    {% endif %}
+                </tr>
+                {% empty %}
+                <tr><td colspan="{% if can_manage_staff %}8{% else %}7{% endif %}">No staff members found.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

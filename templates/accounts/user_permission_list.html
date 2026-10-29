@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+{% load i18n %}
+{% block title %}{{ title }} | {% trans 'Access Control' %}{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2>{% trans "User Permission Overrides" %}</h2>
+        <div class="d-flex gap-2">
+            <a href="{% url 'access_control_home' %}" class="btn btn-outline-secondary">{% trans "Access Control" %}</a>
+            <a href="{% url 'user_permission_add' %}" class="btn btn-primary">{% trans "Add Override" %}</a>
+        </div>
+    </div>
+    {% include 'snippets/messages.html' %}
+    <div class="table-responsive">
+        <table class="table table-striped align-middle">
+            <thead>
+                <tr>
+                    <th>{% trans "User" %}</th>
+                    <th>{% trans "Permission" %}</th>
+                    <th>{% trans "Effect" %}</th>
+                    <th>{% trans "Reason" %}</th>
+                    <th>{% trans "Updated By" %}</th>
+                    <th>{% trans "Updated" %}</th>
+                    <th>{% trans "Actions" %}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for override in user_permissions %}
+                <tr>
+                    <td>{{ override.user.username }}</td>
+                    <td>{{ override.permission.code }}</td>
+                    <td><span class="badge {% if override.effect == 'deny' %}bg-danger{% else %}bg-success{% endif %}">{{ override.get_effect_display }}</span></td>
+                    <td>{{ override.reason|default:"-" }}</td>
+                    <td>{{ override.created_by.username|default:"-" }}</td>
+                    <td>{{ override.updated_at }}</td>
+                    <td>
+                        <form method="post" action="{% url 'user_permission_delete' override.pk %}">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('{% trans 'Remove this override?' %}')">{% trans "Revoke" %}</button>
+                        </form>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="7" class="text-center text-muted">{% trans "No user overrides have been configured." %}</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

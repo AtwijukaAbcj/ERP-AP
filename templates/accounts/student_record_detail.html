@@ -1,0 +1,116 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block title %}{{ student.student.get_full_name }} | {% trans 'Student Record' %}{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+    <div>
+        <h1 class="h3 mb-1">{{ student.student.get_full_name }}</h1>
+        <p class="text-muted mb-0">{{ student.registration_number|default:"—" }} · {{ student.get_status_display }}</p>
+    </div>
+    <a class="btn btn-outline-secondary" href="{% url 'student_list' %}">{% trans 'Student list' %}</a>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-7">
+        <section class="card mb-4">
+            <div class="card-header fw-semibold">{% trans 'Personal and enrolment details' %}</div>
+            <dl class="card-body row mb-0">
+                <dt class="col-sm-4">{% trans 'Email' %}</dt><dd class="col-sm-8">{{ student.student.email|default:"—" }}</dd>
+                <dt class="col-sm-4">{% trans 'Phone' %}</dt><dd class="col-sm-8">{{ student.student.phone|default:"—" }}</dd>
+                <dt class="col-sm-4">{% trans 'Address' %}</dt><dd class="col-sm-8">{{ student.student.address|default:"—" }}</dd>
+                <dt class="col-sm-4">{% trans 'Gender' %}</dt><dd class="col-sm-8">{{ student.student.get_gender_display|default:"—" }}</dd>
+                <dt class="col-sm-4">{% trans 'Date of birth' %}</dt><dd class="col-sm-8">{{ student.date_of_birth|default:"—" }}</dd>
+                <dt class="col-sm-4">{% trans 'Next of kin' %}</dt><dd class="col-sm-8">{{ student.next_of_kin_name|default:"—" }}{% if student.next_of_kin_phone %} · {{ student.next_of_kin_phone }}{% endif %}</dd>
+                <dt class="col-sm-4">{% trans 'Program' %}</dt><dd class="col-sm-8">{{ student.program|default:"—" }}</dd>
+                <dt class="col-sm-4">{% trans 'Level / Year' %}</dt><dd class="col-sm-8">{{ student.get_level_display|default:"—" }} / {{ student.get_year_display|default:"—" }}</dd>
+                <dt class="col-sm-4">{% trans 'Semester' %}</dt><dd class="col-sm-8">{{ student.semester|default:"—" }}</dd>
+                <dt class="col-sm-4">{% trans 'Cohort / Intake' %}</dt><dd class="col-sm-8">{{ student.cohort|default:"—" }}</dd>
+                <dt class="col-sm-4">{% trans 'Admission date' %}</dt><dd class="col-sm-8">{{ student.admission_date|default:"—" }}</dd>
+                <dt class="col-sm-4">{% trans 'Expected completion' %}</dt><dd class="col-sm-8">{{ student.expected_completion_date|default:"—" }}</dd>
+            </dl>
+            {% if can_manage %}
+            <div class="card-footer"><a class="btn btn-sm btn-outline-primary" href="{% url 'student_edit' student.student_id %}">{% trans 'Edit student record' %}</a></div>
+            {% endif %}
+        </section>
+
+        <section class="card">
+            <div class="card-header fw-semibold">{% trans 'Student status history' %}</div>
+            <div class="list-group list-group-flush">
+                {% for entry in student.status_history.all %}
+                <div class="list-group-item">
+                    <div class="d-flex justify-content-between gap-3">
+                        <strong>{{ entry.get_from_status_display }} → {{ entry.get_to_status_display }}</strong>
+                        <small class="text-muted text-nowrap">{{ entry.changed_at }}</small>
+                    </div>
+                    {% if entry.reason %}<p class="mb-1">{{ entry.reason|linebreaksbr }}</p>{% endif %}
+                    <small class="text-muted">{% if entry.changed_by %}{{ entry.changed_by.get_full_name|default:entry.changed_by.username }}{% else %}{% trans 'System' %}{% endif %}</small>
+                </div>
+                {% empty %}
+                <div class="list-group-item text-muted">{% trans 'No status changes have been recorded.' %}</div>
+                {% endfor %}
+            </div>
+        </section>
+    </div>
+
+    <div class="col-lg-5">
+        {% if can_manage %}
+        <section class="card mb-4">
+            <div class="card-header fw-semibold">{% trans 'Update enrolment status' %}</div>
+            <form method="post" action="{% url 'student_change_status' student.pk %}">
+                {% csrf_token %}
+                <div class="card-body">
+                    {% if status_form.status.errors %}<div class="text-danger small">{{ status_form.status.errors }}</div>{% endif %}
+                    {% if status_form.status.field.choices %}
+                    <label class="form-label" for="{{ status_form.status.id_for_label }}">{% trans 'New status' %}</label>
+                    {{ status_form.status }}
+                    <label class="form-label mt-3" for="{{ status_form.reason.id_for_label }}">{% trans 'Reason / note' %}</label>
+                    {{ status_form.reason }}
+                    {% else %}
+                    <p class="text-muted mb-0">{% trans 'No further status changes are available.' %}</p>
+                    {% endif %}
+                </div>
+                {% if status_form.status.field.choices %}<div class="card-footer"><button class="btn btn-primary" type="submit">{% trans 'Save status' %}</button></div>{% endif %}
+            </form>
+        </section>
+        {% endif %}
+
+        {% if can_view_documents %}
+        <section class="card mb-4">
+            <div class="card-header fw-semibold">{% trans 'Student documents' %}</div>
+            <div class="list-group list-group-flush">
+                {% for document in documents %}
+                <div class="list-group-item d-flex justify-content-between align-items-center gap-3">
+                    <div>
+                        <div class="fw-semibold">{{ document.title }}</div>
+                        <small class="text-muted">{{ document.get_category_display }} · {{ document.uploaded_at }}</small>
+                    </div>
+                    <a class="btn btn-sm btn-outline-primary text-nowrap" href="{% url 'student_document_download' student.pk document.pk %}">{% trans 'Download' %}</a>
+                </div>
+                {% empty %}
+                <div class="list-group-item text-muted">{% trans 'No documents are on file.' %}</div>
+                {% endfor %}
+            </div>
+            {% if can_manage_documents %}
+            <form method="post" enctype="multipart/form-data" action="{% url 'student_document_upload' student.pk %}">
+                {% csrf_token %}
+                <div class="card-body">
+                    {% if document_form.non_field_errors %}<div class="text-danger small">{{ document_form.non_field_errors }}</div>{% endif %}
+                    {% for field in document_form %}
+                    <div class="mb-3">
+                        <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                        {{ field }}
+                        {% for error in field.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+                    </div>
+                    {% endfor %}
+                    <div class="form-text mb-3">{% trans 'PDF, JPG, or PNG; up to 10 MB. Documents are only served through authenticated downloads.' %}</div>
+                    <button class="btn btn-outline-primary" type="submit">{% trans 'Upload document' %}</button>
+                </div>
+            </form>
+            {% endif %}
+        </section>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block title %}{% trans "Opinion Polls" %}{% endblock %}
+
+{% block content %}
+<div class="container voting-page">
+    <header class="voting-page-header">
+        <div>
+            <h1><i class="fas fa-square-poll-vertical me-2" aria-hidden="true"></i>{% trans "Opinion polls" %}</h1>
+            <p>{% trans "Share your response to each open poll. One response is allowed per poll." %}</p>
+        </div>
+    </header>
+    {% include 'snippets/messages.html' %}
+    {% if polls %}
+    <div class="row">
+        {% for poll in polls %}
+        <div class="col-md-6 col-lg-4 mb-4">
+            <article class="card h-100">
+                <div class="card-body d-flex flex-column">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span class="voting-status is-active">{% trans "Open" %}</span>
+                        <span class="small text-muted">{{ poll.choice_count }} {% trans "choices" %}</span>
+                    </div>
+                    <h2 class="h5">{{ poll.question }}</h2>
+                    <div class="mt-auto pt-3">
+                        {% if poll.has_voted %}
+                            <span class="btn btn-outline-success disabled" aria-disabled="true">{% trans "Response recorded" %}</span>
+                        {% elif poll.choice_count < 2 %}
+                            <span class="text-muted small">{% trans "This poll is not ready for responses." %}</span>
+                        {% else %}
+                            <a href="{% url 'vote_poll' poll.pk %}" class="btn btn-primary">{% trans "Respond" %}</a>
+                        {% endif %}
+                    </div>
+                </div>
+            </article>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="voting-empty-state">
+        <i class="fas fa-circle-check fa-2x mb-2" aria-hidden="true"></i>
+        <h2 class="h5">{% trans "No open polls" %}</h2>
+        <p class="mb-0">{% trans "There are no polls accepting responses right now." %}</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

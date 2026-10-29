@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Faculty Register</title>
+    {% include 'includes/document_print_styles.html' %}
+</head>
+<body>
+    {% now "d M Y" as generated_date %}
+    {% include 'includes/document_header.html' with title='Faculty Register' subtitle=faculties|length|add:' records' label_1='Generated:' value_1=generated_date label_2='' value_2='' label_3='' value_3='' %}
+    <table>
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Faculty Name</th>
+                <th>Created At</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for faculty in faculties %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ faculty.name }}</td>
+                <td>{{ faculty.created_at|date:"d M Y" }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="3" class="text-center muted">No faculties found.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% include 'includes/document_footer.html' %}
+</body>
+</html>

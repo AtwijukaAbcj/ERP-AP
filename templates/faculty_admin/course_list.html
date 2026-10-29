@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+{% load i18n %}
+{% block title %}{% trans "Courses Under Your Faculty Programs" %}{% endblock %}
+{% block content %}
+
+<h2 class="mb-4">{% trans "Courses Under Your Faculty Programs" %}</h2>
+
+{% if programs %}
+    {% for program in programs %}
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">{{ program.title }}</h5>
+                <a class="btn btn-sm btn-light text-primary" href="{% url 'FacultyCourseAddView' pk=program.pk %}">
+                    <i class="fas fa-plus-circle"></i> {% trans "Add Course" %}
+                </a>
+            </div>
+            <div class="card-body">
+                {% if program.course_set.all %}
+                    <table class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th>{% trans "Title" %}</th>
+                                <th>{% trans "Code" %}</th>
+                                <th>{% trans "Credit" %}</th>
+                                <th>{% trans "Year" %}</th>
+                                <th>{% trans "Semester" %}</th>
+                                <th>{% trans "Level" %}</th>
+                                <th>{% trans "Actions" %}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for course in program.course_set.all %}
+                                <tr>
+                                    <td>{{ course.title }}</td>
+                                    <td>{{ course.code }}</td>
+                                    <td>{{ course.credit }}</td>
+                                    <td>{{ course.year }}</td>
+                                    <td>{{ course.semester }}</td>
+                                    <td>{{ course.level }}</td>
+                                    <td>
+                                        <a href="{% url 'faculty_edit_course' slug=course.slug %}" class="btn btn-sm btn-warning">{% trans 'Edit' %}</a>
+                                        <a href="{% url 'faculty_delete_course' slug=course.slug %}" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure?')">{% trans 'Delete' %}</a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% else %}
+                    <p class="text-muted">{% trans "No courses found under this program." %}</p>
+                {% endif %}
+            </div>
+        </div>
+    {% endfor %}
+{% else %}
+    <p class="text-muted">{% trans "No programs found for your faculty." %}</p>
+{% endif %}
+
+{% endblock %}

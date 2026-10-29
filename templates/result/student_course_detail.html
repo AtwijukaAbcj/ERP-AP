@@ -1,0 +1,463 @@
+{% extends 'base.html' %}
+{% load i18n %}
+{% block title %}{{ title }} | {% trans 'Learning management system' %}{% endblock title %}
+
+{% block content %}
+
+<nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/">{% trans 'Home' %}</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'student_assessment_recap' %}">{% trans 'My Assessments' %}</a></li>
+        <li class="breadcrumb-item active" aria-current="page">{{ course.code }}</li>
+    </ol>
+</nav>
+
+{% include 'snippets/messages.html' %}
+
+<style>
+    .course-hero {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 20px;
+        padding: 40px;
+        color: white;
+        margin-bottom: 30px;
+        position: relative;
+        overflow: hidden;
+    }
+    .course-hero::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -20%;
+        width: 400px;
+        height: 400px;
+        background: rgba(255,255,255,0.1);
+        border-radius: 50%;
+    }
+    .course-hero h1 { font-size: 1.8rem; font-weight: 700; margin-bottom: 8px; }
+    .course-hero .course-meta {
+        display: flex;
+        gap: 15px;
+        margin-top: 15px;
+        flex-wrap: wrap;
+    }
+    .course-hero .meta-badge {
+        background: rgba(255,255,255,0.2);
+        padding: 6px 15px;
+        border-radius: 20px;
+        font-size: 0.85rem;
+    }
+    
+    .grade-showcase {
+        background: white;
+        border-radius: 20px;
+        padding: 30px;
+        text-align: center;
+        box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+        margin-bottom: 25px;
+    }
+    .grade-showcase .grade {
+        font-size: 5rem;
+        font-weight: 800;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        line-height: 1;
+    }
+    .grade-showcase .total { font-size: 2rem; color: #4a5568; }
+    .grade-showcase .points { font-size: 1rem; color: #718096; margin-top: 10px; }
+    
+    .detail-card {
+        background: white;
+        border-radius: 16px;
+        padding: 24px;
+        margin-bottom: 20px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    }
+    .detail-card h5 {
+        color: #2d3748;
+        margin-bottom: 20px;
+        padding-bottom: 15px;
+        border-bottom: 2px solid #eef2f7;
+        display: flex;
+        align-items: center;
+    }
+    .detail-card h5 i { margin-right: 12px; }
+    
+    .score-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 15px;
+    }
+    .score-box {
+        background: linear-gradient(135deg, #f8fafc 0%, #eef2f7 100%);
+        border-radius: 12px;
+        padding: 20px;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+    }
+    .score-box::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 4px;
+        height: 100%;
+    }
+    .score-box.assignment::before { background: #f5576c; }
+    .score-box.mid-exam::before { background: #4facfe; }
+    .score-box.quiz::before { background: #43e97b; }
+    .score-box.attendance::before { background: #f6ad55; }
+    .score-box.final-exam::before { background: #667eea; }
+    .score-box h4 { margin: 0; font-size: 1.8rem; color: #2d3748; font-weight: 700; }
+    .score-box p { margin: 5px 0 0 0; font-size: 0.8rem; color: #718096; }
+    .score-box .max { font-size: 0.9rem; color: #a0aec0; }
+    
+    .attendance-timeline {
+        max-height: 400px;
+        overflow-y: auto;
+    }
+    .attendance-entry {
+        display: flex;
+        align-items: center;
+        padding: 12px 15px;
+        background: #f8fafc;
+        border-radius: 10px;
+        margin-bottom: 10px;
+    }
+    .attendance-date {
+        width: 50px;
+        height: 50px;
+        background: #667eea;
+        color: white;
+        border-radius: 10px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        margin-right: 15px;
+        font-size: 0.75rem;
+    }
+    .attendance-date .day { font-size: 1.2rem; font-weight: 700; line-height: 1; }
+    .attendance-status {
+        padding: 6px 14px;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 600;
+    }
+    .attendance-status.present { background: #c6f6d5; color: #22543d; }
+    .attendance-status.absent { background: #fed7d7; color: #822727; }
+    .attendance-status.late { background: #feebc8; color: #744210; }
+    .attendance-status.excused { background: #e9d8fd; color: #553c9a; }
+    
+    .attendance-summary {
+        display: flex;
+        justify-content: space-around;
+        background: linear-gradient(135deg, #f8fafc 0%, #eef2f7 100%);
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+    .attendance-summary .item { text-align: center; }
+    .attendance-summary .item h4 { margin: 0; color: #2d3748; }
+    .attendance-summary .item p { margin: 5px 0 0 0; font-size: 0.8rem; color: #718096; }
+    
+    .quiz-attempt {
+        background: #f8fafc;
+        border-radius: 12px;
+        padding: 18px;
+        margin-bottom: 12px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .quiz-attempt .info h6 { margin: 0 0 5px 0; color: #2d3748; }
+    .quiz-attempt .info p { margin: 0; font-size: 0.8rem; color: #718096; }
+    .quiz-attempt .score {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 8px 18px;
+        border-radius: 25px;
+        font-size: 1.1rem;
+        font-weight: 700;
+    }
+    
+    .assignment-entry {
+        background: #f8fafc;
+        border-radius: 12px;
+        padding: 18px;
+        margin-bottom: 12px;
+        border-left: 4px solid #e2e8f0;
+    }
+    .assignment-entry.submitted { border-color: #38ef7d; }
+    .assignment-entry.pending { border-color: #f6ad55; }
+    .assignment-entry.graded { border-color: #667eea; }
+    .assignment-entry h6 { margin: 0 0 8px 0; color: #2d3748; }
+    .assignment-entry .meta {
+        display: flex;
+        gap: 15px;
+        font-size: 0.85rem;
+        color: #718096;
+    }
+    .assignment-entry .meta i { margin-right: 5px; }
+    .assignment-entry .feedback {
+        background: #e2e8f0;
+        padding: 10px 15px;
+        border-radius: 8px;
+        margin-top: 10px;
+        font-size: 0.9rem;
+        color: #4a5568;
+    }
+    
+    .progress-visual {
+        height: 12px;
+        background: #e2e8f0;
+        border-radius: 6px;
+        overflow: hidden;
+        margin-top: 15px;
+    }
+    .progress-visual .bar {
+        height: 100%;
+        border-radius: 6px;
+        transition: width 0.5s ease;
+    }
+    .progress-visual .bar.excellent { background: linear-gradient(90deg, #38ef7d 0%, #11998e 100%); }
+    .progress-visual .bar.good { background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%); }
+    .progress-visual .bar.average { background: linear-gradient(90deg, #f6ad55 0%, #f093fb 100%); }
+    .progress-visual .bar.poor { background: linear-gradient(90deg, #f5576c 0%, #f093fb 100%); }
+    
+    .config-info {
+        background: linear-gradient(135deg, #f8fafc 0%, #eef2f7 100%);
+        border-radius: 12px;
+        padding: 20px;
+    }
+    .config-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 8px 0;
+        border-bottom: 1px solid #e2e8f0;
+    }
+    .config-row:last-child { border-bottom: none; }
+</style>
+
+<!-- Hero Section -->
+<div class="course-hero">
+    <div class="row align-items-center">
+        <div class="col-md-8">
+            <h1><i class="fas fa-book-open me-3"></i>{{ course.title }}</h1>
+            <p class="mb-0 opacity-75">{{ course.code }}</p>
+            <div class="course-meta">
+                <span class="meta-badge"><i class="fas fa-graduation-cap me-2"></i>{{ course.program }}</span>
+                <span class="meta-badge"><i class="fas fa-layer-group me-2"></i>{{ course.level }}</span>
+                <span class="meta-badge"><i class="fas fa-coins me-2"></i>{{ course.credit }} {% trans 'Credits' %}</span>
+                <span class="meta-badge"><i class="fas fa-calendar me-2"></i>{{ course.semester }}</span>
+            </div>
+        </div>
+        <div class="col-md-4 text-end d-none d-md-block">
+            <i class="fas fa-chart-pie" style="font-size: 5rem; opacity: 0.2;"></i>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-4">
+        <!-- Grade Showcase -->
+        <div class="grade-showcase">
+            <div class="grade">{{ taken_course.grade|default:"--" }}</div>
+            <div class="total">{{ taken_course.total }}<span class="text-muted">/100</span></div>
+            <div class="points">{{ taken_course.point }} {% trans 'Grade Points' %}</div>
+            <div class="progress-visual">
+                <div class="bar {% if taken_course.total >= 80 %}excellent{% elif taken_course.total >= 60 %}good{% elif taken_course.total >= 45 %}average{% else %}poor{% endif %}" 
+                     style="width: {{ taken_course.total }}%"></div>
+            </div>
+        </div>
+        
+        <!-- Score Breakdown -->
+        <div class="detail-card">
+            <h5><i class="fas fa-chart-bar text-primary"></i>{% trans 'Score Breakdown' %}</h5>
+            <div class="score-grid">
+                <div class="score-box assignment">
+                    <h4>{{ taken_course.assignment }}</h4>
+                    <p>{% trans 'Assignment' %}</p>
+                    <span class="max">/10</span>
+                </div>
+                <div class="score-box mid-exam">
+                    <h4>{{ taken_course.mid_exam }}</h4>
+                    <p>{% trans 'Mid Exam' %}</p>
+                    <span class="max">/15</span>
+                </div>
+                <div class="score-box quiz">
+                    <h4>{{ taken_course.quiz }}</h4>
+                    <p>{% trans 'Quiz' %}</p>
+                    <span class="max">/10</span>
+                </div>
+                <div class="score-box attendance">
+                    <h4>{{ taken_course.attendance }}</h4>
+                    <p>{% trans 'Attendance' %}</p>
+                    <span class="max">/5</span>
+                </div>
+                <div class="score-box final-exam">
+                    <h4>{{ taken_course.final_exam }}</h4>
+                    <p>{% trans 'Final Exam' %}</p>
+                    <span class="max">/60</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Assessment Config -->
+        {% if config %}
+        <div class="detail-card">
+            <h5><i class="fas fa-cog text-secondary"></i>{% trans 'Assessment Weights' %}</h5>
+            <div class="config-info">
+                <div class="config-row">
+                    <span>{% trans 'Assignment' %}</span>
+                    <strong>{{ config.assignment_weight }}%</strong>
+                </div>
+                <div class="config-row">
+                    <span>{% trans 'Mid Exam' %}</span>
+                    <strong>{{ config.mid_exam_weight }}%</strong>
+                </div>
+                <div class="config-row">
+                    <span>{% trans 'Quiz' %}</span>
+                    <strong>{{ config.quiz_weight }}%</strong>
+                </div>
+                <div class="config-row">
+                    <span>{% trans 'Attendance' %}</span>
+                    <strong>{{ config.attendance_weight }}%</strong>
+                </div>
+                <div class="config-row">
+                    <span>{% trans 'Final Exam' %}</span>
+                    <strong>{{ config.final_exam_weight }}%</strong>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    
+    <div class="col-lg-8">
+        <!-- Attendance Details -->
+        <div class="detail-card">
+            <h5><i class="fas fa-calendar-check text-success"></i>{% trans 'Attendance Record' %}</h5>
+            
+            <div class="attendance-summary">
+                <div class="item">
+                    <h4>{{ attendance_stats.present }}</h4>
+                    <p>{% trans 'Present' %}</p>
+                </div>
+                <div class="item">
+                    <h4>{{ attendance_stats.late }}</h4>
+                    <p>{% trans 'Late' %}</p>
+                </div>
+                <div class="item">
+                    <h4>{{ attendance_stats.absent }}</h4>
+                    <p>{% trans 'Absent' %}</p>
+                </div>
+                <div class="item">
+                    <h4>{{ attendance_stats.excused }}</h4>
+                    <p>{% trans 'Excused' %}</p>
+                </div>
+                <div class="item">
+                    <h4>{{ attendance_stats.total_classes }}</h4>
+                    <p>{% trans 'Total Classes' %}</p>
+                </div>
+            </div>
+            
+            <h6 class="text-muted mb-3">{% trans 'Recent Attendance' %}</h6>
+            <div class="attendance-timeline">
+                {% for record in attendance_records|slice:":15" %}
+                <div class="attendance-entry">
+                    <div class="attendance-date">
+                        <span class="day">{{ record.date|date:"d" }}</span>
+                        <span>{{ record.date|date:"M" }}</span>
+                    </div>
+                    <div class="flex-grow-1">
+                        <strong>{{ record.date|date:"l" }}</strong>
+                        {% if record.remarks %}
+                        <p class="mb-0 text-muted small">{{ record.remarks }}</p>
+                        {% endif %}
+                    </div>
+                    <span class="attendance-status {{ record.status }}">{{ record.get_status_display }}</span>
+                </div>
+                {% empty %}
+                <div class="text-center text-muted py-4">
+                    <i class="fas fa-calendar-times fa-2x mb-3 opacity-50"></i>
+                    <p>{% trans 'No attendance records yet.' %}</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        
+        <!-- Quiz Attempts -->
+        <div class="detail-card">
+            <h5><i class="fas fa-question-circle text-info"></i>{% trans 'Quiz Attempts' %} ({{ quiz_sittings|length }})</h5>
+            
+            {% for sitting in quiz_sittings %}
+            <div class="quiz-attempt">
+                <div class="info">
+                    <h6>{{ sitting.quiz.title }}</h6>
+                    <p><i class="fas fa-clock me-1"></i>{{ sitting.end|date:"M d, Y H:i" }} | {{ sitting.quiz.get_max_score }} {% trans 'questions' %}</p>
+                </div>
+                <div class="score">{{ sitting.get_percent_correct }}%</div>
+            </div>
+            {% empty %}
+            <div class="text-center text-muted py-4">
+                <i class="fas fa-clipboard-list fa-2x mb-3 opacity-50"></i>
+                <p>{% trans 'No quizzes attempted yet.' %}</p>
+                <a href="{% url 'quiz_index' course.slug %}" class="btn btn-outline-primary btn-sm">
+                    <i class="fas fa-play me-2"></i>{% trans 'Take a Quiz' %}
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <!-- Assignments -->
+        <div class="detail-card">
+            <h5><i class="fas fa-tasks text-warning"></i>{% trans 'Assignments' %}</h5>
+            
+            {% for item in assignment_list %}
+            <div class="assignment-entry {% if item.submitted %}{% if item.submission.score %}graded{% else %}submitted{% endif %}{% else %}pending{% endif %}">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h6>{{ item.assignment.title }}</h6>
+                        <div class="meta">
+                            <span><i class="fas fa-tag"></i>{{ item.assignment.get_assignment_type_display }}</span>
+                            <span><i class="fas fa-star"></i>{{ item.assignment.max_score }} {% trans 'pts' %}</span>
+                            {% if item.assignment.due_date %}
+                            <span><i class="fas fa-clock"></i>{% trans 'Due' %}: {{ item.assignment.due_date|date:"M d, Y" }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% if item.submitted %}
+                        {% if item.submission.score %}
+                        <span class="badge bg-primary fs-6">{{ item.submission.score }}/{{ item.assignment.max_score }}</span>
+                        {% else %}
+                        <span class="badge bg-success">{% trans 'Submitted' %}</span>
+                        {% endif %}
+                    {% else %}
+                    <span class="badge bg-warning text-dark">{% trans 'Pending' %}</span>
+                    {% endif %}
+                </div>
+                {% if item.submission.feedback %}
+                <div class="feedback">
+                    <strong>{% trans 'Feedback' %}:</strong> {{ item.submission.feedback }}
+                </div>
+                {% endif %}
+            </div>
+            {% empty %}
+            <div class="text-center text-muted py-4">
+                <i class="fas fa-file-alt fa-2x mb-3 opacity-50"></i>
+                <p>{% trans 'No assignments posted for this course yet.' %}</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<div class="text-center mb-4">
+    <a href="{% url 'student_assessment_recap' %}" class="btn btn-outline-primary">
+        <i class="fas fa-arrow-left me-2"></i>{% trans 'Back to All Courses' %}
+    </a>
+</div>
+
+{% endblock content %}

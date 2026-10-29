@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">{{ title }}</h1>
+        <p class="page-subtitle">Record the applicant's details and selected intake.</p>
+    </div>
+</div>
+
+<form method="post" class="card admission-application-form">
+    {% csrf_token %}
+    <div class="card-body">
+        {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}
+        <div class="row g-3">
+            {% for field in form %}
+            <div class="col-12 {% if field.name == 'address' or field.name == 'previous_education' %}col-lg-6{% else %}col-md-6 col-lg-4{% endif %}">
+                <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                {{ field }}
+                {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+                {% for error in field.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    <div class="panel-footer">
+        <button class="btn btn-primary" type="submit">Save application</button>
+        <a class="btn btn-outline-secondary" href="{% url 'admissions:application_list' %}">Cancel</a>
+    </div>
+</form>
+{% endblock %}

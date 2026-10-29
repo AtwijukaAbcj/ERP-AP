@@ -1,0 +1,371 @@
+{% extends 'base.html' %}
+{% load i18n %}
+{% block title %}{{ title }} | {% trans 'Learning management system' %}{% endblock title %}
+
+{% block content %}
+
+<nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/">{% trans 'Home' %}</a></li>
+        <li class="breadcrumb-item active" aria-current="page">{% trans 'My Assessments' %}</li>
+    </ol>
+</nav>
+
+{% include 'snippets/messages.html' %}
+
+<style>
+    .recap-hero {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 20px;
+        padding: 40px;
+        color: white;
+        margin-bottom: 30px;
+        position: relative;
+        overflow: hidden;
+    }
+    .recap-hero::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -20%;
+        width: 400px;
+        height: 400px;
+        background: rgba(255,255,255,0.1);
+        border-radius: 50%;
+    }
+    .recap-hero h1 { font-size: 2rem; font-weight: 700; margin-bottom: 8px; }
+    .recap-hero .semester-badge {
+        display: inline-block;
+        background: rgba(255,255,255,0.2);
+        padding: 8px 20px;
+        border-radius: 30px;
+        font-size: 0.95rem;
+        backdrop-filter: blur(10px);
+    }
+    
+    .overall-stats {
+        display: flex;
+        gap: 20px;
+        margin-top: 20px;
+    }
+    .overall-stat {
+        background: rgba(255,255,255,0.15);
+        padding: 15px 25px;
+        border-radius: 12px;
+        text-align: center;
+        backdrop-filter: blur(10px);
+    }
+    .overall-stat h3 { font-size: 1.8rem; margin: 0; font-weight: 700; }
+    .overall-stat p { margin: 5px 0 0 0; opacity: 0.9; font-size: 0.85rem; }
+    
+    .course-recap-card {
+        background: white;
+        border-radius: 20px;
+        margin-bottom: 25px;
+        box-shadow: 0 4px 25px rgba(0,0,0,0.08);
+        border: 1px solid #eef2f7;
+        overflow: hidden;
+    }
+    .course-recap-header {
+        background: linear-gradient(135deg, #f8fafc 0%, #eef2f7 100%);
+        padding: 20px 25px;
+        border-bottom: 1px solid #e2e8f0;
+    }
+    .course-recap-header h4 { margin: 0 0 5px 0; color: #2d3748; font-weight: 600; }
+    .course-recap-header .course-code { color: #718096; font-size: 0.9rem; }
+    .course-recap-body { padding: 25px; }
+    
+    .grade-display {
+        text-align: center;
+        padding: 25px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 16px;
+        color: white;
+        margin-bottom: 20px;
+    }
+    .grade-display .grade { font-size: 4rem; font-weight: 800; line-height: 1; }
+    .grade-display .total { font-size: 1.5rem; opacity: 0.9; }
+    .grade-display .label { font-size: 0.85rem; opacity: 0.8; margin-top: 5px; }
+    
+    .score-breakdown {
+        background: #f8fafc;
+        border-radius: 12px;
+        padding: 20px;
+    }
+    .score-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 0;
+        border-bottom: 1px solid #e2e8f0;
+    }
+    .score-item:last-child { border-bottom: none; }
+    .score-item .label {
+        display: flex;
+        align-items: center;
+        color: #4a5568;
+    }
+    .score-item .label i { 
+        width: 30px; height: 30px; 
+        border-radius: 8px; 
+        display: flex; align-items: center; justify-content: center;
+        margin-right: 12px; color: white; font-size: 0.8rem;
+    }
+    .score-item .label i.assignment { background: #f5576c; }
+    .score-item .label i.mid-exam { background: #4facfe; }
+    .score-item .label i.quiz { background: #43e97b; }
+    .score-item .label i.attendance { background: #f6ad55; }
+    .score-item .label i.final-exam { background: #667eea; }
+    .score-item .value { font-weight: 600; color: #2d3748; }
+    
+    .assessment-section {
+        margin-top: 20px;
+        padding-top: 20px;
+        border-top: 2px solid #eef2f7;
+    }
+    .assessment-section h6 {
+        color: #4a5568;
+        margin-bottom: 15px;
+        display: flex;
+        align-items: center;
+    }
+    .assessment-section h6 i { margin-right: 10px; }
+    
+    .attendance-visual {
+        display: flex;
+        gap: 15px;
+        flex-wrap: wrap;
+    }
+    .attendance-stat {
+        flex: 1;
+        min-width: 100px;
+        background: #f8fafc;
+        padding: 15px;
+        border-radius: 10px;
+        text-align: center;
+    }
+    .attendance-stat.present { border-left: 4px solid #38ef7d; }
+    .attendance-stat.late { border-left: 4px solid #f6ad55; }
+    .attendance-stat.absent { border-left: 4px solid #f5576c; }
+    .attendance-stat h4 { margin: 0; color: #2d3748; }
+    .attendance-stat p { margin: 5px 0 0 0; font-size: 0.8rem; color: #718096; }
+    
+    .progress-bar-custom {
+        height: 10px;
+        background: #e2e8f0;
+        border-radius: 5px;
+        overflow: hidden;
+        margin-top: 10px;
+    }
+    .progress-bar-custom .fill {
+        height: 100%;
+        border-radius: 5px;
+        transition: width 0.5s ease;
+    }
+    .progress-bar-custom .fill.good { background: linear-gradient(90deg, #38ef7d 0%, #11998e 100%); }
+    .progress-bar-custom .fill.warning { background: linear-gradient(90deg, #f6ad55 0%, #f093fb 100%); }
+    .progress-bar-custom .fill.danger { background: linear-gradient(90deg, #f5576c 0%, #f093fb 100%); }
+    
+    .quiz-item, .assignment-item {
+        background: #f8fafc;
+        padding: 12px 15px;
+        border-radius: 10px;
+        margin-bottom: 10px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .quiz-item .title, .assignment-item .title { font-weight: 500; color: #2d3748; }
+    .quiz-item .score { 
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-weight: 600;
+        font-size: 0.85rem;
+    }
+    
+    .view-details-btn {
+        display: inline-block;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 10px 20px;
+        border-radius: 10px;
+        text-decoration: none;
+        font-weight: 600;
+        transition: all 0.3s;
+        margin-top: 15px;
+    }
+    .view-details-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        color: white;
+    }
+    
+    .empty-course {
+        text-align: center;
+        padding: 60px 40px;
+        background: #f8fafc;
+        border-radius: 16px;
+    }
+    .empty-course i { font-size: 4rem; color: #cbd5e0; margin-bottom: 20px; }
+</style>
+
+<!-- Hero Section -->
+<div class="recap-hero">
+    <div class="row align-items-center">
+        <div class="col-md-8">
+            <h1><i class="fas fa-chart-line me-3"></i>{% trans 'My Assessment Recap' %}</h1>
+            <p class="mb-3 opacity-75">{% trans 'Track your academic progress across all courses' %}</p>
+            {% if current_semester %}
+            <div class="semester-badge">
+                <i class="fas fa-calendar-alt me-2"></i>{{ current_semester }} {% trans 'Semester' %} - {{ current_session }}
+            </div>
+            {% endif %}
+            
+            <div class="overall-stats">
+                <div class="overall-stat">
+                    <h3>{{ total_courses }}</h3>
+                    <p>{% trans 'Courses' %}</p>
+                </div>
+                <div class="overall-stat">
+                    <h3>{{ total_credits }}</h3>
+                    <p>{% trans 'Credits' %}</p>
+                </div>
+                <div class="overall-stat">
+                    <h3>{{ gpa }}</h3>
+                    <p>{% trans 'GPA' %}</p>
+                </div>
+                <div class="overall-stat">
+                    <h3>{{ cgpa }}</h3>
+                    <p>{% trans 'CGPA' %}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 text-end d-none d-md-block">
+            <i class="fas fa-graduation-cap" style="font-size: 6rem; opacity: 0.2;"></i>
+        </div>
+    </div>
+</div>
+
+{% if course_recaps %}
+<div class="row">
+    {% for recap in course_recaps %}
+    <div class="col-lg-6">
+        <div class="course-recap-card">
+            <div class="course-recap-header">
+                <h4>{{ recap.course.title }}</h4>
+                <span class="course-code">{{ recap.course.code }} | {{ recap.course.credit }} {% trans 'Credits' %} | {{ recap.course.semester }}</span>
+            </div>
+            <div class="course-recap-body">
+                <div class="row">
+                    <div class="col-md-5">
+                        <div class="grade-display">
+                            <div class="grade">{{ recap.grade|default:"--" }}</div>
+                            <div class="total">{{ recap.total }}/100</div>
+                            <div class="label">{% trans 'Current Grade' %}</div>
+                        </div>
+                    </div>
+                    <div class="col-md-7">
+                        <div class="score-breakdown">
+                            <div class="score-item">
+                                <span class="label"><i class="fas fa-file-alt assignment"></i>{% trans 'Assignment' %}</span>
+                                <span class="value">{{ recap.assignment_score }}/10</span>
+                            </div>
+                            <div class="score-item">
+                                <span class="label"><i class="fas fa-file-signature mid-exam"></i>{% trans 'Mid Exam' %}</span>
+                                <span class="value">{{ recap.mid_exam_score }}/15</span>
+                            </div>
+                            <div class="score-item">
+                                <span class="label"><i class="fas fa-question-circle quiz"></i>{% trans 'Quiz' %}</span>
+                                <span class="value">{{ recap.quiz_score }}/10</span>
+                            </div>
+                            <div class="score-item">
+                                <span class="label"><i class="fas fa-user-check attendance"></i>{% trans 'Attendance' %}</span>
+                                <span class="value">{{ recap.attendance_score }}/5</span>
+                            </div>
+                            <div class="score-item">
+                                <span class="label"><i class="fas fa-clipboard-list final-exam"></i>{% trans 'Final Exam' %}</span>
+                                <span class="value">{{ recap.final_exam_score }}/60</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Attendance Section -->
+                <div class="assessment-section">
+                    <h6><i class="fas fa-calendar-check text-success"></i>{% trans 'Attendance Record' %}</h6>
+                    <div class="attendance-visual">
+                        <div class="attendance-stat present">
+                            <h4>{{ recap.attendance.present }}</h4>
+                            <p>{% trans 'Present' %}</p>
+                        </div>
+                        <div class="attendance-stat late">
+                            <h4>{{ recap.attendance.late }}</h4>
+                            <p>{% trans 'Late' %}</p>
+                        </div>
+                        <div class="attendance-stat absent">
+                            <h4>{{ recap.attendance.absent }}</h4>
+                            <p>{% trans 'Absent' %}</p>
+                        </div>
+                    </div>
+                    <div class="progress-bar-custom">
+                        <div class="fill {% if recap.attendance.percentage >= 75 %}good{% elif recap.attendance.percentage >= 50 %}warning{% else %}danger{% endif %}" 
+                             style="width: {{ recap.attendance.percentage }}%"></div>
+                    </div>
+                    <small class="text-muted">{{ recap.attendance.percentage }}% {% trans 'attendance rate' %} ({{ recap.attendance.total_classes }} {% trans 'classes' %})</small>
+                </div>
+                
+                <!-- Quizzes Section -->
+                <div class="assessment-section">
+                    <h6><i class="fas fa-question-circle text-info"></i>{% trans 'Quizzes Attempted' %} ({{ recap.quizzes.taken }})</h6>
+                    {% for quiz_title, quiz_score in recap.quizzes.scores|slice:":3" %}
+                    <div class="quiz-item">
+                        <span class="title">{{ quiz_title }}</span>
+                        <span class="score">{{ quiz_score }}%</span>
+                    </div>
+                    {% empty %}
+                    <p class="text-muted mb-0">{% trans 'No quizzes attempted yet.' %}</p>
+                    {% endfor %}
+                    {% if recap.quizzes.scores|length > 3 %}
+                    <small class="text-muted">{% trans 'And' %} {{ recap.quizzes.scores|length|add:"-3" }} {% trans 'more...' %}</small>
+                    {% endif %}
+                </div>
+                
+                <!-- Assignments Section -->
+                <div class="assessment-section">
+                    <h6><i class="fas fa-tasks text-warning"></i>{% trans 'Assignments' %} ({{ recap.assignments.submitted }}/{{ recap.assignments.total }})</h6>
+                    {% for assignment in recap.assignments.items|slice:":3" %}
+                    <div class="assignment-item">
+                        <span class="title">{{ assignment.title }}</span>
+                        <span class="badge {% if assignment in recap.assignments.submissions %}bg-success{% else %}bg-secondary{% endif %}">
+                            {% if assignment in recap.assignments.submissions %}{% trans 'Submitted' %}{% else %}{% trans 'Pending' %}{% endif %}
+                        </span>
+                    </div>
+                    {% empty %}
+                    <p class="text-muted mb-0">{% trans 'No assignments posted yet.' %}</p>
+                    {% endfor %}
+                </div>
+                
+                <div class="text-center">
+                    <a href="{% url 'student_course_detail' recap.course.id %}" class="view-details-btn">
+                        <i class="fas fa-eye me-2"></i>{% trans 'View Full Details' %}
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="empty-course">
+    <i class="fas fa-book-open"></i>
+    <h4>{% trans 'No Courses Found' %}</h4>
+    <p class="text-muted">{% trans 'You are not enrolled in any courses for this semester.' %}</p>
+    <a href="{% url 'course_registration' %}" class="view-details-btn">
+        <i class="fas fa-plus me-2"></i>{% trans 'Register Courses' %}
+    </a>
+</div>
+{% endif %}
+
+{% endblock content %}

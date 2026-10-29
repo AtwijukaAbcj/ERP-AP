@@ -1,0 +1,6 @@
+<div class="document-footer">
+    {% firstof footer_text site_settings.school_name school_name "Unity College" %} |
+    {% firstof site_settings.school_website "www.school.edu" %} |
+    {% firstof site_settings.school_email "info@school.edu" %} |
+    TEL: {% firstof site_settings.school_phone "000-000-0000" %}
+</div>

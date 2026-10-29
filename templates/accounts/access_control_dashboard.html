@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+{% load i18n %}
+{% block title %}Access Control Dashboard | {% trans 'Admin' %}{% endblock title %}
+
+{% block content %}
+<nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/">{% trans 'Home' %}</a></li>
+        <li class="breadcrumb-item active" aria-current="page">{% trans 'Access Control' %}</li>
+    </ol>
+</nav>
+
+<div class="row g-4">
+    <div class="col-md-6 col-xl-3">
+        <div class="card border-primary shadow-sm h-100">
+            <div class="card-body">
+                <h5 class="card-title">{% trans 'Roles' %}</h5>
+                <p class="display-6 mb-0">{{ role_count }}</p>
+                <p class="text-muted">{% trans 'Total configured roles' %}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 col-xl-3">
+        <div class="card border-success shadow-sm h-100">
+            <div class="card-body">
+                <h5 class="card-title">{% trans 'Permissions' %}</h5>
+                <p class="display-6 mb-0">{{ permission_count }}</p>
+                <p class="text-muted">{% trans 'All action permissions' %}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 col-xl-3">
+        <div class="card border-warning shadow-sm h-100">
+            <div class="card-body">
+                <h5 class="card-title">{% trans 'Role Permissions' %}</h5>
+                <p class="display-6 mb-0">{{ role_permission_count }}</p>
+                <p class="text-muted">{% trans 'Role-to-permission mappings' %}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 col-xl-3">
+        <div class="card border-info shadow-sm h-100">
+            <div class="card-body">
+                <h5 class="card-title">{% trans 'Module Assignments' %}</h5>
+                <p class="display-6 mb-0">{{ module_assignment_count }}</p>
+                <p class="text-muted">{% trans 'Users with active module access' %}</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h4 class="card-title">{% trans 'Quick links' %}</h4>
+                <div class="d-flex flex-wrap gap-2">
+                    <a href="{% url 'user_list' %}" class="btn btn-outline-primary">{% trans 'Users' %}</a>
+                    <a href="{% url 'role_list' %}" class="btn btn-outline-secondary">{% trans 'Roles' %}</a>
+                    <a href="{% url 'permission_list' %}" class="btn btn-outline-success">{% trans 'Permissions' %}</a>
+                    <a href="{% url 'role_permission_list' %}" class="btn btn-outline-warning">{% trans 'Role Permissions' %}</a>
+                    <a href="{% url 'user_permission_list' %}" class="btn btn-outline-danger">{% trans 'User Permission Overrides' %}</a>
+                    <a href="{% url 'assign_modules' %}" class="btn btn-outline-info">{% trans 'Assign Modules' %}</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}

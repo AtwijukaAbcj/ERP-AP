@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>{{ user.get_full_name }} — Profile</title>
+    {% include 'includes/document_print_styles.html' %}
+</head>
+<body>
+    {% include 'includes/document_header.html' with title='Account Profile' subtitle=user.get_user_role label_1='ID number:' value_1=user.username label_2='Registered:' value_2=user.date_joined|date:"d M Y" label_3='Status:' value_3=user.is_active|yesno:"Active,Inactive" %}
+    <h2>Personal Information</h2>
+    <table>
+        <tbody>
+            <tr><th>Name</th><td>{{ user.get_full_name|default:"—" }}</td><th>ID number</th><td>{{ user.username }}</td></tr>
+            <tr><th>Email</th><td>{{ user.email|default:"—" }}</td><th>Phone</th><td>{{ user.phone|default:"—" }}</td></tr>
+            <tr><th>Address</th><td colspan="3">{{ user.address|default:"—" }}</td></tr>
+        </tbody>
+    </table>
+    {% if student %}
+    <h2>Student Record</h2>
+    <table>
+        <tbody>
+            <tr><th>Registration number</th><td>{{ student.registration_number|default:"—" }}</td><th>Program</th><td>{{ student.program|default:"—" }}</td></tr>
+            <tr><th>Level</th><td>{{ student.level|default:"—" }}</td><th>Year</th><td>{{ student.year|default:"—" }}</td></tr>
+            <tr><th>Enrollment status</th><td>{{ student.get_status_display|default:"—" }}</td><th>Academic period</th><td>{% if current_semester and current_session %}{{ current_session.session }} · {{ current_semester.get_semester_display }}{% else %}—{% endif %}</td></tr>
+        </tbody>
+    </table>
+    {% endif %}
+    {% if user.is_lecturer %}
+    <h2>Lecturer Information</h2>
+    <table>
+        <tbody>
+            <tr><th>Faculty</th><td>{{ user.faculty|default:"—" }}</td><th>Joined</th><td>{{ user.date_joined|date:"d M Y" }}</td></tr>
+        </tbody>
+    </table>
+    {% endif %}
+    {% include 'includes/document_footer.html' %}
+</body>
+</html>

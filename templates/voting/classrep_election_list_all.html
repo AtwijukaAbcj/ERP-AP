@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% load i18n %}
+{% block title %}{{ title }} | {% trans "Learning management system" %}{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-list me-2"></i>{{ title }}</h2>
+        {% if request.user.is_superuser %}
+            <a href="{% url 'add_class_rep_election' %}" class="btn btn-primary">
+                <i class="fas fa-plus-circle me-1"></i> {% trans "Add Class Rep Election" %}
+            </a>
+        {% endif %}
+    </div>
+
+    {% if classrep_elections %}
+    <div class="table-responsive">
+        <table class="table table-bordered align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>Title</th>
+                    <th>Program</th>
+                    <th>Session</th>
+                    <th>Status</th>
+                    <th>Created At</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for election in classrep_elections %}
+                <tr>
+                    <td>{{ election.title }}</td>
+                    <td>{{ election.program.title }}</td>
+                    <td>{{ election.session.session }}</td>
+                    <td>
+                        {% if election.is_active %}
+                            <span class="badge bg-success">Active</span>
+                        {% else %}
+                            <span class="badge bg-secondary">Closed</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ election.created_at|date:"Y-m-d H:i" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+        <div class="alert alert-warning">{% trans "No class representative elections found." %}</div>
+    {% endif %}
+</div>
+{% endblock %}

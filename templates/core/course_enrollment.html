@@ -1,0 +1,442 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}{% trans 'Course Enrollment Management' %}{% endblock %}
+
+{% block content %}
+<style>
+    .enrollment-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 2rem;
+    }
+    
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid #e5e7eb;
+    }
+    
+    .page-header h1 {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: #1f2937;
+        margin: 0;
+    }
+    
+    .course-selector {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        margin-bottom: 2rem;
+    }
+    
+    .course-selector label {
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+    
+    .course-selector select {
+        width: 100%;
+        max-width: 500px;
+        padding: 0.75rem 1rem;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        font-size: 1rem;
+        background-color: white;
+    }
+    
+    .enrollment-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 2rem;
+    }
+    
+    @media (max-width: 1024px) {
+        .enrollment-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+    
+    .enrollment-panel {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        overflow: hidden;
+    }
+    
+    .panel-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 1rem 1.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .panel-header.enrolled {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    }
+    
+    .panel-header h3 {
+        margin: 0;
+        font-size: 1.1rem;
+        font-weight: 600;
+    }
+    
+    .panel-header .badge {
+        background: rgba(255,255,255,0.2);
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.875rem;
+    }
+    
+    .panel-body {
+        padding: 1rem;
+        max-height: 500px;
+        overflow-y: auto;
+    }
+    
+    .student-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    
+    .student-item {
+        display: flex;
+        align-items: center;
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid #f3f4f6;
+        transition: background 0.2s;
+    }
+    
+    .student-item:hover {
+        background-color: #f9fafb;
+    }
+    
+    .student-item:last-child {
+        border-bottom: none;
+    }
+    
+    .student-item input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
+        margin-right: 1rem;
+        cursor: pointer;
+    }
+    
+    .student-info {
+        flex: 1;
+    }
+    
+    .student-name {
+        font-weight: 600;
+        color: #1f2937;
+        margin-bottom: 0.125rem;
+    }
+    
+    .student-id {
+        font-size: 0.875rem;
+        color: #6b7280;
+    }
+    
+    .student-program {
+        font-size: 0.75rem;
+        color: #9ca3af;
+    }
+    
+    .panel-footer {
+        padding: 1rem 1.5rem;
+        background: #f9fafb;
+        border-top: 1px solid #e5e7eb;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .select-all-container {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.875rem;
+        color: #6b7280;
+    }
+    
+    .btn-enroll {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        padding: 0.625rem 1.5rem;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    .btn-enroll:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+    
+    .btn-unenroll {
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        color: white;
+        border: none;
+        padding: 0.625rem 1.5rem;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    .btn-unenroll:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 3rem 1rem;
+        color: #9ca3af;
+    }
+    
+    .empty-state i {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+    
+    .course-info {
+        background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        border-left: 4px solid #0ea5e9;
+    }
+    
+    .course-info h2 {
+        margin: 0 0 0.5rem;
+        color: #0369a1;
+        font-size: 1.25rem;
+    }
+    
+    .course-info-details {
+        display: flex;
+        gap: 2rem;
+        flex-wrap: wrap;
+        font-size: 0.875rem;
+        color: #64748b;
+    }
+    
+    .course-info-details span {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .search-box {
+        padding: 0.75rem 1rem;
+        border: none;
+        border-bottom: 1px solid #e5e7eb;
+        width: 100%;
+        font-size: 0.875rem;
+    }
+    
+    .search-box:focus {
+        outline: none;
+        border-bottom-color: #667eea;
+    }
+</style>
+
+<div class="enrollment-container">
+    <div class="page-header">
+        <h1><i class="fas fa-user-plus me-2"></i> {% trans 'Course Enrollment Management' %}</h1>
+    </div>
+    
+    <!-- Course Selector -->
+    <div class="course-selector">
+        <label for="course-select">{% trans 'Select a Course' %}</label>
+        <select id="course-select" onchange="window.location.href='?course=' + this.value">
+            <option value="">-- {% trans 'Choose a course' %} --</option>
+            {% for course in courses %}
+                <option value="{{ course.id }}" {% if selected_course and selected_course.id == course.id %}selected{% endif %}>
+                    {{ course.code }} - {{ course.title }} ({{ course.semester }})
+                </option>
+            {% endfor %}
+        </select>
+    </div>
+    
+    {% if selected_course %}
+    <!-- Course Info -->
+    <div class="course-info">
+        <h2>{{ selected_course.code }} - {{ selected_course.title }}</h2>
+        <div class="course-info-details">
+            <span><i class="fas fa-layer-group"></i> {{ selected_course.program }}</span>
+            <span><i class="fas fa-calendar-alt"></i> {{ selected_course.semester }}</span>
+            <span><i class="fas fa-star"></i> {{ selected_course.credit }} {% trans 'Credits' %}</span>
+            <span><i class="fas fa-users"></i> {{ enrolled_students|length }} {% trans 'Enrolled' %}</span>
+        </div>
+    </div>
+    
+    <div class="enrollment-grid">
+        <!-- Enrolled Students Panel -->
+        <div class="enrollment-panel">
+            <div class="panel-header enrolled">
+                <h3><i class="fas fa-check-circle me-2"></i> {% trans 'Enrolled Students' %}</h3>
+                <span class="badge">{{ enrolled_students|length }}</span>
+            </div>
+            <form method="post" id="unenroll-form">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="unenroll">
+                <input type="hidden" name="course_id" value="{{ selected_course.id }}">
+                
+                <input type="text" class="search-box" placeholder="{% trans 'Search enrolled students...' %}" id="search-enrolled" onkeyup="filterStudents('enrolled')">
+                
+                <div class="panel-body">
+                    {% if enrolled_students %}
+                    <ul class="student-list" id="enrolled-list">
+                        {% for tc in enrolled_students %}
+                        <li class="student-item">
+                            <input type="checkbox" name="enrollment_ids" value="{{ tc.id }}" id="enrolled-{{ tc.id }}">
+                            <div class="student-info">
+                                <div class="student-name">{{ tc.student.student.get_full_name }}</div>
+                                <div class="student-id">{{ tc.student.registration_number }}</div>
+                                {% if tc.student.program %}
+                                <div class="student-program">{{ tc.student.program }}</div>
+                                {% endif %}
+                            </div>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <div class="empty-state">
+                        <i class="fas fa-user-graduate"></i>
+                        <p>{% trans 'No students enrolled in this course yet.' %}</p>
+                    </div>
+                    {% endif %}
+                </div>
+                
+                {% if enrolled_students %}
+                <div class="panel-footer">
+                    <label class="select-all-container">
+                        <input type="checkbox" id="select-all-enrolled" onchange="toggleAll('enrolled')">
+                        {% trans 'Select All' %}
+                    </label>
+                    <button type="submit" class="btn-unenroll" onclick="return confirm('{% trans 'Are you sure you want to remove selected students from this course?' %}')">
+                        <i class="fas fa-user-minus me-1"></i> {% trans 'Remove Selected' %}
+                    </button>
+                </div>
+                {% endif %}
+            </form>
+        </div>
+        
+        <!-- Available Students Panel -->
+        <div class="enrollment-panel">
+            <div class="panel-header">
+                <h3><i class="fas fa-user-plus me-2"></i> {% trans 'Available Students' %}</h3>
+                <span class="badge">{{ available_students|length }}</span>
+            </div>
+            <form method="post" id="enroll-form">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="enroll">
+                <input type="hidden" name="course_id" value="{{ selected_course.id }}">
+                
+                <input type="text" class="search-box" placeholder="{% trans 'Search students to enroll...' %}" id="search-available" onkeyup="filterStudents('available')">
+                
+                <div class="panel-body">
+                    {% if available_students %}
+                    <ul class="student-list" id="available-list">
+                        {% for student in available_students %}
+                        <li class="student-item">
+                            <input type="checkbox" name="student_ids" value="{{ student.id }}" id="available-{{ student.id }}">
+                            <div class="student-info">
+                                <div class="student-name">{{ student.student.get_full_name }}</div>
+                                <div class="student-id">{{ student.registration_number }}</div>
+                                {% if student.program %}
+                                <div class="student-program">{{ student.program }}</div>
+                                {% endif %}
+                            </div>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <div class="empty-state">
+                        <i class="fas fa-check-double"></i>
+                        <p>{% trans 'All students are enrolled in this course.' %}</p>
+                    </div>
+                    {% endif %}
+                </div>
+                
+                {% if available_students %}
+                <div class="panel-footer">
+                    <label class="select-all-container">
+                        <input type="checkbox" id="select-all-available" onchange="toggleAll('available')">
+                        {% trans 'Select All' %}
+                    </label>
+                    <button type="submit" class="btn-enroll">
+                        <i class="fas fa-user-plus me-1"></i> {% trans 'Enroll Selected' %}
+                    </button>
+                </div>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+    {% else %}
+    <div class="enrollment-panel">
+        <div class="panel-body">
+            <div class="empty-state">
+                <i class="fas fa-hand-point-up"></i>
+                <p>{% trans 'Please select a course above to manage enrollments.' %}</p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function toggleAll(type) {
+    const checkbox = document.getElementById('select-all-' + type);
+    const listId = type === 'enrolled' ? 'enrolled-list' : 'available-list';
+    const list = document.getElementById(listId);
+    if (list) {
+        const checkboxes = list.querySelectorAll('input[type="checkbox"]');
+        checkboxes.forEach(cb => {
+            if (cb.closest('.student-item').style.display !== 'none') {
+                cb.checked = checkbox.checked;
+            }
+        });
+    }
+}
+
+function filterStudents(type) {
+    const searchId = 'search-' + type;
+    const listId = type + '-list';
+    const searchInput = document.getElementById(searchId);
+    const list = document.getElementById(listId);
+    
+    if (!searchInput || !list) return;
+    
+    const filter = searchInput.value.toLowerCase();
+    const items = list.querySelectorAll('.student-item');
+    
+    items.forEach(item => {
+        const name = item.querySelector('.student-name').textContent.toLowerCase();
+        const id = item.querySelector('.student-id').textContent.toLowerCase();
+        
+        if (name.includes(filter) || id.includes(filter)) {
+            item.style.display = '';
+        } else {
+            item.style.display = 'none';
+        }
+    });
+}
+</script>
+{% endblock %}

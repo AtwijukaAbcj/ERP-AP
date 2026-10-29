@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block page_title %}View Transcripts{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card shadow">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0">Student Transcript</h4>
+        </div>
+        <div class="card-body">
+            {% if student %}
+                <p><strong>Student Name:</strong> {{ student.student.get_full_name }}</p>
+                <p><strong>Registration Number:</strong> {{ student.student.username }}</p>
+                <p><strong>Level:</strong> {{ student.level }}</p>
+            {% endif %}
+
+            {% if results %}
+                <table class="table table-bordered table-striped">
+                    <thead class="thead-dark">
+                        <tr>
+                            <th>Session</th>
+                            <th>Semester</th>
+                            <th>GPA</th>
+                            <th>CGPA</th>
+                            <th>Level</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for result in results %}
+                        <tr>
+                            <td>{{ result.session }}</td>
+                            <td>{{ result.semester }}</td>
+                            <td>{{ result.gpa }}</td>
+                            <td>{{ result.cgpa }}</td>
+                            <td>{{ result.level }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <div class="alert alert-info">
+                    No transcript data available.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

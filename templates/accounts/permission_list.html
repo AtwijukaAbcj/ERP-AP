@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+{% load i18n %}
+{% block title %}{{ title }} | {% trans 'Learning management system' %}{% endblock title %}
+
+{% block content %}
+<nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/">{% trans 'Home' %}</a></li>
+        <li class="breadcrumb-item active" aria-current="page">{% trans 'Permissions' %}</li>
+    </ol>
+</nav>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="fw-bold"><i class="fas fa-key me-2"></i>{% trans 'Permissions' %}</h4>
+    <a href="{% url 'permission_add' %}" class="btn btn-primary">
+        <i class="fas fa-plus me-1"></i> {% trans 'Add Permission' %}
+    </a>
+</div>
+
+{% include 'snippets/messages.html' %}
+
+<div class="table-responsive" style="overflow: visible; z-index: 2147483645;">
+    <table class="table table-striped table-hover">
+        <thead class="table-dark">
+            <tr>
+                <th>#</th>
+                <th>{% trans 'Name' %}</th>
+                <th>{% trans 'Code name' %}</th>
+                <th>{% trans 'Description' %}</th>
+                <th>{% trans 'Actions' %}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for permission in permissions %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ permission.name }}</td>
+                <td>{{ permission.codename }}</td>
+                <td>{{ permission.description }}</td>
+                <td style="position: relative; overflow: visible;">
+                    <div class="dropdown" style="position: relative; overflow: visible; z-index: 2147483646;">
+                        <button class="btn btn-sm btn-outline-secondary p-0 d-flex align-items-center justify-content-center" type="button" id="permissionActions{{ permission.pk }}" data-bs-toggle="dropdown" data-bs-boundary="window" data-bs-offset="0,6" aria-expanded="false" aria-label="Actions" style="width: 36px; height: 36px;">
+                            <i class="fas fa-ellipsis-v" style="font-size: 1rem;"></i>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="permissionActions{{ permission.pk }}" style="z-index: 2147483647 !important; min-width: 160px;">
+                            <li><a class="dropdown-item" href="{% url 'permission_edit' permission.pk %}">{% trans 'Edit' %}</a></li>
+                            <li>
+                                <form method="post" action="{% url 'permission_delete' permission.pk %}" class="m-0">
+                                    {% csrf_token %}
+                                    <button type="submit" class="dropdown-item text-danger" onclick="return confirm('{% trans 'Delete this permission?' %}')">{% trans 'Delete' %}</button>
+                                </form>
+                            </li>
+                        </ul>
+                    </div>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="5" class="text-center text-muted">{% trans 'No permissions available.' %}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock content %}

@@ -1,0 +1,298 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block content %}
+<nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/">{% trans 'Home' %}</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'assignment:assignment_list' course.slug %}">{% trans 'Assignments' %}</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'assignment:rubric_list' course.slug %}">{% trans 'Rubrics' %}</a></li>
+        <li class="breadcrumb-item active">{% if rubric %}{% trans 'Edit' %}{% else %}{% trans 'Create' %}{% endif %}</li>
+    </ol>
+</nav>
+
+<div class="card shadow-sm">
+    <div class="card-header">
+        <h5 class="mb-0">
+            <i class="fas fa-table me-2"></i>
+            {% if rubric %}{% trans 'Edit Rubric' %}{% else %}{% trans 'Create Rubric' %}{% endif %}
+        </h5>
+    </div>
+    <div class="card-body">
+        <form method="post" id="rubricForm">
+            {% csrf_token %}
+            
+            <div class="row mb-4">
+                <div class="col-md-8">
+                    <label class="form-label">{% trans 'Rubric Title' %} <span class="text-danger">*</span></label>
+                    <input type="text" name="title" class="form-control" 
+                           value="{{ rubric.title|default:'' }}" required
+                           placeholder="{% trans 'e.g., Essay Rubric, Project Rubric' %}">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">{% trans 'Total Points' %}</label>
+                    <input type="text" class="form-control" id="totalPoints" readonly value="0">
+                </div>
+            </div>
+            
+            <div class="mb-4">
+                <label class="form-label">{% trans 'Description' %}</label>
+                <textarea name="description" class="form-control" rows="2"
+                          placeholder="{% trans 'Optional description of this rubric' %}">{{ rubric.description|default:'' }}</textarea>
+            </div>
+            
+            <hr class="my-4">
+            
+            <h5 class="mb-3">{% trans 'Criteria' %}</h5>
+            
+            <div id="criteriaContainer">
+                {% if rubric and rubric.criteria.exists %}
+                {% for criterion in rubric.criteria.all %}
+                <div class="criterion-row card mb-3" data-criterion="{{ forloop.counter0 }}">
+                    <div class="card-header d-flex justify-content-between align-items-center py-2">
+                        <span class="criterion-number">{% trans 'Criterion' %} {{ forloop.counter }}</span>
+                        <button type="button" class="btn btn-sm btn-outline-danger remove-criterion">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-3">
+                            <div class="col-md-9">
+                                <label class="form-label">{% trans 'Description' %}</label>
+                                <input type="text" name="criterion_description[]" class="form-control" 
+                                       value="{{ criterion.description }}" required
+                                       placeholder="{% trans 'What is being evaluated?' %}">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">{% trans 'Max Points' %}</label>
+                                <input type="number" name="criterion_points[]" class="form-control criterion-points" 
+                                       value="{{ criterion.points }}" min="0" required>
+                            </div>
+                        </div>
+                        
+                        <label class="form-label">{% trans 'Ratings' %}</label>
+                        <div class="ratings-container">
+                            {% for rating in criterion.ratings.all %}
+                            <div class="rating-row row mb-2 align-items-center">
+                                <div class="col-md-8">
+                                    <input type="text" name="rating_description_{{ forloop.parentloop.counter0 }}[]" 
+                                           class="form-control form-control-sm"
+                                           value="{{ rating.description }}"
+                                           placeholder="{% trans 'Rating description' %}">
+                                </div>
+                                <div class="col-md-3">
+                                    <input type="number" name="rating_points_{{ forloop.parentloop.counter0 }}[]" 
+                                           class="form-control form-control-sm"
+                                           value="{{ rating.points }}" min="0"
+                                           placeholder="{% trans 'Points' %}">
+                                </div>
+                                <div class="col-md-1">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary remove-rating">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-primary add-rating mt-2">
+                            <i class="fas fa-plus me-1"></i>{% trans 'Add Rating' %}
+                        </button>
+                    </div>
+                </div>
+                {% endfor %}
+                {% endif %}
+            </div>
+            
+            <button type="button" class="btn btn-outline-primary mb-4" id="addCriterion">
+                <i class="fas fa-plus me-1"></i>{% trans 'Add Criterion' %}
+            </button>
+            
+            <hr class="my-4">
+            
+            <div class="d-grid gap-2">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save me-1"></i>
+                    {% if rubric %}{% trans 'Save Changes' %}{% else %}{% trans 'Create Rubric' %}{% endif %}
+                </button>
+                <a href="{% url 'assignment:rubric_list' course.slug %}" class="btn btn-outline-secondary">
+                    {% trans 'Cancel' %}
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<template id="criterionTemplate">
+    <div class="criterion-row card mb-3" data-criterion="__INDEX__">
+        <div class="card-header d-flex justify-content-between align-items-center py-2">
+            <span class="criterion-number">{% trans 'Criterion' %} __NUM__</span>
+            <button type="button" class="btn btn-sm btn-outline-danger remove-criterion">
+                <i class="fas fa-trash"></i>
+            </button>
+        </div>
+        <div class="card-body">
+            <div class="row mb-3">
+                <div class="col-md-9">
+                    <label class="form-label">{% trans 'Description' %}</label>
+                    <input type="text" name="criterion_description[]" class="form-control" required
+                           placeholder="{% trans 'What is being evaluated?' %}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">{% trans 'Max Points' %}</label>
+                    <input type="number" name="criterion_points[]" class="form-control criterion-points" value="10" min="0" required>
+                </div>
+            </div>
+            
+            <label class="form-label">{% trans 'Ratings' %}</label>
+            <div class="ratings-container">
+                <div class="rating-row row mb-2 align-items-center">
+                    <div class="col-md-8">
+                        <input type="text" name="rating_description___INDEX__[]" 
+                               class="form-control form-control-sm"
+                               value="{% trans 'Excellent' %}"
+                               placeholder="{% trans 'Rating description' %}">
+                    </div>
+                    <div class="col-md-3">
+                        <input type="number" name="rating_points___INDEX__[]" 
+                               class="form-control form-control-sm" value="10" min="0">
+                    </div>
+                    <div class="col-md-1">
+                        <button type="button" class="btn btn-sm btn-outline-secondary remove-rating">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="rating-row row mb-2 align-items-center">
+                    <div class="col-md-8">
+                        <input type="text" name="rating_description___INDEX__[]" 
+                               class="form-control form-control-sm"
+                               value="{% trans 'Good' %}"
+                               placeholder="{% trans 'Rating description' %}">
+                    </div>
+                    <div class="col-md-3">
+                        <input type="number" name="rating_points___INDEX__[]" 
+                               class="form-control form-control-sm" value="7" min="0">
+                    </div>
+                    <div class="col-md-1">
+                        <button type="button" class="btn btn-sm btn-outline-secondary remove-rating">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="rating-row row mb-2 align-items-center">
+                    <div class="col-md-8">
+                        <input type="text" name="rating_description___INDEX__[]" 
+                               class="form-control form-control-sm"
+                               value="{% trans 'Needs Work' %}"
+                               placeholder="{% trans 'Rating description' %}">
+                    </div>
+                    <div class="col-md-3">
+                        <input type="number" name="rating_points___INDEX__[]" 
+                               class="form-control form-control-sm" value="3" min="0">
+                    </div>
+                    <div class="col-md-1">
+                        <button type="button" class="btn btn-sm btn-outline-secondary remove-rating">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <button type="button" class="btn btn-sm btn-outline-primary add-rating mt-2">
+                <i class="fas fa-plus me-1"></i>{% trans 'Add Rating' %}
+            </button>
+        </div>
+    </div>
+</template>
+
+<template id="ratingTemplate">
+    <div class="rating-row row mb-2 align-items-center">
+        <div class="col-md-8">
+            <input type="text" name="rating_description___INDEX__[]" 
+                   class="form-control form-control-sm"
+                   placeholder="{% trans 'Rating description' %}">
+        </div>
+        <div class="col-md-3">
+            <input type="number" name="rating_points___INDEX__[]" 
+                   class="form-control form-control-sm" value="0" min="0">
+        </div>
+        <div class="col-md-1">
+            <button type="button" class="btn btn-sm btn-outline-secondary remove-rating">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    </div>
+</template>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const container = document.getElementById('criteriaContainer');
+    const addBtn = document.getElementById('addCriterion');
+    const template = document.getElementById('criterionTemplate').innerHTML;
+    const ratingTemplate = document.getElementById('ratingTemplate').innerHTML;
+    let criterionIndex = container.querySelectorAll('.criterion-row').length;
+    
+    function updateTotalPoints() {
+        let total = 0;
+        document.querySelectorAll('.criterion-points').forEach(input => {
+            total += parseFloat(input.value) || 0;
+        });
+        document.getElementById('totalPoints').value = total;
+    }
+    
+    function renumberCriteria() {
+        const rows = container.querySelectorAll('.criterion-row');
+        rows.forEach((row, idx) => {
+            row.querySelector('.criterion-number').textContent = '{% trans "Criterion" %} ' + (idx + 1);
+        });
+    }
+    
+    // Add criterion
+    addBtn.addEventListener('click', function() {
+        const html = template
+            .replace(/__INDEX__/g, criterionIndex)
+            .replace(/__NUM__/g, criterionIndex + 1);
+        container.insertAdjacentHTML('beforeend', html);
+        criterionIndex++;
+        updateTotalPoints();
+    });
+    
+    // Remove criterion
+    container.addEventListener('click', function(e) {
+        if (e.target.closest('.remove-criterion')) {
+            e.target.closest('.criterion-row').remove();
+            renumberCriteria();
+            updateTotalPoints();
+        }
+        
+        // Add rating
+        if (e.target.closest('.add-rating')) {
+            const criterionRow = e.target.closest('.criterion-row');
+            const ratingsContainer = criterionRow.querySelector('.ratings-container');
+            const index = criterionRow.dataset.criterion;
+            const html = ratingTemplate.replace(/__INDEX__/g, index);
+            ratingsContainer.insertAdjacentHTML('beforeend', html);
+        }
+        
+        // Remove rating
+        if (e.target.closest('.remove-rating')) {
+            e.target.closest('.rating-row').remove();
+        }
+    });
+    
+    // Update points on change
+    container.addEventListener('input', function(e) {
+        if (e.target.classList.contains('criterion-points')) {
+            updateTotalPoints();
+        }
+    });
+    
+    // Initial calculation
+    updateTotalPoints();
+    
+    // If no criteria exist, add one by default
+    if (criterionIndex === 0) {
+        addBtn.click();
+    }
+});
+</script>
+{% endblock %}

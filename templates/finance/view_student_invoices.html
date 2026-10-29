@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+{% block title %}My Invoices{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4"><i class="fas fa-file-invoice-dollar me-2"></i>My Invoices</h2>
+
+    {% if invoices %}
+    <div class="table-responsive">
+        <table class="table table-bordered table-hover align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>#</th>
+                    <th>Invoice #</th>
+                    <th>Semester</th>
+                    <th>Categories</th>
+                    <th>Total</th>
+                    <th>Paid</th>
+                    <th>Balance</th>
+                    <th>Status</th>
+                    <th>Date Issued</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for invoice in invoices %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>INV{{ invoice.id|stringformat:"05d" }}</td>
+                    <td>
+                        {% with invoice.items.first as first_item %}
+                            {% if first_item %}
+                                {{ invoice.semester }}
+                            {% else %}
+                                <span class="text-muted">N/A</span>
+                            {% endif %}
+                        {% endwith %}
+                    </td>
+                    <td>
+                        {% for item in invoice.items.all %}
+                            {% if item.category %}{{ item.category.name }}{% else %}Fee category removed{% endif %}{% if not forloop.last %}, {% endif %}
+                        {% endfor %}
+                    </td>
+                    <td>{{ invoice.total_amount }}</td>
+                    <td>{{ invoice.paid_amount }}</td>
+                    <td>{{ invoice.balance }}</td>
+                    <td>
+                        <span class="badge {% if invoice.status == 'paid' %}bg-success{% elif invoice.status == 'partial' %}bg-info text-dark{% else %}bg-warning text-dark{% endif %}">
+                            {{ invoice.status|title }}
+                        </span>
+                    </td>
+                    <td>{{ invoice.date_issued|date:"d M Y" }}</td>
+                    <td>
+                        <div class="btn-group btn-group-sm">
+                            <a href="{% url 'finance:view_student_invoice' invoice.id %}" class="btn btn-outline-info" title="View">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            <a href="{% url 'finance:download_invoice_pdf' invoice.id %}" class="btn btn-outline-primary" title="PDF">
+
+                                <i class="fas fa-file-download"></i>
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="alert alert-info" role="alert">No invoices available at the moment.</div>
+    {% endif %}
+</div>
+{% endblock %}

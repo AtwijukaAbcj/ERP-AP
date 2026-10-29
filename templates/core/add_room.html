@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% block title %}Add Room{% endblock %}
+{% load crispy_forms_tags %}
+{% block content %}
+<div class="container mt-4">
+  <h3>Add a New Room</h3>
+  <form method="post">
+    {% csrf_token %}
+    {{ form|crispy }}
+    <button type="submit" class="btn btn-success">Save Room</button>
+    <a href="{% url 'room_list' %}" class="btn btn-secondary">Cancel</a>
+  </form>
+</div>
+{% endblock %}

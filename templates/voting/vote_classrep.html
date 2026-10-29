@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block title %}{% trans "Vote" %} | {{ election.title }}{% endblock %}
+
+{% block content %}
+<div class="container voting-page">
+    <header class="voting-page-header">
+        <div>
+            <h1><i class="fas fa-vote-yea me-2" aria-hidden="true"></i>{{ election.title }}</h1>
+            <p>{{ election.program.title }} · {{ election.session.session }}. {% trans "Select one candidate. Your vote is final after submission." %}</p>
+        </div>
+        <a href="{% url 'class_rep_election_list' %}" class="btn btn-outline-secondary">{% trans "Back to elections" %}</a>
+    </header>
+    {% include 'snippets/messages.html' %}
+
+    <form method="post">
+        {% csrf_token %}
+        <div class="row">
+            {% for candidate in candidates %}
+            <div class="col-md-6 col-lg-4 mb-4">
+                <article class="voting-candidate-card">
+                    <div class="card-body p-3 d-flex flex-column">
+                        {% if candidate.photo %}
+                            <img src="{{ candidate.photo.url }}" alt="{% blocktrans with name=candidate.student.student.get_full_name %}Photo of {{ name }}{% endblocktrans %}" class="voting-candidate-photo mb-3">
+                        {% else %}
+                            <div class="voting-candidate-photo d-grid mb-3 text-muted">{% trans "No photo provided" %}</div>
+                        {% endif %}
+                        <h2 class="h5 fw-semibold">{{ candidate.student.student.get_full_name }}</h2>
+                        {% if candidate.manifesto %}<p class="text-muted small flex-grow-1">{{ candidate.manifesto }}</p>{% endif %}
+                        <label class="voting-candidate-choice mt-2">
+                            <input class="voting-candidate-radio" type="radio" name="candidate" value="{{ candidate.pk }}" required>
+                            <span>{% trans "Select this candidate" %}</span>
+                        </label>
+                    </div>
+                </article>
+            </div>
+            {% empty %}
+            <div class="col-12"><div class="voting-empty-state">{% trans "No eligible candidates are available." %}</div></div>
+            {% endfor %}
+        </div>
+        {% if candidates %}
+        <div class="text-center mt-2">
+            <button type="submit" class="btn btn-primary btn-lg px-5"><i class="fas fa-lock me-2" aria-hidden="true"></i>{% trans "Submit my vote" %}</button>
+            <p class="small text-muted mt-2">{% trans "Your selection is final once submitted." %}</p>
+        </div>
+        {% endif %}
+    </form>
+</div>
+{% endblock %}

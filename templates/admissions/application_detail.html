@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% load permission_tags %}
+
+{% block title %}{{ application.application_number }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">{{ application.first_name }} {{ application.last_name }}</h1>
+        <p class="page-subtitle">{{ application.application_number }} · {{ application.get_status_display }}</p>
+    </div>
+    <div class="toolbar">
+        <a class="btn btn-outline-secondary" href="{% url 'admissions:application_list' %}">Back to applications</a>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-7">
+        <div class="card mb-4">
+            <div class="panel-header">Applicant details</div>
+            <div class="panel-body">
+                <dl class="details-grid mb-0">
+                    <dt>Email</dt><dd>{{ application.email }}</dd>
+                    <dt>Phone</dt><dd>{{ application.phone }}</dd>
+                    <dt>Date of birth</dt><dd>{{ application.date_of_birth|default:"—" }}</dd>
+                    <dt>Address</dt><dd>{{ application.address|default:"—"|linebreaksbr }}</dd>
+                    <dt>Next of kin</dt><dd>{{ application.next_of_kin_name|default:"—" }} {{ application.next_of_kin_phone }}</dd>
+                    <dt>Program</dt><dd>{{ application.program|default:"—" }}</dd>
+                    <dt>Intake</dt><dd>{{ application.intake }} · {{ application.academic_year }}</dd>
+                    <dt>Previous education</dt><dd>{{ application.previous_education|default:"—"|linebreaksbr }}</dd>
+                    <dt>Decision notes</dt><dd>{{ application.decision_notes|default:"—"|linebreaksbr }}</dd>
+                </dl>
+            </div>
+            {% has_permission "admissions.manage_applications" as can_manage %}
+            {% if application.status == "draft" or application.status == "submitted" %}
+                {% if request.user.is_superuser or request.user.is_registrar or can_manage %}
+                <div class="panel-footer"><a class="btn btn-sm btn-outline-primary" href="{% url 'admissions:application_edit' application.pk %}">Edit details</a></div>
+                {% endif %}
+            {% endif %}
+        </div>
+
+        <div class="card">
+            <div class="panel-header">Status history</div>
+            <div class="list-group list-group-flush">
+                {% for entry in application.status_history.all %}
+                <div class="list-group-item">
+                    <div class="d-flex justify-content-between">
+                        <strong>{{ entry.get_from_status_display }} → {{ entry.get_to_status_display }}</strong>
+                        <small class="text-muted">{{ entry.changed_at }}</small>
+                    </div>
+                    {% if entry.comment %}<div>{{ entry.comment|linebreaksbr }}</div>{% endif %}
+                    <small class="text-muted">{% if entry.changed_by %}{{ entry.changed_by.get_full_name|default:entry.changed_by.username }}{% else %}System{% endif %}</small>
+                </div>
+                {% empty %}<div class="list-group-item text-muted">No status changes recorded.</div>{% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-5">
+        {% has_permission "admissions.review_applications" as can_review %}
+        {% if request.user.is_superuser or request.user.is_registrar or can_review %}
+        <div class="card mb-4">
+            <div class="panel-header">Review application</div>
+            <form method="post" action="{% url 'admissions:application_change_status' application.pk %}">
+                {% csrf_token %}
+                <div class="panel-body">
+                    {% if status_form.status.errors %}<div class="text-danger small mb-2">{{ status_form.status.errors }}</div>{% endif %}
+                    {% if status_form.status.field.choices %}
+                    <label class="form-label" for="{{ status_form.status.id_for_label }}">Move to</label>
+                    {{ status_form.status }}
+                    <label class="form-label mt-3" for="{{ status_form.comment.id_for_label }}">Review note</label>
+                    {{ status_form.comment }}
+                    {% else %}<p class="text-muted mb-0">No further status changes are available.</p>{% endif %}
+                </div>
+                {% if status_form.status.field.choices %}<div class="panel-footer"><button class="btn btn-primary" type="submit">Update status</button></div>{% endif %}
+            </form>
+        </div>
+        {% endif %}
+
+        <div class="card">
+            <div class="panel-header">Student registration</div>
+            <div class="panel-body">
+                {% if application.linked_student %}
+                <p class="mb-0">Linked to {{ application.linked_student.student.get_full_name }} ({{ application.linked_student.registration_number|default:"no registration number" }}).</p>
+                {% elif application.status == "accepted" %}
+                    {% has_permission "admissions.link_students" as can_link %}
+                    {% if request.user.is_superuser or request.user.is_registrar or can_link %}
+                    <form method="post" action="{% url 'admissions:application_link_student' application.pk %}">
+                        {% csrf_token %}
+                        <label class="form-label" for="{{ student_form.student.id_for_label }}">Existing student record</label>
+                        {{ student_form.student }}
+                        {% for error in student_form.student.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+                        <button class="btn btn-outline-primary mt-3" type="submit">Link student record</button>
+                    </form>
+                    {% if application.program %}
+                    <hr>
+                    <h3 class="h6">Register a new student</h3>
+                    <p class="small text-muted">This creates the student account and profile. A password setup link will be emailed to the applicant.</p>
+                    <form method="post" action="{% url 'admissions:application_provision_student' application.pk %}">
+                        {% csrf_token %}
+                        {% for error in provision_form.non_field_errors %}<div class="alert alert-danger py-2">{{ error }}</div>{% endfor %}
+                        {% for field in provision_form %}
+                        <div class="mb-3">
+                            <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                            {{ field }}
+                            {% for error in field.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+                        </div>
+                        {% endfor %}
+                        <button class="btn btn-primary" type="submit">Create student account</button>
+                    </form>
+                    {% endif %}
+                    {% else %}<p class="text-muted mb-0">No student record is linked yet.</p>{% endif %}
+                {% else %}
+                <p class="text-muted mb-0">Student registration linking is available after acceptance.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

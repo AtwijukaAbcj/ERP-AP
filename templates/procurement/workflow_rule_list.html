@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+{% load i18n %}
+{% block title %}{% trans 'Procurement Workflow Routing' %}{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'home' %}">{% trans 'Home' %}</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'procurement:procurement_status_list' %}">{% trans 'Statuses' %}</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{% trans 'Workflow Routing' %}</li>
+        </ol>
+    </nav>
+    <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">{% trans 'Workflow Routing' %}</h5>
+            <a href="{% url 'procurement:procurement_workflow_rule_add' %}" class="btn btn-outline-light btn-sm">+ {% trans 'Add Rule' %}</a>
+        </div>
+        <div class="card-body">
+            <p class="text-muted">{% trans 'Rules define which actions move a requisition between statuses and who may take them. A department-specific rule set replaces the global rules for that status and department; global rules are used when no department-specific rules are configured.' %}</p>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>{% trans 'From' %}</th>
+                            <th>{% trans 'Action' %}</th>
+                            <th>{% trans 'To' %}</th>
+                            <th>{% trans 'Department' %}</th>
+                            <th>{% trans 'Approver' %}</th>
+                            <th>{% trans 'Reason' %}</th>
+                            <th>{% trans 'Active' %}</th>
+                            <th>{% trans 'Actions' %}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for rule in rules %}
+                        <tr>
+                            <td>{{ rule.from_status.name }}</td>
+                            <td>{{ rule.action_label }}</td>
+                            <td>{{ rule.to_status.name }}</td>
+                            <td>{% if rule.department %}{{ rule.department.name }}{% else %}{% trans 'All departments' %}{% endif %}</td>
+                            <td>
+                                {% if rule.approver_type == 'role' %}{{ rule.approver_role.name }}
+                                {% elif rule.approver_type == 'user' %}{{ rule.approver_user.get_full_name|default:rule.approver_user.username }}
+                                {% else %}{% trans 'Procurement managers' %}{% endif %}
+                            </td>
+                            <td>{% if rule.requires_reason %}{% trans 'Required' %}{% else %}{% trans 'Optional' %}{% endif %}</td>
+                            <td>{% if rule.is_active %}{% trans 'Yes' %}{% else %}{% trans 'No' %}{% endif %}</td>
+                            <td class="text-nowrap">
+                                <a href="{% url 'procurement:procurement_workflow_rule_edit' rule.id %}" class="btn btn-sm btn-outline-secondary">{% trans 'Edit' %}</a>
+                                <form method="post" action="{% url 'procurement:procurement_workflow_rule_delete' rule.id %}" class="d-inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">{% trans 'Delete' %}</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="8" class="text-center text-muted">{% trans 'No workflow rules configured.' %}</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <a href="{% url 'procurement:procurement_status_list' %}" class="btn btn-outline-secondary">{% trans 'Manage statuses' %}</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+{% block title %}Finance Reports{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <h2>Finance Reports</h2>
+    <div class="row gy-3">
+        <div class="col-md-4">
+            <div class="card p-3">
+                <h5>Budget Records</h5>
+                <p>{{ total_budgets }}</p>
+                <small>Budgeted value: {{ budget_amount|floatformat:2 }}</small>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card p-3">
+                <h5>Cash Entries</h5>
+                <p>{{ total_cash_entries }}</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card p-3">
+                <h5>Bank Reconciliations</h5>
+                <p>{{ total_reconciliations }}</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card p-3">
+                <h5>Ledger Accounts</h5>
+                <p>{{ total_ledger_accounts }}</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card p-3">
+                <h5>Ledger Entries</h5>
+                <p>{{ total_ledger_entries }}</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card p-3">
+                <h5>Payment Vouchers</h5>
+                <p>{{ total_vouchers }}</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card p-3">
+                <h5>Open Payables</h5>
+                <p>{{ total_payables }}</p>
+                <small>Outstanding value: {{ open_payables_amount|floatformat:2 }}</small>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card p-3">
+                <h5>Open Receivables</h5>
+                <p>{{ total_receivables }}</p>
+                <small>Outstanding value: {{ open_receivables_amount|floatformat:2 }}</small>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card p-3">
+                <h5>Student Invoices</h5>
+                <p>Total: {{ invoice_total|floatformat:2 }}</p>
+                <small>Paid: {{ invoice_paid|floatformat:2 }} · Outstanding: {{ invoice_outstanding|floatformat:2 }}</small>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card p-3">
+                <h5>Cash Book Totals</h5>
+                <p>Debits: {{ cash_debits|floatformat:2 }}</p>
+                <small>Credits: {{ cash_credits|floatformat:2 }}</small>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+{% block title %}Payment Vouchers{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <h2>Payment Vouchers</h2>
+    <a href="{% url 'finance:payment_voucher_add' %}" class="btn btn-primary mb-3">+ Add Payment Voucher</a>
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Voucher #</th>
+                    <th>Title</th>
+                    <th>Vendor</th>
+                    <th>Amount</th>
+                    <th>Status</th>
+                    <th>Approved</th>
+                    <th>Requested By</th>
+                    <th>Approved By</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for voucher in vouchers %}
+                <tr>
+                    <td>{{ voucher.voucher_number }}</td>
+                    <td>{{ voucher.title }}</td>
+                    <td>{{ voucher.vendor_name }}</td>
+                    <td>{{ voucher.amount }}</td>
+                    <td>{{ voucher.status }}</td>
+                    <td>{{ voucher.approved|yesno:"Yes,No" }}</td>
+                    <td>{{ voucher.requested_by.get_full_name if voucher.requested_by else '—' }}</td>
+                    <td>{{ voucher.approved_by.get_full_name if voucher.approved_by else '—' }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="8">No payment vouchers found.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

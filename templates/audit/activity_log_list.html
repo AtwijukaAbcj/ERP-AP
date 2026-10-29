@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block title %}Activity Log | {% trans 'Learning management system' %}{% endblock %}
+
+{% block content %}
+<nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/">{% trans "Home" %}</a></li>
+        <li class="breadcrumb-item active" aria-current="page">{% trans "Activity Log" %}</li>
+    </ol>
+</nav>
+
+<h4 class="fw-bold mb-4"><i class="fas fa-history me-2"></i> {% trans "Activity Log" %}</h4>
+
+<div class="table-responsive table-shadow table-light table-striped">
+    <table class="table table-hover">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>{% trans "User" %}</th>
+                <th>{% trans "Action" %}</th>
+                <th>{% trans "Timestamp" %}</th>
+                <th>{% trans "IP Address" %}</th>
+                <th>{% trans "User Agent" %}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for log in logs %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ log.user.get_full_name }}</td>
+                <td>{{ log.action }}</td>
+                <td>{{ log.timestamp }}</td>
+                <td>{{ log.ip_address }}</td>
+                <td style="max-width: 300px;">{{ log.user_agent }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="6" class="text-danger">{% trans "No activity logs available." %}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

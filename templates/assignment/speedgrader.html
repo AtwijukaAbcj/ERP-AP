@@ -1,0 +1,574 @@
+{% extends 'base.html' %}
+{% load i18n %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+<style>
+.speedgrader-nav {
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    background: white;
+    padding: 10px 0;
+    border-bottom: 1px solid #dee2e6;
+}
+.submission-preview {
+    max-height: 600px;
+    overflow-y: auto;
+}
+.rubric-grid td {
+    vertical-align: top;
+}
+.rating-btn {
+    cursor: pointer;
+    padding: 8px;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    margin: 2px;
+    transition: all 0.2s;
+}
+.rating-btn:hover, .rating-btn.selected {
+    background: #0d6efd;
+    color: white;
+    border-color: #0d6efd;
+}
+.pdf-preview {
+    width: 100%;
+    height: 500px;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+}
+.image-preview {
+    max-width: 100%;
+    max-height: 400px;
+    object-fit: contain;
+    border-radius: 4px;
+    display: block;
+    margin: 0 auto;
+}
+.text-preview {
+    max-height: 400px;
+    overflow-y: auto;
+    font-family: inherit;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+.quiz-answer-card {
+    border-left: 4px solid #dee2e6;
+    margin-bottom: 1rem;
+}
+.quiz-answer-card.correct {
+    border-left-color: #198754;
+}
+.quiz-answer-card.incorrect {
+    border-left-color: #dc3545;
+}
+.quiz-score-badge {
+    font-size: 1.5rem;
+    padding: 10px 20px;
+}
+</style>
+
+<nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/">{% trans 'Home' %}</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'assignment:assignment_list' course.slug %}">{% trans 'Assignments' %}</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'assignment:assignment_detail' course.slug assignment.id %}">{{ assignment.title|truncatechars:20 }}</a></li>
+        <li class="breadcrumb-item active">{% trans 'SpeedGrader' %}</li>
+    </ol>
+</nav>
+
+<!-- SpeedGrader Navigation -->
+<div class="speedgrader-nav mb-4">
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <h5 class="mb-0">
+                <i class="fas fa-bolt text-warning me-2"></i>{{ assignment.title }}
+            </h5>
+            <small class="text-muted">{{ assignment.points_possible }} {% trans 'points' %}</small>
+        </div>
+        
+        <div class="d-flex align-items-center">
+            <!-- Student Navigator -->
+            <div class="btn-group me-3">
+                <a href="?index={{ prev_index }}" class="btn btn-outline-secondary {% if current_index == 0 %}disabled{% endif %}">
+                    <i class="fas fa-chevron-left"></i>
+                </a>
+                <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+                    {% if current_submission %}
+                    {{ current_submission.student.student.get_full_name|default:current_submission.student.student.username }}
+                    {% else %}
+                    {% trans 'No submissions' %}
+                    {% endif %}
+                </button>
+                <ul class="dropdown-menu" style="max-height: 400px; overflow-y: auto;">
+                    {% for sub in submissions %}
+                    <li>
+                        <a class="dropdown-item {% if forloop.counter0 == current_index %}active{% endif %}" 
+                           href="?index={{ forloop.counter0 }}">
+                            <span class="d-flex justify-content-between align-items-center">
+                                <span>{{ sub.student.student.get_full_name|default:sub.student.student.username }}</span>
+                                {% if sub.score is not None %}
+                                <span class="badge bg-success ms-2">{{ sub.score|floatformat:0 }}/{{ assignment.points_possible }}</span>
+                                {% else %}
+                                <span class="badge bg-secondary ms-2">-</span>
+                                {% endif %}
+                            </span>
+                        </a>
+                    </li>
+                    {% endfor %}
+                </ul>
+                <a href="?index={{ next_index }}" class="btn btn-outline-secondary {% if current_index >= total_submissions|add:'-1' %}disabled{% endif %}">
+                    <i class="fas fa-chevron-right"></i>
+                </a>
+            </div>
+            
+            <span class="badge bg-primary">
+                {{ current_index|add:1 }} / {{ total_submissions }}
+            </span>
+        </div>
+    </div>
+</div>
+
+{% if current_submission %}
+<div class="row">
+    <!-- Submission Content -->
+    <div class="col-lg-7">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span>
+                    <i class="fas fa-file-alt me-2"></i>{% trans 'Submission' %}
+                </span>
+                <span class="badge {% if current_submission.status == 'late' %}bg-warning text-dark{% elif current_submission.status == 'graded' %}bg-success{% else %}bg-primary{% endif %}">
+                    {{ current_submission.get_status_display }}
+                </span>
+            </div>
+            <div class="card-body">
+                <!-- Student Info -->
+                <div class="d-flex align-items-center mb-3 pb-3 border-bottom">
+                    <div class="avatar bg-primary text-white rounded-circle me-3 d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+                        {% if assignment.anonymous_grading %}
+                        <i class="fas fa-user-secret"></i>
+                        {% else %}
+                        {{ current_submission.student.student.first_name|slice:":1" }}{{ current_submission.student.student.last_name|slice:":1" }}
+                        {% endif %}
+                    </div>
+                    <div>
+                        {% if assignment.anonymous_grading %}
+                        <h6 class="mb-0">{% trans 'Student' %} #{{ current_index|add:1 }}</h6>
+                        {% else %}
+                        <h6 class="mb-0">{{ current_submission.student.student.get_full_name }}</h6>
+                        <small class="text-muted">{{ current_submission.student.student.email }}</small>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Submission Details -->
+                <div class="row mb-3">
+                    <div class="col-6">
+                        <small class="text-muted">{% trans 'Submitted' %}</small>
+                        <div>{{ current_submission.submitted_at|date:"M d, Y H:i" }}</div>
+                    </div>
+                    <div class="col-6">
+                        <small class="text-muted">{% trans 'Attempt' %}</small>
+                        <div>{{ current_submission.attempt_number }}</div>
+                    </div>
+                </div>
+                
+                {% if current_submission.late_penalty_applied > 0 %}
+                <div class="alert alert-warning py-2">
+                    <i class="fas fa-clock me-2"></i>
+                    {% trans 'Late submission' %}: {{ current_submission.late_penalty_applied }}% {% trans 'penalty' %}
+                </div>
+                {% endif %}
+                
+                <!-- Submission Content Preview -->
+                <div class="submission-preview">
+                    {% if current_submission.text_entry %}
+                    <div class="mb-4">
+                        <label class="text-muted small d-flex justify-content-between">
+                            <span><i class="fas fa-align-left me-1"></i>{% trans 'Text Entry' %}</span>
+                            <span>{{ current_submission.text_entry|length }} {% trans 'characters' %}</span>
+                        </label>
+                        <div class="p-3 bg-light rounded border text-preview">
+                            {{ current_submission.text_entry|linebreaks }}
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if current_submission.file_upload %}
+                    <div class="mb-4">
+                        <label class="text-muted small">
+                            <i class="fas fa-file me-1"></i>{% trans 'File Upload' %}
+                        </label>
+                        
+                        <!-- File Info Bar -->
+                        <div class="d-flex align-items-center p-2 bg-light rounded border mb-2">
+                            {% if '.pdf' in current_submission.original_filename|lower %}
+                            <i class="fas fa-file-pdf fa-2x text-danger me-3"></i>
+                            {% elif '.doc' in current_submission.original_filename|lower %}
+                            <i class="fas fa-file-word fa-2x text-primary me-3"></i>
+                            {% elif '.xls' in current_submission.original_filename|lower %}
+                            <i class="fas fa-file-excel fa-2x text-success me-3"></i>
+                            {% elif '.ppt' in current_submission.original_filename|lower %}
+                            <i class="fas fa-file-powerpoint fa-2x text-warning me-3"></i>
+                            {% elif '.zip' in current_submission.original_filename|lower or '.rar' in current_submission.original_filename|lower %}
+                            <i class="fas fa-file-archive fa-2x text-secondary me-3"></i>
+                            {% elif '.jpg' in current_submission.original_filename|lower or '.png' in current_submission.original_filename|lower or '.jpeg' in current_submission.original_filename|lower or '.gif' in current_submission.original_filename|lower %}
+                            <i class="fas fa-file-image fa-2x text-info me-3"></i>
+                            {% elif '.py' in current_submission.original_filename|lower or '.js' in current_submission.original_filename|lower or '.java' in current_submission.original_filename|lower or '.cpp' in current_submission.original_filename|lower or '.html' in current_submission.original_filename|lower or '.css' in current_submission.original_filename|lower %}
+                            <i class="fas fa-file-code fa-2x text-purple me-3"></i>
+                            {% else %}
+                            <i class="fas fa-file-alt fa-2x text-secondary me-3"></i>
+                            {% endif %}
+                            <div class="flex-grow-1">
+                                <div class="fw-semibold">{{ current_submission.original_filename }}</div>
+                                <small class="text-muted">{{ current_submission.file_size|filesizeformat }}</small>
+                            </div>
+                            <a href="{% url 'assignment:submission_download' current_submission.id %}" class="btn btn-primary btn-sm">
+                                <i class="fas fa-download me-1"></i>{% trans 'Download' %}
+                            </a>
+                        </div>
+
+                        <!-- Inline Preview based on file type -->
+                        {% if '.pdf' in current_submission.original_filename|lower %}
+                        <!-- PDF Preview -->
+                        <div class="border rounded">
+                            <iframe src="{{ current_submission.file_upload.url }}" class="pdf-preview"></iframe>
+                        </div>
+                        <small class="text-muted d-block mt-1">
+                            <i class="fas fa-info-circle me-1"></i>{% trans 'PDF preview. Download for full view.' %}
+                        </small>
+                        {% elif '.jpg' in current_submission.original_filename|lower or '.png' in current_submission.original_filename|lower or '.jpeg' in current_submission.original_filename|lower or '.gif' in current_submission.original_filename|lower or '.webp' in current_submission.original_filename|lower %}
+                        <!-- Image Preview -->
+                        <div class="text-center p-3 bg-dark rounded">
+                            <img src="{{ current_submission.file_upload.url }}" alt="Submission" class="image-preview">
+                        </div>
+                        {% elif '.txt' in current_submission.original_filename|lower or '.md' in current_submission.original_filename|lower %}
+                        <!-- Text File Preview - will be loaded via JS -->
+                        <div class="p-3 bg-light rounded border text-preview" id="text-file-content">
+                            <i class="fas fa-spinner fa-spin"></i> {% trans 'Loading preview...' %}
+                        </div>
+                        <script>
+                        fetch('{{ current_submission.file_upload.url }}')
+                            .then(response => response.text())
+                            .then(text => {
+                                document.getElementById('text-file-content').innerHTML = '<pre style="margin:0; white-space:pre-wrap;">' + 
+                                    text.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</pre>';
+                            })
+                            .catch(err => {
+                                document.getElementById('text-file-content').innerHTML = 
+                                    '<span class="text-danger">{% trans "Could not load preview" %}</span>';
+                            });
+                        </script>
+                        {% elif '.py' in current_submission.original_filename|lower or '.js' in current_submission.original_filename|lower or '.java' in current_submission.original_filename|lower or '.html' in current_submission.original_filename|lower or '.css' in current_submission.original_filename|lower or '.cpp' in current_submission.original_filename|lower or '.c' in current_submission.original_filename|lower %}
+                        <!-- Code File Preview -->
+                        <div class="p-3 bg-dark text-light rounded border text-preview" id="code-file-content" style="font-family: monospace;">
+                            <i class="fas fa-spinner fa-spin"></i> {% trans 'Loading code...' %}
+                        </div>
+                        <script>
+                        fetch('{{ current_submission.file_upload.url }}')
+                            .then(response => response.text())
+                            .then(text => {
+                                document.getElementById('code-file-content').innerHTML = '<pre style="margin:0; color: #0f0;">' + 
+                                    text.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</pre>';
+                            })
+                            .catch(err => {
+                                document.getElementById('code-file-content').innerHTML = 
+                                    '<span class="text-danger">{% trans "Could not load preview" %}</span>';
+                            });
+                        </script>
+                        {% else %}
+                        <div class="alert alert-info py-2 mb-0">
+                            <i class="fas fa-info-circle me-2"></i>
+                            {% trans 'No inline preview available for this file type. Please download to view.' %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                    
+                    {% if current_submission.url_submission %}
+                    <div class="mb-4">
+                        <label class="text-muted small">
+                            <i class="fas fa-link me-1"></i>{% trans 'URL Submission' %}
+                        </label>
+                        <div class="p-3 bg-light rounded border">
+                            <a href="{{ current_submission.url_submission }}" target="_blank" class="btn btn-outline-primary btn-sm mb-2">
+                                <i class="fas fa-external-link-alt me-1"></i>{% trans 'Open Link' %}
+                            </a>
+                            <div class="text-break">{{ current_submission.url_submission }}</div>
+                        </div>
+                        <!-- URL Preview iframe -->
+                        <div class="mt-2 border rounded">
+                            <iframe src="{{ current_submission.url_submission }}" class="pdf-preview" sandbox="allow-scripts allow-same-origin"></iframe>
+                        </div>
+                        <small class="text-muted">{% trans 'Preview may not work for all websites due to security restrictions.' %}</small>
+                    </div>
+                    {% endif %}
+
+                    {% if quiz_sitting %}
+                    <!-- Quiz Attempt Details -->
+                    <div class="mb-4">
+                        <label class="text-muted small">
+                            <i class="fas fa-question-circle me-1"></i>{% trans 'Quiz Attempt' %}
+                        </label>
+                        
+                        <!-- Quiz Score Summary -->
+                        <div class="alert {% if quiz_sitting.get_percent_correct >= 70 %}alert-success{% elif quiz_sitting.get_percent_correct >= 50 %}alert-warning{% else %}alert-danger{% endif %} d-flex align-items-center justify-content-between">
+                            <div>
+                                <strong>{{ quiz_sitting.quiz.title }}</strong><br>
+                                <small>{% trans 'Completed' %}: {{ quiz_sitting.end|date:"M d, Y H:i" }}</small>
+                            </div>
+                            <div class="text-center">
+                                <span class="quiz-score-badge badge {% if quiz_sitting.get_percent_correct >= 70 %}bg-success{% elif quiz_sitting.get_percent_correct >= 50 %}bg-warning{% else %}bg-danger{% endif %}">
+                                    {{ quiz_sitting.get_percent_correct }}%
+                                </span>
+                                <br><small>{% trans 'Auto-graded' %}</small>
+                            </div>
+                        </div>
+                        
+                        <!-- Questions and Answers -->
+                        <div class="quiz-answers">
+                            {% for q in quiz_questions %}
+                            <div class="quiz-answer-card card {% if q.id in quiz_incorrect_ids %}incorrect{% else %}correct{% endif %}">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <span class="fw-semibold">Q{{ forloop.counter }}. {{ q.content }}</span>
+                                        {% if q.id in quiz_incorrect_ids %}
+                                        <span class="badge bg-danger"><i class="fas fa-times me-1"></i>{% trans 'Incorrect' %}</span>
+                                        {% else %}
+                                        <span class="badge bg-success"><i class="fas fa-check me-1"></i>{% trans 'Correct' %}</span>
+                                        {% endif %}
+                                    </div>
+                                    {% if q.figure %}
+                                    <div class="mb-2">
+                                        <img src="{{ q.figure.url }}" alt="Question figure" style="max-width: 200px;">
+                                    </div>
+                                    {% endif %}
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <small class="text-muted">{% trans "Student's Answer" %}:</small>
+                                            <div class="p-2 bg-light rounded {% if q.id in quiz_incorrect_ids %}border-danger{% else %}border-success{% endif %}" style="border-left: 3px solid;">
+                                                {{ q.user_answer|default:"No answer" }}
+                                            </div>
+                                        </div>
+                                        {% if q.id in quiz_incorrect_ids and q.correct_answer %}
+                                        <div class="col-md-6">
+                                            <small class="text-muted">{% trans 'Correct Answer' %}:</small>
+                                            <div class="p-2 bg-success bg-opacity-10 rounded border-success" style="border-left: 3px solid;">
+                                                {{ q.correct_answer }}
+                                            </div>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        
+                        <div class="mt-2">
+                            <a href="{% url 'quiz_marking_detail' quiz_sitting.pk quiz_sitting.quiz.pk %}" class="btn btn-outline-warning btn-sm">
+                                <i class="fas fa-edit me-1"></i>{% trans 'Edit Quiz Grading' %}
+                            </a>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if not current_submission.text_entry and not current_submission.file_upload and not current_submission.url_submission and not quiz_sitting %}
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        {% trans 'No submission content found.' %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Grading Panel -->
+    <div class="col-lg-5">
+        {% if assignment.rubric %}
+        <!-- Rubric-based Grading -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-success text-white">
+                <i class="fas fa-table me-2"></i>{% trans 'Rubric Assessment' %}
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="rubric_grade">
+                    
+                    {% for criterion in assignment.rubric.criteria.all %}
+                    <div class="mb-4 pb-3 border-bottom">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <strong>{{ criterion.description }}</strong>
+                            <span class="badge bg-secondary">{{ criterion.points }} {% trans 'pts' %}</span>
+                        </div>
+                        
+                        <!-- Rating Buttons -->
+                        <div class="mb-2">
+                            {% for rating in criterion.ratings.all %}
+                            <label class="rating-btn d-inline-block">
+                                <input type="radio" name="criterion_{{ criterion.id }}_rating" 
+                                       value="{{ rating.id }}" class="d-none rating-radio"
+                                       data-points="{{ rating.points }}"
+                                       data-criterion="{{ criterion.id }}">
+                                <small>{{ rating.description }}</small>
+                                <br><span class="badge bg-light text-dark">{{ rating.points }}</span>
+                            </label>
+                            {% endfor %}
+                        </div>
+                        
+                        <!-- Custom Points -->
+                        <div class="row align-items-center mb-2">
+                            <div class="col-auto">
+                                <small class="text-muted">{% trans 'Or custom score' %}:</small>
+                            </div>
+                            <div class="col-4">
+                                <input type="number" name="criterion_{{ criterion.id }}_points" 
+                                       class="form-control form-control-sm"
+                                       min="0" max="{{ criterion.points }}" step="0.5"
+                                       placeholder="0-{{ criterion.points }}">
+                            </div>
+                        </div>
+                        
+                        <!-- Comments -->
+                        <textarea name="criterion_{{ criterion.id }}_comments" 
+                                  class="form-control form-control-sm"
+                                  rows="1" placeholder="{% trans 'Comments...' %}"></textarea>
+                    </div>
+                    {% endfor %}
+                    
+                    <button type="submit" class="btn btn-success w-100">
+                        <i class="fas fa-check me-1"></i>{% trans 'Save Rubric Assessment' %}
+                    </button>
+                </form>
+            </div>
+        </div>
+        {% else %}
+        <!-- Simple Points Grading -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-success text-white">
+                <i class="fas fa-star me-2"></i>{% trans 'Grade Submission' %}
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="grade">
+                    
+                    <div class="mb-3">
+                        <label class="form-label">{% trans 'Score' %} ({% trans 'out of' %} {{ assignment.points_possible }})</label>
+                        <div class="input-group">
+                            <input type="number" name="score" class="form-control form-control-lg"
+                                   min="0" max="{{ assignment.points_possible }}" step="0.5"
+                                   value="{{ current_submission.score|default:'' }}"
+                                   placeholder="0">
+                            <span class="input-group-text">/ {{ assignment.points_possible }}</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Quick Score Buttons -->
+                    <div class="mb-3">
+                        <small class="text-muted d-block mb-2">{% trans 'Quick Score' %}</small>
+                        <div class="btn-group btn-group-sm w-100">
+                            <button type="button" class="btn btn-outline-danger quick-score" data-percent="0">0%</button>
+                            <button type="button" class="btn btn-outline-warning quick-score" data-percent="50">50%</button>
+                            <button type="button" class="btn btn-outline-info quick-score" data-percent="70">70%</button>
+                            <button type="button" class="btn btn-outline-primary quick-score" data-percent="85">85%</button>
+                            <button type="button" class="btn btn-outline-success quick-score" data-percent="100">100%</button>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">{% trans 'Feedback' %}</label>
+                        <textarea name="feedback" class="form-control" rows="4"
+                                  placeholder="{% trans 'Provide feedback to the student...' %}">{{ current_submission.feedback }}</textarea>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-success w-100">
+                        <i class="fas fa-check me-1"></i>{% trans 'Save Grade' %}
+                    </button>
+                </form>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Previous Grade Info -->
+        {% if current_submission.graded_at %}
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <i class="fas fa-history me-2"></i>{% trans 'Grading History' %}
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-6">
+                        <small class="text-muted">{% trans 'Graded by' %}</small>
+                        <div>{{ current_submission.graded_by.get_full_name|default:"Unknown" }}</div>
+                    </div>
+                    <div class="col-6">
+                        <small class="text-muted">{% trans 'Graded at' %}</small>
+                        <div>{{ current_submission.graded_at|date:"M d, Y H:i" }}</div>
+                    </div>
+                </div>
+                {% if current_submission.score is not None %}
+                <div class="mt-3">
+                    <small class="text-muted">{% trans 'Current Score' %}</small>
+                    <h4>{{ current_submission.score|floatformat:1 }} / {{ assignment.points_possible }}</h4>
+                    {% if current_submission.late_penalty_applied > 0 %}
+                    <small class="text-muted">
+                        {% trans 'Final score after penalty' %}: {{ current_submission.final_score|floatformat:1 }}
+                    </small>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% else %}
+<div class="text-center py-5">
+    <i class="fas fa-inbox fa-4x text-muted mb-3"></i>
+    <h5 class="text-muted">{% trans 'No submissions yet' %}</h5>
+    <a href="{% url 'assignment:assignment_detail' course.slug assignment.id %}" class="btn btn-outline-primary mt-3">
+        {% trans 'Back to Assignment' %}
+    </a>
+</div>
+{% endif %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Quick score buttons
+    const pointsInput = document.querySelector('input[name="score"]');
+    const maxPoints = {{ assignment.points_possible }};
+    
+    document.querySelectorAll('.quick-score').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            const percent = parseInt(this.dataset.percent);
+            pointsInput.value = Math.round((percent / 100) * maxPoints * 10) / 10;
+        });
+    });
+    
+    // Rating button selection
+    document.querySelectorAll('.rating-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            const radio = this.querySelector('.rating-radio');
+            const criterion = radio.dataset.criterion;
+            
+            // Deselect all in this criterion
+            document.querySelectorAll(`[data-criterion="${criterion}"]`).forEach(function(r) {
+                r.closest('.rating-btn').classList.remove('selected');
+            });
+            
+            // Select this one
+            this.classList.add('selected');
+            radio.checked = true;
+            
+            // Clear custom points for this criterion
+            document.querySelector(`input[name="criterion_${criterion}_points"]`).value = '';
+        });
+    });
+});
+</script>
+{% endblock %}

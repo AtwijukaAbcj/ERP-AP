@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+{% load i18n %}
+{% load static %}
+
+{% block title %}{{ title }} | {% trans 'Learning management system' %}{% endblock %}
+
+{% block content %}
+<nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/">{% trans 'Home' %}</a></li>
+        <li class="breadcrumb-item active" aria-current="page">{% trans 'Faculty Admins' %}</li>
+    </ol>
+</nav>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="fw-bold"><i class="fas fa-user-shield me-2"></i>{% trans "Faculty Admins" %}</h4>
+    <div>
+        <a href="{% url 'add_faculty_admin' %}" class="btn btn-primary btn-sm me-2 rounded-3">
+            <i class="fas fa-plus"></i> {% trans "Add" %}
+        </a>
+        <a href="{% url 'render_faculty_admin_pdf' %}" class="btn btn-outline-success btn-sm me-2 rounded-3">
+            <i class="fas fa-file-pdf"></i> {% trans "Download PDF" %}
+        </a>
+        <a href="#" class="btn btn-outline-secondary btn-sm rounded-3">
+            <i class="fas fa-sync"></i> {% trans "Refresh" %}
+        </a>
+    </div>
+</div>
+
+{% include 'snippets/messages.html' %}
+
+<div class="table-responsive">
+    <table class="table table-hover table-striped table-bordered align-middle">
+        <thead class="table-light">
+            <tr>
+                <th scope="col">#</th>
+                <th scope="col">{% trans "Name" %}</th>
+                <th scope="col">{% trans "Email" %}</th>
+                <th scope="col">{% trans "Gender" %}</th>
+                <th scope="col">{% trans "Phone" %}</th>
+                <th scope="col">{% trans "Faculty" %}</th>
+                <th scope="col" class="text-center">{% trans "Actions" %}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for admin in faculty_admins %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ admin.get_full_name }}</td>
+                <td>{{ admin.email }}</td>
+                <td>{{ admin.get_gender_display }}</td>
+                <td>{{ admin.phone }}</td>
+                <td>{{ admin.faculty.name }}</td>
+                <td class="text-center" style="position: relative; overflow: visible;">
+                    <!-- More Options Button (Ellipsis) -->
+                    <div class="dropdown" style="position: relative; overflow: visible; z-index: 2147483646;">
+                        <button class="btn btn-sm btn-outline-secondary rounded-3" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" data-bs-boundary="window" aria-expanded="false">
+                            <i class="fas fa-ellipsis-h"></i> <!-- Ellipsis icon -->
+                        </button>
+                        <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton" style="z-index: 2147483647 !important;">
+                            <li>
+                                <a class="dropdown-item" href="{% url 'edit_faculty_admin' admin.id %}">
+                                    <i class="fas fa-edit text-warning"></i> {% trans "Edit" %}
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="{% url 'delete_faculty_admin' admin.id %}"
+                                   onclick="return confirm('{% trans 'Are you sure you want to delete this user?' %}')">
+                                    <i class="fas fa-trash text-danger"></i> {% trans "Delete" %}
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="7" class="text-center text-danger">{% trans "No Faculty Admins found." %}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

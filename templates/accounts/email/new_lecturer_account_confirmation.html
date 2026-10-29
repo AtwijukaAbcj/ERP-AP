@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Welcome to SEETA LMS</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        background-color: #f4f6f9;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        color: #2e3d63;
+      }
+
+      .email-container {
+        max-width: 600px;
+        margin: 40px auto;
+        background: #ffffff;
+        border-radius: 8px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+        overflow: hidden;
+      }
+
+      .email-header {
+        background-color: #012481;
+        color: #ffffff;
+        padding: 20px;
+        text-align: center;
+      }
+
+      .email-header h1 {
+        margin: 0;
+        font-size: 24px;
+      }
+
+      .email-body {
+        padding: 30px;
+      }
+
+      .email-body h2 {
+        margin-top: 0;
+        color: #012481;
+      }
+
+      .email-body p {
+        font-size: 15px;
+        line-height: 1.6;
+        color: #46528f;
+      }
+
+      .email-body ul {
+        list-style: none;
+        padding: 0;
+      }
+
+      .email-body ul li {
+        margin-bottom: 10px;
+        font-weight: bold;
+        color: #012481;
+      }
+
+      .btn {
+        display: inline-block;
+        background-color: #4caf50;
+        color: #ffffff;
+        text-decoration: none;
+        padding: 10px 18px;
+        border-radius: 5px;
+        margin-top: 20px;
+        font-weight: bold;
+      }
+
+      .btn:hover {
+        background-color: #449d48;
+      }
+
+      .email-footer {
+        background-color: #2e3d63;
+        color: #ffffff;
+        text-align: center;
+        padding: 20px;
+        font-size: 13px;
+      }
+
+      .email-footer a {
+        color: #ffffff;
+        text-decoration: underline;
+      }
+
+      .warning {
+        background: #fff8e1;
+        padding: 10px;
+        font-size: 13px;
+        margin-top: 20px;
+        color: #a46f00;
+        border-left: 4px solid #ffc107;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="email-container">
+      <div class="email-header">
+        <h1>SEETA LMS</h1>
+        <small>Your learning management system</small>
+      </div>
+
+      <div class="email-body">
+        <h2>Welcome {{ user.get_full_name }}</h2>
+        <p>
+          A new <strong>Academic Registrar</strong> account has been created for you on the SEETA LMS platform.
+        </p>
+
+        <h3>🔐 Your Login Credentials</h3>
+        <ul>
+          <li>Username: {{ user.username }}</li>
+          <li>Password: {{ password }}</li>
+        </ul>
+
+        <p>We strongly recommend that you change your password after your first login to keep your account secure.</p>
+
+        <a href="http://lms.seeta.ac.ug/accounts/login/" class="btn">Login to Your Account</a>
+
+        <div class="warning">
+          ⚠️ If you did not expect this email, please ignore it or contact IT support.
+        </div>
+      </div>
+
+      <div class="email-footer">
+        <p>Need help? Contact our support:</p>
+        <p>Email: <a href="mailto:info@su.ac.ug">info@su.ac.ug</a> | Phone: <a href="tel:+256700000000">+256 700 000 000</a></p>
+        <p>&copy; 2025 <a href="https://su.ac.ug">su.ac.ug</a> – All rights reserved.</p>
+      </div>
+    </div>
+  </body>
+</html>

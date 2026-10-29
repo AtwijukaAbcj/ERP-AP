@@ -1,0 +1,70 @@
+{% load i18n %}
+
+
+<div id="top-navbar" class="py-1">
+    <div class="container-fluid">
+        <div class="nav-wrapper">
+
+            <button class="toggle-btn" type="button" onclick="toggleSidebar()" aria-controls="side-nav" aria-label="{% trans 'Toggle navigation' %}">
+                <i class="fas fa-bars"></i>
+            </button>
+
+            <form class="form-header" action="{% url 'query' %}" method="GET">
+                <input class="form-control" type="text" name="q" value="{{ request.GET.q }}"
+                    placeholder="{% trans 'Search courses, programs, quizzes...' %}" required />
+                <button class="btn btn-primary" type="submit">
+                    <i class="fas fa-search"></i>
+                </button>
+            </form>
+
+            <!-- Voting Button -->
+            <a href="{% url 'voting_home' %}" class="btn-vote">
+                <i class="fas fa-vote-yea"></i>
+                <span>{% trans "Voting" %}</span>
+            </a>
+
+            <!-- Avatar Dropdown -->
+            <div class="dropdown avatar-dropdown">
+                <div class="avatar" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <img src="{{ request.user.picture.url }}" alt="Profile">
+                </div>
+                <div class="dropdown-menu dropdown-menu-end">
+                    <div class="dropdown-header">
+                        <div class="avatar avatar-lg">
+                            <img src="{{ request.user.picture.url }}" alt="Profile">
+                        </div>
+                        <div class="fw-semibold">{{ request.user.get_full_name }}</div>
+                        <small class="text-muted">{% trans 'Last login:' %} {{ request.user.last_login|date }}</small>
+                    </div>
+                    <hr class="dropdown-divider">
+
+                    {% if request.user.is_lecturer or request.user.is_student %}
+                    <a class="dropdown-item" href="{% url 'user_course_list' %}">
+                        <i class="fas fa-book"></i>{% trans 'My Courses' %}
+                    </a>
+                    {% endif %}
+
+                    {% if request.user.is_superuser %}
+                    <a class="dropdown-item" href="{% url 'admin_panel' %}">
+                        <i class="fas fa-shield-alt"></i>{% trans 'Admin Panel' %}
+                    </a>
+                    {% endif %}
+
+                    <a class="dropdown-item" href="{% url 'profile' %}">
+                        <i class="fas fa-user"></i>{% trans 'Profile' %}
+                    </a>
+                    <a class="dropdown-item" href="{% url 'edit_profile' %}">
+                        <i class="fas fa-cog"></i>{% trans 'Settings' %}
+                    </a>
+                    <hr class="dropdown-divider">
+                    <div class="px-2">
+                        <a class="btn-signout" href="{% url 'logout' %}">
+                            <i class="fas fa-sign-out-alt"></i> {% trans 'Sign Out' %}
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>

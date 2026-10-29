@@ -1,0 +1,94 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block content %}
+<nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/">{% trans 'Home' %}</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'assignment:assignment_list' course.slug %}">{% trans 'Assignments' %}</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'assignment:student_groups' course.slug %}">{% trans 'Student Groups' %}</a></li>
+        <li class="breadcrumb-item active">{% if group %}{% trans 'Edit' %}{% else %}{% trans 'Create' %}{% endif %}</li>
+    </ol>
+</nav>
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-users me-2"></i>
+                    {% if group %}{% trans 'Edit Student Group' %}{% else %}{% trans 'New Student Group' %}{% endif %}
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="mb-4">
+                        <label class="form-label">{% trans 'Group Name' %} <span class="text-danger">*</span></label>
+                        <input type="text" name="name" class="form-control" 
+                               value="{{ group.name|default:'' }}" required
+                               placeholder="{% trans 'e.g., Team Alpha, Group 1' %}">
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="form-label">{% trans 'Select Members' %}</label>
+                        <div class="border rounded p-3" style="max-height: 400px; overflow-y: auto;">
+                            {% for student in students %}
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" 
+                                       name="members" value="{{ student.id }}" 
+                                       id="student_{{ student.id }}"
+                                       {% if student in group.members.all %}checked{% endif %}>
+                                <label class="form-check-label d-flex align-items-center" for="student_{{ student.id }}">
+                                    <div class="avatar bg-primary text-white rounded-circle me-2 d-flex align-items-center justify-content-center" 
+                                         style="width: 28px; height: 28px; font-size: 11px;">
+                                        {{ student.student.first_name|slice:":1" }}{{ student.student.last_name|slice:":1" }}
+                                    </div>
+                                    <div>
+                                        <span>{{ student.student.get_full_name }}</span>
+                                        <small class="text-muted ms-2">{{ student.student.email }}</small>
+                                    </div>
+                                </label>
+                            </div>
+                            {% empty %}
+                            <p class="text-muted mb-0">{% trans 'No students enrolled in this course' %}</p>
+                            {% endfor %}
+                        </div>
+                        <div class="mt-2">
+                            <button type="button" class="btn btn-sm btn-outline-secondary me-2" id="selectAll">
+                                {% trans 'Select All' %}
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="deselectAll">
+                                {% trans 'Deselect All' %}
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-1"></i>
+                            {% if group %}{% trans 'Save Changes' %}{% else %}{% trans 'Create Group' %}{% endif %}
+                        </button>
+                        <a href="{% url 'assignment:student_groups' course.slug %}" class="btn btn-outline-secondary">
+                            {% trans 'Cancel' %}
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('selectAll').addEventListener('click', function() {
+        document.querySelectorAll('input[name="members"]').forEach(cb => cb.checked = true);
+    });
+    
+    document.getElementById('deselectAll').addEventListener('click', function() {
+        document.querySelectorAll('input[name="members"]').forEach(cb => cb.checked = false);
+    });
+});
+</script>
+{% endblock %}

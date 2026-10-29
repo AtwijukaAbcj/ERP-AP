@@ -1,0 +1,683 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block title %}{% trans 'Dashboard' %} | {{ site_name|default:'FalconLMS' }}{% endblock title %}
+
+{% block content %}
+<style>
+  .dashboard-header {
+    margin-bottom: 1.5rem;
+    padding: 1.25rem 1.4rem;
+    background: rgba(255,255,255,0.7);
+    border: 1px solid rgba(148,163,184,0.24);
+    border-radius: 18px;
+    box-shadow: var(--shadow-sm);
+    backdrop-filter: blur(10px);
+  }
+
+  .dashboard-title {
+    color: var(--text-primary);
+    font-size: clamp(1.5rem, 2vw, 1.9rem);
+    font-weight: 700;
+    margin-bottom: 0.3rem;
+  }
+
+  .dashboard-subtitle {
+    color: var(--text-secondary);
+    margin: 0;
+  }
+
+  .dashboard-section-heading {
+    align-items: end;
+    display: flex;
+    justify-content: space-between;
+    margin: 2rem 0 1rem;
+  }
+
+  .dashboard-section-heading h2 {
+    font-size: 1.15rem;
+    margin: 0;
+  }
+
+  .dashboard-section-heading p {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    margin: 0.25rem 0 0;
+  }
+
+  .stats-grid {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr));
+  }
+
+  .stat-card-modern {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-sm);
+    min-width: 0;
+    padding: 1.15rem;
+  }
+
+  .stat-card-modern .stat-value {
+    color: var(--text-primary);
+    font-size: 1.8rem;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+
+  .stat-card-modern .stat-label {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    margin-top: 0.3rem;
+  }
+
+  .stat-card-modern .stat-icon-wrap {
+    align-items: center;
+    background: color-mix(in srgb, var(--tile-color) 12%, white);
+    border-radius: 0.75rem;
+    color: var(--tile-color);
+    display: flex;
+    height: 2.6rem;
+    justify-content: center;
+    margin-bottom: 0.9rem;
+    width: 2.6rem;
+  }
+
+  .module-launch-grid {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 245px), 1fr));
+  }
+
+  .module-launch-card {
+    align-items: flex-start;
+    background: rgba(255,255,255,0.78);
+    border: 1px solid rgba(148,163,184,0.22);
+    border-radius: 18px;
+    box-shadow: var(--shadow-sm);
+    color: inherit;
+    display: flex;
+    gap: 0.9rem;
+    min-height: 142px;
+    padding: 1.1rem;
+    text-decoration: none;
+    transition: border-color var(--transition), box-shadow var(--transition), transform var(--transition), background var(--transition);
+  }
+
+  .module-launch-card:hover,
+  .module-launch-card:focus-visible {
+    border-color: var(--tile-color);
+    box-shadow: var(--shadow-md);
+    color: inherit;
+    outline: none;
+    transform: translateY(-2px);
+  }
+
+  .module-launch-icon {
+    align-items: center;
+    background: color-mix(in srgb, var(--tile-color) 12%, white);
+    border-radius: 0.8rem;
+    color: var(--tile-color);
+    display: inline-flex;
+    flex: 0 0 2.8rem;
+    height: 2.8rem;
+    justify-content: center;
+  }
+
+  .module-launch-content {
+    min-width: 0;
+  }
+
+  .module-launch-content h3 {
+    font-size: 0.98rem;
+    margin: 0.1rem 0 0.4rem;
+  }
+
+  .module-launch-content p {
+    color: var(--text-secondary);
+    font-size: 0.82rem;
+    line-height: 1.45;
+    margin: 0;
+  }
+
+  .module-launch-meta {
+    align-items: center;
+    color: var(--text-muted);
+    display: flex;
+    font-size: 0.75rem;
+    justify-content: space-between;
+    margin-top: 0.75rem;
+  }
+
+  .module-launch-meta .module-count {
+    color: var(--text-secondary);
+    font-weight: 600;
+  }
+
+  .module-violet { --tile-color: #7c3aed; }
+  .module-blue { --tile-color: #2563eb; }
+  .module-teal { --tile-color: #0f766e; }
+  .module-green { --tile-color: #059669; }
+  .module-orange { --tile-color: #c2410c; }
+  .module-amber { --tile-color: #b45309; }
+  .module-indigo { --tile-color: #4f46e5; }
+  .module-rose { --tile-color: #be123c; }
+  .module-cyan { --tile-color: #0e7490; }
+  .module-slate { --tile-color: #475569; }
+
+  .activities-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-sm);
+    margin-top: 1.5rem;
+    overflow: hidden;
+  }
+
+  .dashboard-chart-grid {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr));
+  }
+
+  .dashboard-chart-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-sm);
+    min-width: 0;
+    padding: 1.15rem;
+  }
+
+  .dashboard-chart-card h3 {
+    font-size: 0.98rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .dashboard-chart-description {
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    margin-bottom: 1rem;
+  }
+
+  .dashboard-chart-list {
+    display: grid;
+    gap: 0.8rem;
+  }
+
+  .dashboard-chart-row {
+    min-width: 0;
+  }
+
+  .dashboard-chart-label {
+    align-items: baseline;
+    color: var(--text-secondary);
+    display: flex;
+    font-size: 0.8rem;
+    gap: 0.75rem;
+    justify-content: space-between;
+    margin-bottom: 0.3rem;
+  }
+
+  .dashboard-chart-label span:first-child {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .dashboard-chart-label strong {
+    color: var(--text-primary);
+    flex: 0 0 auto;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .dashboard-chart-track {
+    background: var(--bg-body);
+    border-radius: 999px;
+    height: 0.55rem;
+    overflow: hidden;
+  }
+
+  .dashboard-chart-bar {
+    background: linear-gradient(90deg, var(--chart-color), color-mix(in srgb, var(--chart-color) 75%, white));
+    border-radius: inherit;
+    height: 100%;
+    min-width: 0;
+    transition: width var(--transition-slow);
+  }
+
+  .dashboard-chart-empty {
+    color: var(--text-muted);
+    font-size: 0.875rem;
+    margin: 0;
+    padding: 1.25rem 0;
+    text-align: center;
+  }
+
+  .chart-admissions { --chart-color: #7c3aed; }
+  .chart-enrollments { --chart-color: #0f766e; }
+  .chart-results { --chart-color: #2563eb; }
+  .chart-placements { --chart-color: #059669; }
+  .chart-finance { --chart-color: #c2410c; }
+
+  .dashboard-trend-grid {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr));
+  }
+
+  .dashboard-trend-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-sm);
+    min-width: 0;
+    padding: 1.15rem;
+  }
+
+  .dashboard-trend-card h3 {
+    font-size: 1rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .dashboard-trend-description {
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .dashboard-trend-chart {
+    display: block;
+    height: auto;
+    overflow: visible;
+    width: 100%;
+  }
+
+  .trend-grid-line {
+    stroke: var(--border-color);
+    stroke-dasharray: 4 5;
+    stroke-width: 1;
+  }
+
+  .trend-line-traffic {
+    fill: none;
+    stroke: #7c3aed;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 3;
+  }
+
+  .trend-line-users {
+    fill: none;
+    stroke: #0e7490;
+    stroke-dasharray: 6 4;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 2.5;
+  }
+
+  .trend-line-enrollment {
+    fill: none;
+    stroke: #0f766e;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 3;
+  }
+
+  .trend-point-traffic { fill: #7c3aed; }
+  .trend-point-users { fill: #0e7490; }
+  .trend-point-enrollment { fill: #0f766e; }
+
+  .trend-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.9rem;
+    list-style: none;
+    margin: 0.5rem 0 0;
+    padding: 0;
+  }
+
+  .trend-legend li {
+    align-items: center;
+    color: var(--text-secondary);
+    display: inline-flex;
+    font-size: 0.75rem;
+    gap: 0.4rem;
+  }
+
+  .trend-legend-swatch {
+    border-radius: 999px;
+    display: inline-block;
+    height: 0.55rem;
+    width: 0.55rem;
+  }
+
+  .trend-months {
+    display: grid;
+    gap: 0.25rem;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    margin-top: 0.5rem;
+    min-width: 520px;
+  }
+
+  .trend-months span {
+    color: var(--text-muted);
+    font-size: 0.62rem;
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  .trend-months-wrap {
+    overflow-x: auto;
+  }
+
+  .trend-empty {
+    color: var(--text-muted);
+    font-size: 0.875rem;
+    margin: 1.5rem 0;
+    text-align: center;
+  }
+
+  .activities-card .card-header {
+    align-items: center;
+    background: var(--bg-card);
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    gap: 0.6rem;
+    padding: 1rem 1.2rem;
+  }
+
+  .activities-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .activities-list li {
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    display: flex;
+    gap: 0.7rem;
+    padding: 0.8rem 1.2rem;
+  }
+
+  .activities-list li:last-child {
+    border-bottom: 0;
+  }
+
+  .activities-list li::before {
+    background: var(--primary);
+    border-radius: 50%;
+    content: '';
+    flex: 0 0 0.45rem;
+    height: 0.45rem;
+    margin-top: 0.5rem;
+  }
+
+  .activity-time {
+    color: var(--text-muted);
+    display: block;
+    font-size: 0.75rem;
+    margin-top: 0.2rem;
+  }
+</style>
+
+<nav aria-label="{% trans 'Breadcrumb' %}">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="{% url 'home' %}">{% trans 'Home' %}</a></li>
+    <li class="breadcrumb-item active" aria-current="page">{% trans 'Dashboard' %}</li>
+  </ol>
+</nav>
+
+{% include 'snippets/messages.html' %}
+
+<header class="dashboard-header">
+  <h1 class="dashboard-title">{% trans 'School Management Dashboard' %}</h1>
+  <p class="dashboard-subtitle">{% trans 'A live overview and quick access to school operations.' %}</p>
+</header>
+
+<section aria-labelledby="overview-heading">
+  <div class="dashboard-section-heading">
+    <div>
+      <h2 id="overview-heading">{% trans 'Institutional overview' %}</h2>
+      <p>{% trans 'Current records in the system' %}</p>
+    </div>
+  </div>
+
+  <div class="stats-grid">
+    <article class="stat-card-modern">
+      <div class="stat-icon-wrap module-blue"><i class="fas fa-user-graduate" aria-hidden="true"></i></div>
+      <div class="stat-value">{{ student_count }}</div>
+      <div class="stat-label">{% trans 'Students' %}</div>
+    </article>
+    <article class="stat-card-modern">
+      <div class="stat-icon-wrap module-violet"><i class="fas fa-chalkboard-teacher" aria-hidden="true"></i></div>
+      <div class="stat-value">{{ lecturer_count }}</div>
+      <div class="stat-label">{% trans 'Lecturers' %}</div>
+    </article>
+    <article class="stat-card-modern">
+      <div class="stat-icon-wrap module-slate"><i class="fas fa-shield-alt" aria-hidden="true"></i></div>
+      <div class="stat-value">{{ superuser_count }}</div>
+      <div class="stat-label">{% trans 'Administrators' %}</div>
+    </article>
+    <article class="stat-card-modern">
+      <div class="stat-icon-wrap module-teal"><i class="fas fa-book-open" aria-hidden="true"></i></div>
+      <div class="stat-value">{{ course_count }}</div>
+      <div class="stat-label">{% trans 'Courses' %}</div>
+    </article>
+    <article class="stat-card-modern">
+      <div class="stat-icon-wrap module-green"><i class="fas fa-cart-shopping" aria-hidden="true"></i></div>
+      <div class="stat-value">{{ procurement_plan_count }}</div>
+      <div class="stat-label">{% trans 'Active procurement plans' %}</div>
+    </article>
+  </div>
+</section>
+
+<section aria-labelledby="modules-heading">
+  <div class="dashboard-section-heading">
+    <div>
+      <h2 id="modules-heading">{% trans 'School management modules' %}</h2>
+      <p>{% trans 'Open a workspace to continue managing its records and workflows.' %}</p>
+    </div>
+    <span class="badge text-bg-light">{{ module_cards|length }} {% trans 'modules' %}</span>
+  </div>
+
+  <div class="module-launch-grid">
+    {% for module in module_cards %}
+    <a class="module-launch-card module-{{ module.color }}" href="{{ module.url }}">
+      <span class="module-launch-icon">
+        <i class="fas {{ module.icon }}" aria-hidden="true"></i>
+      </span>
+      <div class="module-launch-content">
+        <h3>{{ module.title }}</h3>
+        <p>{{ module.description }}</p>
+        <span class="module-launch-meta">
+          {% if module.count_label %}
+          <span class="module-count">{{ module.count }} {{ module.count_label }}</span>
+          {% else %}
+          <span>{% trans 'Open workspace' %}</span>
+          {% endif %}
+          <i class="fas fa-arrow-right" aria-hidden="true"></i>
+        </span>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+</section>
+
+<section aria-labelledby="charts-heading">
+  <div class="dashboard-section-heading">
+    <div>
+      <h2 id="charts-heading">{% trans 'Student lifecycle analytics' %}</h2>
+      <p>{% trans 'Live counts from admissions, enrolment, clinical training, results, and billing.' %}</p>
+    </div>
+  </div>
+
+  <div class="dashboard-chart-grid">
+    {% for key, chart in dashboard_charts.items %}
+    <article class="dashboard-chart-card chart-{{ key }}">
+      <h3>
+        {% if key == "admissions" %}{% trans 'Admissions by status' %}
+        {% elif key == "enrollments" %}{% trans 'Active students enrolled by program' %}
+        {% elif key == "results" %}{% trans 'Assessment grade distribution' %}
+        {% elif key == "placements" %}{% trans 'Clinical placements by status' %}
+        {% elif key == "finance" %}{% trans 'Student billing collection' %}
+        {% endif %}
+      </h3>
+      <p class="dashboard-chart-description">
+        {% if key == "admissions" %}{% trans 'Applicant pipeline across current application records.' %}
+        {% elif key == "enrollments" %}{% trans 'Distinct students with active course enrolments.' %}
+        {% elif key == "results" %}{% trans 'Active course enrolments grouped by recorded grade.' %}
+        {% elif key == "placements" %}{% trans 'Student clinical rotations across their workflow.' %}
+        {% elif key == "finance" %}{% trans 'Paid and outstanding invoice balances.' %}
+        {% endif %}
+      </p>
+      {% if chart %}
+      <div class="dashboard-chart-list">
+        {% for row in chart %}
+        <div class="dashboard-chart-row">
+          <div class="dashboard-chart-label">
+            <span>{{ row.label }}</span>
+            <strong>
+              {% if key == "finance" %}{{ row.value|floatformat:2 }}{% else %}{{ row.value }}{% endif %}
+            </strong>
+          </div>
+          <div
+            class="dashboard-chart-track"
+            role="img"
+            aria-label="{{ row.label }}: {{ row.value }}"
+          >
+            <div class="dashboard-chart-bar" style="width: {{ row.percent }}%;"></div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="dashboard-chart-empty">{% trans 'No records to chart yet.' %}</p>
+      {% endif %}
+    </article>
+    {% endfor %}
+  </div>
+</section>
+
+<section aria-labelledby="trends-heading">
+  <div class="dashboard-section-heading">
+    <div>
+      <h2 id="trends-heading">{% trans 'Traffic Analytics & Enrollment Trends' %}</h2>
+      <p>{% trans 'Recent audited system activity and recorded course registrations by academic period.' %}</p>
+    </div>
+  </div>
+
+  <div class="dashboard-trend-grid">
+    <article class="dashboard-trend-card">
+      <h3>{% trans 'Traffic Analytics' %}</h3>
+      <p class="dashboard-trend-description">
+        {% trans 'Audited user actions over the last 12 months. This is recorded system activity, not page-view tracking.' %}
+      </p>
+      <div class="trend-months-wrap">
+        <svg
+          class="dashboard-trend-chart"
+          viewBox="0 0 660 210"
+          role="img"
+          aria-label="{% trans 'Monthly audited activity and unique users over the last 12 months' %}"
+        >
+          <line class="trend-grid-line" x1="30" y1="35" x2="630" y2="35"></line>
+          <line class="trend-grid-line" x1="30" y1="112" x2="630" y2="112"></line>
+          <line class="trend-grid-line" x1="30" y1="190" x2="630" y2="190"></line>
+          <polyline
+            class="trend-line-traffic"
+            points="{% for row in traffic_trends %}{{ row.x }},{{ row.actions_y }}{% if not forloop.last %} {% endif %}{% endfor %}"
+          ></polyline>
+          <polyline
+            class="trend-line-users"
+            points="{% for row in traffic_trends %}{{ row.x }},{{ row.users_y }}{% if not forloop.last %} {% endif %}{% endfor %}"
+          ></polyline>
+          {% for row in traffic_trends %}
+          <circle class="trend-point-traffic" cx="{{ row.x }}" cy="{{ row.actions_y }}" r="3">
+            <title>{{ row.label }}: {{ row.actions }} {% trans 'audited actions' %}</title>
+          </circle>
+          <circle class="trend-point-users" cx="{{ row.x }}" cy="{{ row.users_y }}" r="3">
+            <title>{{ row.label }}: {{ row.users }} {% trans 'unique users' %}</title>
+          </circle>
+          {% endfor %}
+        </svg>
+        <div class="trend-months">
+          {% for row in traffic_trends %}<span>{{ row.label }}</span>{% endfor %}
+        </div>
+      </div>
+      <ul class="trend-legend">
+        <li><span class="trend-legend-swatch" style="background: #7c3aed;"></span>{% trans 'Audited actions' %}</li>
+        <li><span class="trend-legend-swatch" style="background: #0e7490;"></span>{% trans 'Unique users' %}</li>
+      </ul>
+      <h4 class="h6 mt-3">{% trans 'Audited activity by user type' %}</h4>
+      <div class="table-responsive">
+        <table class="table table-sm mb-0">
+          <thead><tr><th>{% trans 'User type' %}</th><th>{% trans 'Actions' %}</th><th>{% trans 'Unique users' %}</th></tr></thead>
+          <tbody>
+            {% for row in traffic_by_user_type %}
+            <tr><td>{{ row.user_type }}</td><td>{{ row.actions }}</td><td>{{ row.users }}</td></tr>
+            {% empty %}
+            <tr><td colspan="3" class="text-muted">{% trans 'No audited activity is available for this period.' %}</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </article>
+
+    <article class="dashboard-trend-card">
+      <h3>{% trans 'Enrollment Trends' %}</h3>
+      <p class="dashboard-trend-description">
+        {% trans 'Active course registrations by semester, grouped by academic session.' %}
+      </p>
+      {% if enrollment_trends %}
+      <div class="trend-months-wrap">
+        <svg
+          class="dashboard-trend-chart"
+          viewBox="0 0 660 210"
+          role="img"
+          aria-label="{% trans 'Active course registrations by academic period' %}"
+        >
+          <line class="trend-grid-line" x1="30" y1="35" x2="630" y2="35"></line>
+          <line class="trend-grid-line" x1="30" y1="112" x2="630" y2="112"></line>
+          <line class="trend-grid-line" x1="30" y1="190" x2="630" y2="190"></line>
+          <polyline
+            class="trend-line-enrollment"
+            points="{% for row in enrollment_trends %}{{ row.x }},{{ row.y }}{% if not forloop.last %} {% endif %}{% endfor %}"
+          ></polyline>
+          {% for row in enrollment_trends %}
+          <circle class="trend-point-enrollment" cx="{{ row.x }}" cy="{{ row.y }}" r="4">
+            <title>{{ row.label }}: {{ row.value }} {% trans 'registrations' %}</title>
+          </circle>
+          {% endfor %}
+        </svg>
+        <div class="trend-months" style="grid-template-columns: repeat({{ enrollment_trends|length }}, minmax(0, 1fr));">
+          {% for row in enrollment_trends %}<span>{{ row.label }}</span>{% endfor %}
+        </div>
+      </div>
+      {% else %}
+      <p class="trend-empty">{% trans 'No course registrations are available by academic period yet.' %}</p>
+      {% endif %}
+    </article>
+  </div>
+</section>
+
+<section class="activities-card" aria-labelledby="activities-heading">
+  <h2 class="card-header mb-0" id="activities-heading">
+    <i class="fas fa-clock" aria-hidden="true"></i>{% trans 'Latest activities' %}
+  </h2>
+  <ul class="activities-list">
+    {% for log in logs %}
+    <li>
+      <span>
+        {{ log.message }}
+        <span class="activity-time">{{ log.created_at }}</span>
+      </span>
+    </li>
+    {% empty %}
+    <li>{% trans 'No recent activity' %}</li>
+    {% endfor %}
+  </ul>
+</section>
+{% endblock content %}

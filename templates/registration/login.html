@@ -1,0 +1,420 @@
+{% extends 'registration/registration_base.html' %}
+{% load i18n %}
+{% load static %}
+
+{% block title %}{% trans 'FalconLMS - Login' %}{% endblock title %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+<style>
+    .login-page {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #914c77 100%);
+        position: relative;
+        overflow: hidden;
+        padding: 32px clamp(24px, 8vw, 120px);
+    }
+    
+    .login-page::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: url('{% static 'img/bg.jpg' %}') center/cover;
+        opacity: 0.15;
+    }
+    
+    .login-page::after {
+        content: '';
+        position: absolute;
+        width: 500px;
+        height: 500px;
+        background: rgba(255,255,255,0.1);
+        border-radius: 50%;
+        top: -200px;
+        right: -200px;
+    }
+    
+    .login-wrapper {
+        position: relative;
+        z-index: 10;
+        width: 100%;
+        max-width: 440px;
+    }
+    
+    .login-card {
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 24px;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        backdrop-filter: blur(10px);
+        overflow: hidden;
+        animation: slideUp 0.6s ease-out;
+    }
+    
+    @keyframes slideUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .login-title {
+        color: #1f2937;
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin: 0 0 6px;
+    }
+    
+    .login-subtitle {
+        color: #6b7280;
+        font-size: 0.9rem;
+        margin: 0 0 28px;
+    }
+    
+    .login-body {
+        padding: 36px 35px;
+    }
+    
+    .form-group {
+        margin-bottom: 24px;
+    }
+    
+    .form-group label {
+        display: block;
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 10px;
+        font-size: 0.9rem;
+    }
+    
+    .form-group label i {
+        color: #914c77;
+        margin-right: 8px;
+        background: none !important;
+        border-radius: 0 !important;
+        width: auto !important;
+        height: auto !important;
+    }
+    
+    .input-wrapper {
+        position: relative;
+    }
+    
+    .input-wrapper input {
+        width: 100%;
+        padding: 14px 18px;
+        padding-left: 50px;
+        border: 2px solid #e5e7eb;
+        border-radius: 12px;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+        background: #f9fafb;
+    }
+    
+    .input-wrapper input:focus {
+        outline: none;
+        border-color: #914c77;
+        background: #fff;
+        box-shadow: 0 0 0 4px rgba(145, 76, 119, 0.1);
+    }
+    
+    .input-wrapper .input-icon {
+        position: absolute;
+        left: 18px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #9ca3af;
+        transition: color 0.3s ease;
+        background: none !important;
+        border-radius: 0 !important;
+        width: auto !important;
+        height: auto !important;
+    }
+    
+    .input-wrapper input:focus + .input-icon {
+        color: #914c77;
+    }
+    
+    .error-message {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 16px;
+        background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+        border: 1px solid #fecaca;
+        border-radius: 10px;
+        color: #dc2626;
+        font-size: 0.9rem;
+        margin-bottom: 20px;
+        animation: shake 0.5s ease-in-out;
+    }
+    
+    .error-message i {
+        background: none !important;
+        border-radius: 0 !important;
+        width: auto !important;
+        height: auto !important;
+    }
+    
+    @keyframes shake {
+        0%, 100% { transform: translateX(0); }
+        25% { transform: translateX(-5px); }
+        75% { transform: translateX(5px); }
+    }
+    
+    .btn-login {
+        width: 100%;
+        padding: 16px 24px;
+        background: linear-gradient(135deg, #914c77 0%, #7a3d64 100%);
+        border: none;
+        border-radius: 12px;
+        color: #fff;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        transition: all 0.3s ease;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    
+    .btn-login:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px rgba(145, 76, 119, 0.4);
+        background: linear-gradient(135deg, #a3527f 0%, #8a4570 100%);
+    }
+    
+    .btn-login:active {
+        transform: translateY(0);
+    }
+    
+    .btn-login i {
+        background: none !important;
+        border-radius: 0 !important;
+        width: auto !important;
+        height: auto !important;
+    }
+    
+    .login-footer {
+        text-align: center;
+        padding: 20px 35px 30px;
+        border-top: 1px solid #f3f4f6;
+    }
+    
+    .login-footer a {
+        color: #914c77;
+        text-decoration: none;
+        font-weight: 500;
+        transition: color 0.3s ease;
+    }
+    
+    .login-footer a:hover {
+        color: #7a3d64;
+        text-decoration: underline;
+    }
+    
+    /* Floating decoration elements */
+    .floating-shape {
+        position: absolute;
+        border-radius: 50%;
+        opacity: 0.1;
+        animation: float 6s ease-in-out infinite;
+    }
+    
+    .shape-1 {
+        width: 300px;
+        height: 300px;
+        background: #fff;
+        bottom: -100px;
+        left: -100px;
+        animation-delay: 0s;
+    }
+    
+    .shape-2 {
+        width: 200px;
+        height: 200px;
+        background: #fff;
+        top: 50%;
+        left: 10%;
+        animation-delay: 2s;
+    }
+    
+    @keyframes float {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-20px); }
+    }
+    
+    /* Modern Modal Styling */
+    .modal-content {
+        border: none;
+        border-radius: 20px;
+        overflow: hidden;
+    }
+    
+    .modal-header {
+        background: linear-gradient(135deg, #914c77 0%, #7a3d64 100%);
+        border: none;
+        padding: 20px 25px;
+    }
+    
+    .modal-title {
+        color: #fff;
+        font-weight: 600;
+    }
+    
+    .modal-header .btn-close {
+        filter: brightness(0) invert(1);
+    }
+    
+    .modal-body {
+        padding: 30px 25px;
+    }
+    
+    .modal-body .btn-primary {
+        width: 100%;
+        padding: 14px;
+        background: linear-gradient(135deg, #914c77 0%, #7a3d64 100%);
+        border: none;
+        border-radius: 10px;
+        font-weight: 600;
+    }
+
+    @media (max-width: 640px) {
+        .login-page {
+            justify-content: center;
+            padding: 20px;
+        }
+    }
+</style>
+
+<div class="login-page">
+    <div class="floating-shape shape-1"></div>
+    <div class="floating-shape shape-2"></div>
+    
+    <div class="login-wrapper">
+        <div class="login-card">
+            <div class="login-body">
+                <h2 class="login-title">{% trans 'Welcome Back' %}</h2>
+                <p class="login-subtitle">{% trans 'Sign in to continue to your dashboard' %}</p>
+                {% if messages %}
+                    <div class="mb-3">
+                        {% for message in messages %}
+                            <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %}" role="alert">{{ message }}</div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+                {% if debug_code %}
+                    <div class="alert alert-warning" role="alert">
+                        <strong>Debug code:</strong> {{ debug_code }}
+                    </div>
+                {% endif %}
+                <form action="{% url 'send_code' %}" method="POST" id="login-form">
+                    {% csrf_token %}
+                    
+                    {% if form.errors %}
+                    <div class="error-message">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <span>{% trans 'Invalid ID & Password. Please try again.' %}</span>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="form-group">
+                        <label for="username_id">
+                            <i class="fas fa-id-card"></i>{% trans 'ID Number' %}
+                        </label>
+                        <div class="input-wrapper">
+                            <input type="text" name="username" id="username_id" 
+                                   placeholder="{% trans 'Enter your ID number' %}"
+                                   required autocomplete="username">
+                            <i class="fas fa-user input-icon"></i>
+                        </div>
+                        <div id="message-wrapper"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="password_id">
+                            <i class="fas fa-key"></i>{% trans 'Password' %}
+                        </label>
+                        <div class="input-wrapper">
+                            <input type="password" name="password" id="password_id" 
+                                   placeholder="{% trans 'Enter your password' %}"
+                                   required autocomplete="current-password">
+                            <i class="fas fa-lock input-icon"></i>
+                        </div>
+                    </div>
+                
+                    <button type="submit" class="btn-login" id="login-btn">
+                        <i class="fas fa-sign-in-alt"></i>
+                        {% trans 'Sign In' %}
+                    </button>
+                </form>
+            </div>
+            
+            <div class="login-footer">
+                <p style="color: #6b7280; margin: 0;">
+                    {{ site_name|default:'FalconLMS' }}
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal for entering verification code -->
+<div class="modal fade" id="verifyCodeModal" tabindex="-1" aria-labelledby="verifyCodeModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="verifyCodeModalLabel">
+                    <i class="fas fa-shield-alt me-2"></i>{% trans 'Enter Verification Code' %}
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form action="{% url 'verify_code' %}" method="POST">
+                    {% csrf_token %}
+                    <div class="form-group mb-4">
+                        <label for="verification_code">
+                            <i class="fas fa-key"></i>{% trans 'Verification Code' %}
+                        </label>
+                        <div class="input-wrapper">
+                            <input type="text" name="verification_code" id="verification_code" 
+                                   placeholder="{% trans 'Enter code from email' %}"
+                                   required autocomplete="one-time-code">
+                            <i class="fas fa-hashtag input-icon"></i>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-check-circle me-2"></i>{% trans 'Verify Code' %}
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock content %}
+
+{% block js %}
+<script>
+    // When user clicks "Send verification code to email", show the modal
+    var link = document.getElementById('verification-link');
+    if (link) {
+        link.onclick = function() {
+            var modal = new bootstrap.Modal(document.getElementById('verifyCodeModal'));
+            modal.show();
+        };
+    }
+</script>
+{% endblock %}

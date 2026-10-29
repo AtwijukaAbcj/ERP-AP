@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Lecturers List</title>
+    {% include 'includes/document_print_styles.html' %}
+</head>
+<body>
+    {% now "d M Y" as generated_date %}
+    {% include 'includes/document_header.html' with title='Faculty Lecturer Register' subtitle=faculty.name label_1='Generated:' value_1=generated_date label_2='Lecturers:' value_2=lecturers|length label_3='' value_3='' %}
+    <table>
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Username</th>
+                <th>Full Name</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Address</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for lecturer in lecturers %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ lecturer.username }}</td>
+                <td>{{ lecturer.get_full_name }}</td>
+                <td>{{ lecturer.email }}</td>
+                <td>{{ lecturer.phone }}</td>
+                <td>{{ lecturer.address }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="6">No lecturers found.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% include 'includes/document_footer.html' %}
+</body>
+</html>

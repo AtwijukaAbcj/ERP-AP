@@ -1,0 +1,400 @@
+{% extends 'base.html' %}
+{% load i18n %}
+{% block title %}{{ title }} | {% trans 'Learning management system' %}{% endblock title %}
+
+{% block content %}
+
+<nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/">{% trans 'Home' %}</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'add_score' %}">{% trans 'Manage Score' %}</a></li>
+        <li class="breadcrumb-item active" aria-current="page">{% trans 'Attendance' %}</li>
+    </ol>
+</nav>
+
+{% include 'snippets/messages.html' %}
+
+<style>
+    .attendance-hero {
+        background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        border-radius: 20px;
+        padding: 40px;
+        color: white;
+        margin-bottom: 30px;
+        position: relative;
+        overflow: hidden;
+    }
+    .attendance-hero::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -20%;
+        width: 400px;
+        height: 400px;
+        background: rgba(255,255,255,0.1);
+        border-radius: 50%;
+    }
+    .attendance-hero h1 { font-size: 1.8rem; font-weight: 700; margin-bottom: 8px; }
+    
+    .attendance-card {
+        background: white;
+        border-radius: 16px;
+        padding: 24px;
+        margin-bottom: 20px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        border: 1px solid #eef2f7;
+    }
+    .attendance-card h5 {
+        color: #2d3748;
+        margin-bottom: 20px;
+        padding-bottom: 15px;
+        border-bottom: 2px solid #eef2f7;
+    }
+    
+    .stat-box {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 20px;
+        border-radius: 16px;
+        text-align: center;
+        margin-bottom: 15px;
+    }
+    .stat-box.success { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); }
+    .stat-box.warning { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+    .stat-box.info { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+    .stat-box h3 { font-size: 2rem; margin: 0; font-weight: 700; }
+    .stat-box p { margin: 5px 0 0 0; opacity: 0.9; font-size: 0.85rem; }
+    
+    .student-attendance-row {
+        display: flex;
+        align-items: center;
+        padding: 12px 15px;
+        background: #f8fafc;
+        border-radius: 10px;
+        margin-bottom: 10px;
+        transition: all 0.3s;
+    }
+    .student-attendance-row:hover { background: #eef2f7; }
+    .student-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        margin-right: 15px;
+    }
+    .student-info { flex: 1; }
+    .student-info .name { font-weight: 600; color: #2d3748; }
+    .student-info .id { font-size: 0.8rem; color: #718096; }
+    .attendance-stats { display: flex; gap: 10px; }
+    .attendance-stats .badge { padding: 6px 12px; font-weight: 500; }
+    
+    .status-select {
+        border-radius: 8px;
+        padding: 8px 12px;
+        border: 1px solid #e2e8f0;
+        font-size: 0.9rem;
+    }
+    .status-select.present { background: #c6f6d5; border-color: #38ef7d; }
+    .status-select.absent { background: #fed7d7; border-color: #f5576c; }
+    .status-select.late { background: #feebc8; border-color: #f6ad55; }
+    .status-select.excused { background: #e9d8fd; border-color: #9f7aea; }
+    
+    .session-item {
+        display: flex;
+        align-items: center;
+        padding: 12px 15px;
+        background: #f8fafc;
+        border-radius: 10px;
+        margin-bottom: 10px;
+    }
+    .session-date {
+        width: 60px;
+        height: 60px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 10px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        margin-right: 15px;
+    }
+    .session-date .day { font-size: 1.5rem; font-weight: 700; line-height: 1; }
+    .session-date .month { font-size: 0.7rem; text-transform: uppercase; }
+    
+    .action-btn {
+        background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 10px;
+        font-weight: 600;
+        transition: all 0.3s;
+    }
+    .action-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(56, 239, 125, 0.4);
+        color: white;
+    }
+    .action-btn.secondary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    .action-btn.secondary:hover {
+        box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+    }
+    
+    .nav-tabs .nav-link { 
+        color: #4a5568; 
+        font-weight: 500; 
+        border-radius: 10px 10px 0 0;
+    }
+    .nav-tabs .nav-link.active { 
+        color: #667eea; 
+        border-color: #e2e8f0 #e2e8f0 white;
+    }
+</style>
+
+<!-- Hero Section -->
+<div class="attendance-hero">
+    <div class="row align-items-center">
+        <div class="col-md-8">
+            <h1><i class="fas fa-user-check me-3"></i>{% trans 'Attendance Management' %}</h1>
+            <p class="mb-2 opacity-75">{{ course.title }} ({{ course.code }})</p>
+            <span class="badge bg-light text-dark">{{ enrolled_students|length }} {% trans 'Students Enrolled' %}</span>
+        </div>
+        <div class="col-md-4 text-end d-none d-md-block">
+            <i class="fas fa-clipboard-check" style="font-size: 5rem; opacity: 0.2;"></i>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <!-- Tabs -->
+        <ul class="nav nav-tabs mb-3" role="tablist">
+            <li class="nav-item">
+                <a class="nav-link active" data-bs-toggle="tab" href="#record">
+                    <i class="fas fa-edit me-2"></i>{% trans 'Record Attendance' %}
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" data-bs-toggle="tab" href="#overview">
+                    <i class="fas fa-chart-bar me-2"></i>{% trans 'Student Overview' %}
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" data-bs-toggle="tab" href="#sessions">
+                    <i class="fas fa-calendar me-2"></i>{% trans 'Class Sessions' %}
+                </a>
+            </li>
+        </ul>
+        
+        <div class="tab-content">
+            <!-- Record Attendance Tab -->
+            <div class="tab-pane fade show active" id="record">
+                <div class="attendance-card">
+                    <h5><i class="fas fa-calendar-day me-2 text-success"></i>{% trans 'Record Attendance for Today' %}</h5>
+                    
+                    <form method="POST">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="record_attendance">
+                        
+                        <div class="row mb-4">
+                            <div class="col-md-4">
+                                <label class="form-label">{% trans 'Date' %}</label>
+                                <input type="date" name="attendance_date" class="form-control" value="{{ today }}" required>
+                            </div>
+                            <div class="col-md-8 d-flex align-items-end">
+                                <div class="btn-group">
+                                    <button type="button" class="btn btn-outline-success btn-sm" onclick="setAllStatus('present')">
+                                        <i class="fas fa-check-circle me-1"></i>{% trans 'All Present' %}
+                                    </button>
+                                    <button type="button" class="btn btn-outline-danger btn-sm" onclick="setAllStatus('absent')">
+                                        <i class="fas fa-times-circle me-1"></i>{% trans 'All Absent' %}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        {% for tc in enrolled_students %}
+                        <div class="student-attendance-row">
+                            <div class="student-avatar">
+                                {{ tc.student.student.first_name|first|upper }}{{ tc.student.student.last_name|first|upper }}
+                            </div>
+                            <div class="student-info">
+                                <div class="name">{{ tc.student.student.get_full_name }}</div>
+                                <div class="id">{{ tc.student.student.username }}</div>
+                            </div>
+                            <select name="status_{{ tc.student.id }}" class="status-select" onchange="updateSelectColor(this)">
+                                <option value="present">{% trans 'Present' %}</option>
+                                <option value="absent">{% trans 'Absent' %}</option>
+                                <option value="late">{% trans 'Late' %}</option>
+                                <option value="excused">{% trans 'Excused' %}</option>
+                            </select>
+                        </div>
+                        {% empty %}
+                        <div class="text-center text-muted py-4">
+                            <i class="fas fa-users fa-3x mb-3 opacity-50"></i>
+                            <p>{% trans 'No students enrolled in this course yet.' %}</p>
+                        </div>
+                        {% endfor %}
+                        
+                        {% if enrolled_students %}
+                        <div class="text-center mt-4">
+                            <button type="submit" class="action-btn">
+                                <i class="fas fa-save me-2"></i>{% trans 'Save Attendance' %}
+                            </button>
+                        </div>
+                        {% endif %}
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Student Overview Tab -->
+            <div class="tab-pane fade" id="overview">
+                <div class="attendance-card">
+                    <h5><i class="fas fa-chart-pie me-2 text-primary"></i>{% trans 'Student Attendance Overview' %}</h5>
+                    
+                    {% for stat in student_attendance_stats %}
+                    <div class="student-attendance-row">
+                        <div class="student-avatar">
+                            {{ stat.student.student.first_name|first|upper }}{{ stat.student.student.last_name|first|upper }}
+                        </div>
+                        <div class="student-info">
+                            <div class="name">{{ stat.student.student.get_full_name }}</div>
+                            <div class="id">{{ stat.student.student.username }}</div>
+                        </div>
+                        <div class="attendance-stats">
+                            <span class="badge bg-success">{{ stat.present }} P</span>
+                            <span class="badge bg-warning text-dark">{{ stat.late }} L</span>
+                            <span class="badge bg-danger">{{ stat.absent }} A</span>
+                            <span class="badge {% if stat.percentage >= 75 %}bg-success{% elif stat.percentage >= 50 %}bg-warning text-dark{% else %}bg-danger{% endif %}">
+                                {{ stat.percentage }}%
+                            </span>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="text-center text-muted py-4">
+                        <p>{% trans 'No attendance records yet.' %}</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <!-- Class Sessions Tab -->
+            <div class="tab-pane fade" id="sessions">
+                <div class="attendance-card">
+                    <h5><i class="fas fa-calendar-plus me-2 text-info"></i>{% trans 'Add Class Session' %}</h5>
+                    
+                    <form method="POST" class="row g-3 mb-4">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="create_session">
+                        <div class="col-md-4">
+                            <label class="form-label">{% trans 'Date' %}</label>
+                            <input type="date" name="session_date" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">{% trans 'Topic' %}</label>
+                            <input type="text" name="topic" class="form-control" placeholder="{% trans 'Class topic (optional)' %}">
+                        </div>
+                        <div class="col-md-2 d-flex align-items-end">
+                            <button type="submit" class="action-btn secondary w-100">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </form>
+                    
+                    <h6 class="text-muted mb-3">{% trans 'Recent Sessions' %}</h6>
+                    {% for session in class_sessions %}
+                    <div class="session-item">
+                        <div class="session-date">
+                            <span class="day">{{ session.date|date:"d" }}</span>
+                            <span class="month">{{ session.date|date:"M" }}</span>
+                        </div>
+                        <div class="flex-grow-1">
+                            <div class="fw-bold">{% if session.topic %}{{ session.topic }}{% else %}{% trans 'Class Session' %}{% endif %}</div>
+                            <small class="text-muted">{{ session.date|date:"l, F d, Y" }}</small>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="text-center text-muted py-3">
+                        <p>{% trans 'No class sessions recorded yet.' %}</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <!-- Stats -->
+        <div class="row">
+            <div class="col-6">
+                <div class="stat-box success">
+                    <h3>{{ class_sessions|length }}</h3>
+                    <p>{% trans 'Total Sessions' %}</p>
+                </div>
+            </div>
+            <div class="col-6">
+                <div class="stat-box info">
+                    <h3>{{ enrolled_students|length }}</h3>
+                    <p>{% trans 'Students' %}</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Quick Links -->
+        <div class="attendance-card">
+            <h6 class="text-muted mb-3"><i class="fas fa-link me-2"></i>{% trans 'Quick Actions' %}</h6>
+            <a href="{% url 'assessment_config' course.id %}" class="d-block mb-2 text-decoration-none">
+                <div class="student-attendance-row">
+                    <i class="fas fa-cog text-primary me-3"></i>
+                    {% trans 'Assessment Config' %}
+                </div>
+            </a>
+            <a href="{% url 'course_assignments' course.id %}" class="d-block mb-2 text-decoration-none">
+                <div class="student-attendance-row">
+                    <i class="fas fa-tasks text-warning me-3"></i>
+                    {% trans 'Manage Assignments' %}
+                </div>
+            </a>
+            <a href="{% url 'add_score_for' course.id %}" class="d-block mb-2 text-decoration-none">
+                <div class="student-attendance-row">
+                    <i class="fas fa-edit text-success me-3"></i>
+                    {% trans 'Grade Students' %}
+                </div>
+            </a>
+            <a href="{% url 'add_score' %}" class="d-block text-decoration-none">
+                <div class="student-attendance-row">
+                    <i class="fas fa-arrow-left text-secondary me-3"></i>
+                    {% trans 'Back to Courses' %}
+                </div>
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+function setAllStatus(status) {
+    document.querySelectorAll('.status-select').forEach(select => {
+        select.value = status;
+        updateSelectColor(select);
+    });
+}
+
+function updateSelectColor(select) {
+    select.className = 'status-select ' + select.value;
+}
+
+// Initialize colors
+document.querySelectorAll('.status-select').forEach(select => {
+    updateSelectColor(select);
+});
+</script>
+
+{% endblock content %}

@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <h1 class="h3 mb-0">{% trans "Clinical placements" %}</h1>
+        <div class="d-flex gap-2">
+            {% if can_manage %}
+            <a class="btn btn-outline-primary" href="{% url 'clinical:ward_list' %}">{% trans "Manage wards" %}</a>
+            <a class="btn btn-primary" href="{% url 'clinical:placement_create' %}">{% trans "Assign student" %}</a>
+            {% endif %}
+        </div>
+    </div>
+    {% include 'snippets/messages.html' %}
+    <div class="table-responsive">
+        <table class="table table-striped align-middle">
+            <thead>
+                <tr>
+                    {% if show_students %}<th>{% trans "Student" %}</th>{% endif %}
+                    <th>{% trans "Ward" %}</th><th>{% trans "Semester" %}</th>
+                    <th>{% trans "Supervisor" %}</th><th>{% trans "Dates" %}</th>
+                    <th>{% trans "Status" %}</th><th>{% trans "Verified hours" %}</th><th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for placement in placements %}
+                <tr>
+                    {% if show_students %}<td>{{ placement.student.registration_number|default:placement.student }}</td>{% endif %}
+                    <td>{{ placement.ward.name }}<br><small class="text-muted">{{ placement.ward.facility }}</small></td>
+                    <td>{{ placement.semester }}{% if placement.semester.session %} {{ placement.semester.session.session }}{% endif %}</td>
+                    <td>{{ placement.supervisor.get_full_name }}</td>
+                    <td>{{ placement.starts_on }} – {{ placement.ends_on }}</td>
+                    <td>{{ placement.get_status_display }}</td>
+                    <td>{{ placement.verified_hours|default:"0" }}</td>
+                    <td><a class="btn btn-sm btn-outline-primary" href="{% url 'clinical:placement_detail' placement.pk %}">{% trans "Open" %}</a></td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="8" class="text-muted">{% trans "No clinical placements found." %}</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

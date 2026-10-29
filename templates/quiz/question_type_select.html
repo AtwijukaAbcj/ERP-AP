@@ -1,0 +1,116 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block content %}
+
+<nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/">{% trans 'Home' %}</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'programs' %}">{% trans 'Programs' %}</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'program_detail' course.program.id %}">{{ course.program }}</a></li>
+        <li class="breadcrumb-item"><a href="{{ course.get_absolute_url }}">{{ course }}</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'quiz_index' course.slug %}">{% trans 'Quizzes' %}</a></li>
+        <li class="breadcrumb-item active" aria-current="page">{% trans 'Select Question Type' %}</li>
+    </ol>
+</nav>
+
+<div class="title-1 mb-3">
+    <i class="fas fa-plus-circle me-2"></i>{% trans 'Add Question' %} - {{ quiz.title|truncatechars:30 }}
+</div>
+
+<div class="container">
+    <div class="mb-4 bg-secondary text-light py-2 px-3 rounded">
+        <i class="fas fa-list me-1"></i> {{ question_count }} {% trans 'question(s) already added' %}
+    </div>
+
+    <p class="text-muted mb-4">
+        <i class="fas fa-info-circle me-2"></i>{% trans 'Select the type of question you want to add to this quiz/coursework.' %}
+    </p>
+
+    <div class="row g-4">
+        <!-- Multiple Choice Question -->
+        <div class="col-md-6 col-lg-4">
+            <div class="card h-100 shadow-sm hover-shadow">
+                <div class="card-body text-center">
+                    <div class="display-4 text-primary mb-3">
+                        <i class="fas fa-list-ul"></i>
+                    </div>
+                    <h5 class="card-title">{% trans 'Multiple Choice' %}</h5>
+                    <p class="card-text text-muted">
+                        {% trans 'Students select one or more answers from a list of choices. Auto-graded.' %}
+                    </p>
+                </div>
+                <div class="card-footer bg-transparent border-0 pb-3 text-center">
+                    <a href="{% url 'mc_create' course.slug quiz.id %}" class="btn btn-primary">
+                        <i class="fas fa-plus me-1"></i>{% trans 'Add MC Question' %}
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- File Upload Question -->
+        <div class="col-md-6 col-lg-4">
+            <div class="card h-100 shadow-sm hover-shadow">
+                <div class="card-body text-center">
+                    <div class="display-4 text-success mb-3">
+                        <i class="fas fa-file-upload"></i>
+                    </div>
+                    <h5 class="card-title">{% trans 'File Upload' %}</h5>
+                    <p class="card-text text-muted">
+                        {% trans 'Students submit files (PDF, DOC, ZIP, code, etc.). Manual grading required.' %}
+                    </p>
+                    <div class="mt-2">
+                        <span class="badge bg-light text-dark border me-1">.pdf</span>
+                        <span class="badge bg-light text-dark border me-1">.docx</span>
+                        <span class="badge bg-light text-dark border me-1">.zip</span>
+                        <span class="badge bg-light text-dark border">+more</span>
+                    </div>
+                </div>
+                <div class="card-footer bg-transparent border-0 pb-3 text-center">
+                    <a href="{% url 'file_question_create' course.slug quiz.id %}" class="btn btn-success">
+                        <i class="fas fa-plus me-1"></i>{% trans 'Add File Upload Question' %}
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Essay Question (Existing) -->
+        <div class="col-md-6 col-lg-4">
+            <div class="card h-100 shadow-sm hover-shadow">
+                <div class="card-body text-center">
+                    <div class="display-4 text-info mb-3">
+                        <i class="fas fa-paragraph"></i>
+                    </div>
+                    <h5 class="card-title">{% trans 'Essay / Text' %}</h5>
+                    <p class="card-text text-muted">
+                        {% trans 'Students type a free-form text response. Manual grading required.' %}
+                    </p>
+                </div>
+                <div class="card-footer bg-transparent border-0 pb-3 text-center">
+                    <button class="btn btn-info disabled" disabled>
+                        <i class="fas fa-plus me-1"></i>{% trans 'Coming Soon' %}
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-4">
+        <a href="{% url 'quiz_index' course.slug %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-1"></i>{% trans 'Back to Quizzes' %}
+        </a>
+    </div>
+</div>
+
+<style>
+.hover-shadow:hover {
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+    transform: translateY(-3px);
+    transition: all 0.3s ease;
+}
+.card {
+    transition: all 0.3s ease;
+}
+</style>
+
+{% endblock %}

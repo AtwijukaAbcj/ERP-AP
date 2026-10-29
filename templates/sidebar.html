@@ -1,0 +1,315 @@
+{% load static i18n %}
+{% load permission_tags %}
+{% get_current_language as LANGUAGE_CODE %}
+
+{# URL Definitions #}
+{% url 'home' as hom %} {% url 'dashboard' as dash %} {% url 'profile' as prof %}
+{% url 'session_list' as sess %} {% url 'semester_list' as sem %}
+{% url 'edit_profile' as ep %} {% url 'change_password' as cp %}
+{% url 'admin_panel' as admin_p %}
+
+
+
+
+
+<div id="side-nav" class="sidebar-container">
+    <!-- Header -->
+    <div class="sidebar-header">
+        <div class="desktop-hide">
+            <button class="close-btn" type="button" onclick="toggleSidebar()" aria-controls="side-nav" aria-label="{% trans 'Close navigation' %}">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        {% if request.user.is_superuser %}
+        <a href="{% url 'site_settings' %}" title="Click to change logo" style="display: inline-block; position: relative;">
+            {% if site_settings.logo_white %}
+            <img src="{{ site_settings.logo_white.url }}" alt="{{ site_name }}" style="max-width: 140px; max-height: 50px; margin-bottom: 12px; transition: opacity 0.2s;">
+            {% elif site_settings.logo %}
+            <img src="{{ site_settings.logo.url }}" alt="{{ site_name }}" style="max-width: 140px; max-height: 50px; margin-bottom: 12px; transition: opacity 0.2s;">
+            {% else %}
+            <span style="display: block; padding: 12px 20px; background: rgba(255,255,255,0.15); border-radius: 8px; margin-bottom: 12px; font-size: 12px;">
+                <i class="fas fa-image"></i> Click to upload logo
+            </span>
+            {% endif %}
+            <span class="logo-edit-hint" style="position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.7); color: #fff; font-size: 10px; padding: 2px 8px; border-radius: 4px; opacity: 0; transition: opacity 0.2s; white-space: nowrap;">
+                <i class="fas fa-edit"></i> Change logo
+            </span>
+        </a>
+        {% else %}
+        {% if site_settings.logo_white %}
+        <img src="{{ site_settings.logo_white.url }}" alt="{{ site_name }}" style="max-width: 140px; max-height: 50px; margin-bottom: 12px;">
+        {% elif site_settings.logo %}
+        <img src="{{ site_settings.logo.url }}" alt="{{ site_name }}" style="max-width: 140px; max-height: 50px; margin-bottom: 12px;">
+        {% endif %}
+        {% endif %}
+        <span class="user-role">{{ request.user.get_user_role }}</span>
+        <div class="faculty-name">
+            {{ request.user.faculty.name|default:"No Faculty Assigned" }}
+        </div>
+    </div>
+
+    <!-- Menu -->
+    <nav class="sidebar-menu">
+        <ul>
+            {# ===== COMMON ITEMS ===== #}
+            <li class="menu-item">
+                <a href="{{ hom }}" class="menu-link {% if request.path == hom %}active{% endif %}">
+                    <i class="fas fa-home"></i> {% trans 'Home' %}
+                </a>
+            </li>
+            <li class="menu-item">
+                <a href="{{ prof }}" class="menu-link {% if request.path == prof %}active{% endif %}">
+                    <i class="fas fa-user"></i> {% trans 'Profile' %}
+                </a>
+            </li>
+
+            {# ===== SUPERUSER SECTION ===== #}
+            {% if request.user.is_superuser %}
+            <li class="menu-section">Administration</li>
+            
+            <li class="menu-item">
+                <a href="{{ dash }}" class="menu-link {% if request.path == dash %}active{% endif %}">
+                    <i class="fas fa-tachometer-alt"></i> {% trans 'Dashboard' %}
+                </a>
+            </li>
+            <li class="menu-item">
+                <a href="{{ admin_p }}" class="menu-link {% if request.path == admin_p %}active{% endif %}">
+                    <i class="fas fa-user-shield"></i> {% trans 'Admin Panel' %}
+                </a>
+            </li>
+            <li class="menu-dropdown blue" data-dropdown="access-management">
+                <div class="dropdown-toggle" onclick="toggleDropdown(this)">
+                    <span><i class="fas fa-shield-alt"></i> {% trans 'Access Control' %}</span>
+                    <i class="fas fa-chevron-down toggle-icon"></i>
+                </div>
+                <div class="dropdown-content">
+                    <a href="{% url 'access_control_home' %}"><i class="fas fa-th-large"></i> {% trans 'Access Control Dashboard' %}</a>
+                    <a href="{% url 'user_list' %}"><i class="fas fa-users"></i> {% trans 'Users' %}</a>
+                    <a href="{% url 'role_list' %}"><i class="fas fa-user-tag"></i> {% trans 'Roles' %}</a>
+                    <a href="{% url 'permission_list' %}"><i class="fas fa-key"></i> {% trans 'Permissions' %}</a>
+                    <a href="{% url 'role_permission_list' %}"><i class="fas fa-user-shield"></i> {% trans 'Role Permissions' %}</a>
+                    <a href="{% url 'assign_modules' %}"><i class="fas fa-layer-group"></i> {% trans 'User Module Access' %}</a>
+                </div>
+            </li>
+            <li class="menu-item">
+                <a href="{% url 'site_settings' %}" class="menu-link {% if request.path == '/settings/' %}active{% endif %}">
+                    <i class="fas fa-cogs"></i> {% trans 'Site Settings' %}
+                </a>
+            </li>
+
+            <li class="menu-section">People</li>
+            <!-- Finance Dropdown -->
+            <li class="menu-dropdown orange" data-dropdown="finance">
+                <div class="dropdown-toggle" onclick="toggleDropdown(this)">
+                    <span><i class="fas fa-coins"></i> Finance</span>
+                    <i class="fas fa-chevron-down toggle-icon"></i>
+                </div>
+                <div class="dropdown-content">
+                    <a href="{% url 'finance_user_list' %}"><i class="fas fa-users"></i> Finance Users</a>
+                    <a href="{% url 'finance:assign_finance_modules' %}"><i class="fas fa-tasks"></i> Assign Modules</a>
+                    <a href="{% url 'finance:invoice_list' %}"><i class="fas fa-file-invoice-dollar"></i> Invoices</a>
+                    <a href="{% url 'finance:fee_category_list' %}"><i class="fas fa-list"></i> Fee Categories</a>
+                    <a href="{% url 'finance:staff_category_list' %}"><i class="fas fa-user-tie"></i> Staff Categories</a>
+                    <a href="{% url 'finance:staff_list' %}"><i class="fas fa-user-tie"></i> Staff</a>
+                    <a href="{% url 'finance:payroll_list' %}"><i class="fas fa-money-check-alt"></i> Payroll</a>
+                    <a href="{% url 'finance:expense_category_list' %}"><i class="fas fa-folder-open"></i> Expense Categories</a>
+                    <a href="{% url 'finance:expense_list' %}"><i class="fas fa-file-invoice"></i> Expenses</a>
+                    <a href="{% url 'finance:petty_cash_list' %}"><i class="fas fa-wallet"></i> Petty Cash</a>
+                    <a href="{% url 'finance:accounts_payable_list' %}"><i class="fas fa-hand-holding-usd"></i> Accounts Payable</a>
+                    <a href="{% url 'finance:accounts_receivable_list' %}"><i class="fas fa-file-invoice-dollar"></i> Accounts Receivable</a>
+                    <a href="{% url 'finance:budget_list' %}"><i class="fas fa-file-invoice"></i> Budgets</a>
+                    <a href="{% url 'finance:cash_book_list' %}"><i class="fas fa-book"></i> Cash Book</a>
+                    <a href="{% url 'finance:bank_reconciliation_list' %}"><i class="fas fa-university"></i> Bank Reconciliation</a>
+                    <a href="{% url 'finance:ledger_account_list' %}"><i class="fas fa-book-open"></i> Ledger Accounts</a>
+                    <a href="{% url 'finance:general_ledger_list' %}"><i class="fas fa-balance-scale"></i> General Ledger</a>
+                    <a href="{% url 'finance:payment_voucher_list' %}"><i class="fas fa-money-check"></i> Payment Vouchers</a>
+                    <a href="{% url 'finance:finance_reports' %}"><i class="fas fa-chart-line"></i> Reports</a>
+                </div>
+            </li>
+
+            <li class="menu-dropdown green" data-dropdown="procurement">
+                <div class="dropdown-toggle" onclick="toggleDropdown(this)">
+                    <span><i class="fas fa-shopping-cart"></i> Procurement</span>
+                    <i class="fas fa-chevron-down toggle-icon"></i>
+                </div>
+                <div class="dropdown-content">
+                    <a href="{% url 'procurement:dashboard' %}"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+                    <a href="{% url 'procurement:supplier_category_list' %}"><i class="fas fa-list"></i> Supplier Categories</a>
+                    <a href="{% url 'procurement:supplier_list' %}"><i class="fas fa-truck"></i> Suppliers</a>
+                    <a href="{% url 'procurement:procurement_plan_list' %}"><i class="fas fa-file-alt"></i> Procurement Plans</a>
+                    <a href="{% url 'procurement:purchase_requisition_list' %}"><i class="fas fa-file-signature"></i> Requisitions</a>
+                    <a href="{% url 'procurement:purchase_order_list' %}"><i class="fas fa-file-invoice"></i> Purchase Orders</a>
+                </div>
+            </li>
+
+            <li class="menu-item">
+                <a href="{{ sess }}" class="menu-link {% if request.path == sess %}active{% endif %}">
+                    <i class="fas fa-calendar-week"></i> {% trans 'Manage Sessions' %}
+                </a>
+            </li>
+            <li class="menu-item">
+                <a href="{{ sem }}" class="menu-link {% if request.path == sem %}active{% endif %}">
+                    <i class="fas fa-calendar-alt"></i> {% trans 'Manage Semesters' %}
+                </a>
+            </li>
+            {% endif %}
+
+            {% has_permission "admissions.view_applications" as admissions_access %}
+            {% if request.user.is_superuser or request.user.is_registrar or admissions_access %}
+            <li class="menu-item">
+                <a href="{% url 'admissions:dashboard' %}" class="menu-link {% if 'admissions' in request.path %}active{% endif %}">
+                    <i class="fas fa-user-check"></i> Admissions
+                </a>
+            </li>
+            {% endif %}
+            {% has_permission "students.view_students" as student_records_access %}
+            {% if request.user.is_superuser or request.user.is_registrar or student_records_access %}
+            <li class="menu-item">
+                <a href="{% url 'student_list' %}" class="menu-link {% if '/accounts/students/' in request.path or '/accounts/student/' in request.path %}active{% endif %}">
+                    <i class="fas fa-address-card"></i> {% trans 'Student Records' %}
+                </a>
+            </li>
+            {% endif %}
+            {% has_permission "clinical.view_placements" as clinical_view_access %}
+            {% has_permission "clinical.manage_placements" as clinical_manage_access %}
+            {% has_permission "clinical.verify_log_entries" as clinical_review_access %}
+            {% if request.user.is_superuser or request.user.is_student or clinical_view_access or clinical_manage_access or clinical_review_access %}
+            <li class="menu-item">
+                <a href="{% url 'clinical:placement_list' %}" class="menu-link {% if '/clinical/' in request.path %}active{% endif %}">
+                    <i class="fas fa-user-nurse"></i> {% trans 'Clinical Training' %}
+                </a>
+            </li>
+            {% endif %}
+
+            {% if request.user.is_superuser or request.user.is_registrar or request.user.is_faculty_admin or request.user.is_lecturer or request.user.is_student %}
+            <li class="menu-item">
+                <a href="{% url 'assessment_hub' %}" class="menu-link {% if '/results/' in request.path %}active{% endif %}">
+                    <i class="fas fa-clipboard-check"></i> {% trans 'Assessment & Results' %}
+                </a>
+            </li>
+            {% endif %}
+
+            {# ===== STUDENT SECTION ===== #}
+            {% if request.user.is_student %}
+            <li class="menu-section">My Academics</li>
+            <li class="menu-item">
+                <a href="{% url 'student_timetable' %}" class="menu-link">
+                    <i class="fas fa-calendar-alt"></i> My Timetable
+                </a>
+            </li>
+            <li class="menu-item">
+                <a href="{% url 'grade_results' %}" class="menu-link">
+                    <i class="fas fa-graduation-cap"></i> {% trans 'My Results' %}
+                </a>
+            </li>
+            <li class="menu-item">
+                <a href="{% url 'finance:student_invoices' %}" class="menu-link">
+                    <i class="fas fa-file-invoice-dollar"></i> My Invoices
+                </a>
+            </li>
+            {% endif %}
+
+            {# ===== FINANCE USER SECTION ===== #}
+            {% if request.user.is_finance or request.user.is_finance_manager or request.user.is_accountant %}
+            <li class="menu-section">Finance Modules</li>
+            {% if request.user.is_finance_manager or request.user.is_accountant %}
+            <li class="menu-item">
+                <a href="{% url 'finance:invoice_list' %}" class="menu-link">
+                    <i class="fas fa-file-invoice-dollar"></i> Manage Invoices
+                </a>
+            </li>
+            <li class="menu-item">
+                <a href="{% url 'finance:fee_category_list' %}" class="menu-link">
+                    <i class="fas fa-list"></i> Fee Categories
+                </a>
+            </li>
+            {% endif %}
+            {% if request.user.is_finance and not request.user.is_finance_manager and not request.user.is_accountant %}
+            {% for permission in request.user.finance_permissions.all %}
+                {% if permission.module_name == 'manage_invoices' %}
+                <li class="menu-item">
+                    <a href="{% url 'finance:invoice_list' %}" class="menu-link">
+                        <i class="fas fa-file-invoice-dollar"></i> Manage Invoices
+                    </a>
+                </li>
+                {% elif permission.module_name == 'create_invoice' %}
+                <li class="menu-item">
+                    <a href="{% url 'finance:create_invoice' %}" class="menu-link">
+                        <i class="fas fa-plus"></i> Create Invoice
+                    </a>
+                </li>
+                {% elif permission.module_name == 'fee_category_add' %}
+                <li class="menu-item">
+                    <a href="{% url 'finance:fee_category_list' %}" class="menu-link">
+                        <i class="fas fa-list"></i> Fee Categories
+                    </a>
+                </li>
+                {% endif %}
+            {% empty %}
+            <li class="menu-item">
+                <span class="menu-link" style="color: #94a3b8;">No modules assigned</span>
+            </li>
+            {% endfor %}
+            {% endif %}
+            {% endif %}
+
+
+            {# ===== ACCOUNT SECTION (All Users) ===== #}
+            <li class="menu-section">{% trans 'Account' %}</li>
+            <li class="menu-item">
+                <a href="{{ ep }}" class="menu-link {% if request.path == ep %}active{% endif %}">
+                    <i class="fas fa-cog"></i> {% trans 'Account Settings' %}
+                </a>
+            </li>
+            <li class="menu-item">
+                <a href="{{ cp }}" class="menu-link {% if request.path == cp %}active{% endif %}">
+                    <i class="fas fa-key"></i> {% trans 'Change Password' %}
+                </a>
+            </li>
+        </ul>
+    </nav>
+
+    <!-- Footer -->
+    <div class="sidebar-footer">
+        <form action="{% url 'set_language' %}" method="post" id="lang-form">
+            {% csrf_token %}
+            <input name="next" type="hidden" value="{{ redirect_to }}">
+            <select name="language" id="lang-select">
+                {% get_available_languages as LANGUAGES %}
+                {% get_language_info_list for LANGUAGES as languages %}
+                {% for language in languages %}
+                <option value="{{ language.code }}" {% if language.code == LANGUAGE_CODE %}selected{% endif %}>
+                    {{ language.name_local }} ({{ language.code }})
+                </option>
+                {% endfor %}
+            </select>
+        </form>
+    </div>
+</div>
+
+<script>
+// Single dropdown toggle function
+function toggleDropdown(element) {
+    const dropdown = element.closest('.menu-dropdown');
+    dropdown.classList.toggle('open');
+}
+
+// Language selector auto-submit
+document.getElementById("lang-select").addEventListener("change", function() {
+    document.getElementById("lang-form").submit();
+});
+
+// Optional: Close other dropdowns when opening one
+document.addEventListener('DOMContentLoaded', function() {
+    const toggles = document.querySelectorAll('.dropdown-toggle');
+    toggles.forEach(toggle => {
+        toggle.addEventListener('click', function() {
+            const currentDropdown = this.closest('.menu-dropdown');
+            // Optional: uncomment below to close other dropdowns
+            // document.querySelectorAll('.menu-dropdown.open').forEach(dd => {
+            //     if (dd !== currentDropdown) dd.classList.remove('open');
+            // });
+        });
+    });
+});
+</script>

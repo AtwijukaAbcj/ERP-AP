@@ -1,0 +1,101 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block content %}
+<nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/">{% trans 'Home' %}</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'programs' %}">{% trans 'Programs' %}</a></li>
+        <li class="breadcrumb-item"><a href="{{ course.get_absolute_url }}">{{ course.title|truncatechars:30 }}</a></li>
+        <li class="breadcrumb-item active">{% trans 'Assignments' %}</li>
+    </ol>
+</nav>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="title-1">
+        <i class="fas fa-tasks me-2"></i>{% trans 'Assignments' %}
+    </div>
+    {% if request.user.is_lecturer or request.user.is_superuser %}
+    <div class="dropdown">
+        <button class="btn btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+            <i class="fas fa-plus me-1"></i>{% trans 'Manage' %}
+        </button>
+        <ul class="dropdown-menu">
+            <li><a class="dropdown-item" href="{% url 'assignment:assignment_create' course.slug %}">
+                <i class="fas fa-plus me-2"></i>{% trans 'New Assignment' %}
+            </a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item" href="{% url 'assignment:assignment_groups' course.slug %}">
+                <i class="fas fa-layer-group me-2"></i>{% trans 'Assignment Groups' %}
+            </a></li>
+            <li><a class="dropdown-item" href="{% url 'assignment:student_groups' course.slug %}">
+                <i class="fas fa-users me-2"></i>{% trans 'Student Groups' %}
+            </a></li>
+            <li><a class="dropdown-item" href="{% url 'assignment:rubric_list' course.slug %}">
+                <i class="fas fa-table me-2"></i>{% trans 'Rubrics' %}
+            </a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item" href="{% url 'assignment:grade_overview' course.slug %}">
+                <i class="fas fa-chart-bar me-2"></i>{% trans 'Grade Overview' %}
+            </a></li>
+        </ul>
+    </div>
+    {% elif request.user.is_student %}
+    <a href="{% url 'assignment:student_grades' course.slug %}" class="btn btn-outline-primary">
+        <i class="fas fa-chart-line me-1"></i>{% trans 'My Grades' %}
+    </a>
+    {% endif %}
+</div>
+
+{% include 'snippets/messages.html' %}
+
+<div class="container">
+    {% for group in groups %}
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <span>
+                <i class="fas fa-folder me-2"></i>{{ group.name }}
+            </span>
+            <span class="badge bg-light text-primary">{{ group.weight }}%</span>
+        </div>
+        <div class="card-body p-0">
+            <div class="list-group list-group-flush">
+                {% for assignment in assignments %}
+                {% if assignment.group == group %}
+                {% include 'assignment/partials/assignment_row.html' %}
+                {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    {% endfor %}
+    
+    {% if ungrouped %}
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-secondary text-white">
+            <i class="fas fa-folder-open me-2"></i>{% trans 'Ungrouped Assignments' %}
+        </div>
+        <div class="card-body p-0">
+            <div class="list-group list-group-flush">
+                {% for assignment in ungrouped %}
+                {% include 'assignment/partials/assignment_row.html' %}
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    {% if not assignments %}
+    <div class="text-center py-5">
+        <i class="fas fa-inbox fa-4x text-muted mb-3"></i>
+        <h5 class="text-muted">{% trans 'No assignments yet' %}</h5>
+        {% if request.user.is_lecturer or request.user.is_superuser %}
+        <a href="{% url 'assignment:assignment_create' course.slug %}" class="btn btn-primary mt-3">
+            <i class="fas fa-plus me-1"></i>{% trans 'Create First Assignment' %}
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

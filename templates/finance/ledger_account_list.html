@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+{% block title %}Ledger Accounts{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <h2>Ledger Accounts</h2>
+    <a href="{% url 'finance:ledger_account_add' %}" class="btn btn-primary mb-3">+ Add Ledger Account</a>
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Code</th>
+                    <th>Name</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for account in accounts %}
+                <tr>
+                    <td>{{ account.code }}</td>
+                    <td>{{ account.name }}</td>
+                    <td>{{ account.description }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="3">No ledger accounts found.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

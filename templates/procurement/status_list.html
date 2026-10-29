@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+{% load i18n %}
+{% block title %}Procurement Statuses{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'home' %}">{% trans 'Home' %}</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{% trans 'Procurement Statuses' %}</li>
+        </ol>
+    </nav>
+
+    <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">{% trans 'Procurement Statuses' %}</h5>
+            <div>
+                <a href="{% url 'procurement:procurement_workflow_rule_list' %}" class="btn btn-outline-light btn-sm me-1">{% trans 'Workflow Routing' %}</a>
+                <a href="{% url 'procurement:procurement_status_add' %}" class="btn btn-outline-light btn-sm">+ {% trans 'Add Status' %}</a>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>{% trans 'Name' %}</th>
+                            <th>{% trans 'Slug' %}</th>
+                            <th>{% trans 'Default' %}</th>
+                            <th>{% trans 'Actions' %}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for status in statuses %}
+                        <tr>
+                            <td>{{ status.name }}</td>
+                            <td>{{ status.slug }}</td>
+                            <td>{{ status.is_default|yesno:"Yes,No" }}</td>
+                            <td>
+                                <a href="{% url 'procurement:procurement_status_edit' status.id %}" class="btn btn-sm btn-outline-secondary">{% trans 'Edit' %}</a>
+                                {% if status.slug != 'draft' and status.slug != 'submitted' and status.slug != 'approved' and status.slug != 'rejected' and status.slug != 'returned' %}
+                                <form method="post" action="{% url 'procurement:procurement_status_delete' status.id %}" class="d-inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">{% trans 'Delete' %}</button>
+                                </form>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="4">{% trans 'No statuses found.' %}</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

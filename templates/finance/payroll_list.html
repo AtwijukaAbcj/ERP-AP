@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+{% block title %}Payroll{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <h2>Payroll</h2>
+    <a href="{% url 'finance:payroll_add' %}" class="btn btn-primary mb-3">+ Add Payroll</a>
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Staff</th>
+                    <th>Period</th>
+                    <th>Gross</th>
+                    <th>Deductions</th>
+                    <th>Net</th>
+                    <th>Status</th>
+                    <th>Paid Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for payroll in payrolls %}
+                <tr>
+                    <td>{{ payroll.staff.user.get_full_name }}</td>
+                    <td>{{ payroll.period_start }} - {{ payroll.period_end }}</td>
+                    <td>{{ payroll.gross_amount }}</td>
+                    <td>{{ payroll.deductions }}</td>
+                    <td>{{ payroll.net_amount }}</td>
+                    <td>{{ payroll.status }}</td>
+                    <td>{{ payroll.paid_date|default:'—' }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="7">No payroll records found.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

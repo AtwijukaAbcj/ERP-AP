@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block title %}{% trans "Published Poll Results" %}{% endblock %}
+
+{% block content %}
+<div class="container voting-page">
+    <header class="voting-page-header">
+        <div>
+            <h1><i class="fas fa-square-poll-vertical me-2" aria-hidden="true"></i>{% trans "Published poll results" %}</h1>
+            <p>{% trans "Poll totals are shown after the poll has closed." %}</p>
+        </div>
+        <a href="{% url 'voting_home' %}" class="btn btn-outline-secondary">{% trans "Voting center" %}</a>
+    </header>
+    {% for poll in polls %}
+    <article class="card mb-3">
+        <div class="card-header d-flex flex-wrap justify-content-between gap-2">
+            <strong>{{ poll.question }}</strong>
+            <span class="voting-status">{% trans "Closed" %}</span>
+        </div>
+        <ul class="list-group list-group-flush">
+            {% for choice in poll.choices.all %}
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                {{ choice.choice_text }}<span class="badge text-bg-secondary">{{ choice.votes }} {% trans "votes" %}</span>
+            </li>
+            {% endfor %}
+        </ul>
+    </article>
+    {% empty %}
+    <div class="voting-empty-state">{% trans "No poll results have been published yet." %}</div>
+    {% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+{% block title %}Assign Registrar Modules{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h3>Assign Module to Academic Registrar</h3>
+    <form method="post" class="mb-4">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" class="btn btn-primary">Assign Module</button>
+    </form>
+
+    <h4>Assigned Modules</h4>
+    <table class="table table-bordered">
+        <thead class="table-dark">
+            <tr>
+                <th>Registrar</th>
+                <th>Module</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for permission in permissions %}
+            <tr>
+                <td>{{ permission.registrar.get_full_name }}</td>
+                <td>{{ permission.get_module_name_display }}</td>
+                <td>
+                    <a href="{% url 'revoke_registrar_module' permission.id %}"
+                       class="btn btn-sm btn-danger"
+                       onclick="return confirm('Are you sure you want to revoke this module?')">
+                        Revoke
+                    </a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="3" class="text-center text-muted">No modules assigned yet.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

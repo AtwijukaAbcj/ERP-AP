@@ -1,0 +1,34 @@
+{% firstof site_settings.school_name school_name "Unity College" as document_school_name %}
+{% firstof site_settings.school_address "School Address" as document_school_address %}
+{% firstof site_settings.school_email "info@school.edu" as document_school_email %}
+{% firstof site_settings.school_phone "000-000-0000" as document_school_phone %}
+{% firstof site_settings.school_website as document_school_website %}
+<div class="document-header">
+    <table style="width:100%; border-collapse:collapse;">
+        <tr>
+            <td style="vertical-align:top; width:290pt; padding-right:16px;">
+                {% if logo_url %}
+                    <img src="{{ logo_url }}" alt="{{ document_school_name }}" style="max-height:56px; max-width:150px; margin-bottom:7px;">
+                {% elif site_settings.logo %}
+                    <img src="{{ site_settings.logo.url }}" alt="{{ document_school_name }}" style="max-height:56px; max-width:150px; margin-bottom:7px;">
+                {% endif %}
+                <div style="color:#17365d; font-size:15px; font-weight:700; margin-bottom:4px;">{{ document_school_name }}</div>
+                <div style="font-size:9px; color:#475569; line-height:1.4;">{{ document_school_address|linebreaksbr }}</div>
+                <div style="font-size:9px; color:#475569; margin-top:5px;">{{ document_school_email }} | {{ document_school_phone }}</div>
+                {% if document_school_website %}
+                    <div style="font-size:9px; color:#475569; margin-top:2px;">{{ document_school_website }}</div>
+                {% endif %}
+            </td>
+            <td style="vertical-align:top; width:195pt; text-align:right; padding-left:16px;">
+                <div style="color:#17365d; font-size:17px; font-weight:700; margin-bottom:4px;">{{ title|default:'' }}</div>
+                <div style="font-size:10px; color:#475569; margin-bottom:8px;">{{ subtitle|default:'' }}</div>
+                <div class="document-meta">
+                    <div><strong>{{ label_1|default:'' }}</strong> {{ value_1|default:'' }}</div>
+                    <div><strong>{{ label_2|default:'' }}</strong> {{ value_2|default:'' }}</div>
+                    <div><strong>{{ label_3|default:'' }}</strong> {{ value_3|default:'' }}</div>
+                </div>
+            </td>
+        </tr>
+    </table>
+    <hr class="document-divider">
+</div>

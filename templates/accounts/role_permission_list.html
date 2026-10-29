@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+{% load i18n %}
+{% block title %}{{ title }} | {% trans 'Learning management system' %}{% endblock title %}
+
+{% block content %}
+<nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/">{% trans 'Home' %}</a></li>
+        <li class="breadcrumb-item active" aria-current="page">{% trans 'Role Permissions' %}</li>
+    </ol>
+</nav>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="fw-bold"><i class="fas fa-user-shield me-2"></i>{% trans 'Role Permissions' %}</h4>
+    <a href="{% url 'role_permission_add' %}" class="btn btn-primary">
+        <i class="fas fa-plus me-1"></i> {% trans 'Assign Permission' %}
+    </a>
+</div>
+
+{% include 'snippets/messages.html' %}
+
+<div class="table-responsive">
+    <table class="table table-striped table-hover">
+        <thead class="table-dark">
+            <tr>
+                <th>#</th>
+                <th>{% trans 'Role' %}</th>
+                <th>{% trans 'Permission' %}</th>
+                <th>{% trans 'Actions' %}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for rp in role_permissions %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ rp.role.name }}</td>
+                <td>{{ rp.permission.name }} ({{ rp.permission.codename }})</td>
+                <td>
+                    <form method="post" action="{% url 'role_permission_delete' rp.pk %}" class="m-0">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('{% trans 'Remove this permission from the role?' %}')">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    </form>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="4" class="text-center text-muted">{% trans 'No role permissions assigned yet.' %}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock content %}

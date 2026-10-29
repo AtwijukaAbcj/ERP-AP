@@ -1,0 +1,285 @@
+{% extends 'base.html' %}
+{% load i18n %}
+{% load crispy_forms_tags %}
+{% block title %}{{ title }} | {% trans 'FalconLMS' %}{% endblock title %}
+
+{% block content %}
+<style>
+    .settings-container {
+        max-width: 900px;
+        margin: 0 auto;
+    }
+    
+    .settings-card {
+        background: #fff;
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        overflow: hidden;
+        margin-bottom: 24px;
+    }
+    
+    .settings-card-header {
+        background: linear-gradient(135deg, #914c77 0%, #7a3d64 100%);
+        color: #fff;
+        padding: 20px 24px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    
+    .settings-card-header i {
+        font-size: 1.3rem;
+        background: none !important;
+    }
+    
+    .settings-card-header h3 {
+        margin: 0;
+        font-size: 1.1rem;
+        font-weight: 600;
+    }
+    
+    .settings-card-body {
+        padding: 24px;
+    }
+    
+    .form-section {
+        margin-bottom: 24px;
+        padding-bottom: 24px;
+        border-bottom: 1px solid #f1f5f9;
+    }
+    
+    .form-section:last-child {
+        margin-bottom: 0;
+        padding-bottom: 0;
+        border-bottom: none;
+    }
+    
+    .form-section-title {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #1f2937;
+        margin-bottom: 16px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .form-section-title i {
+        color: #914c77;
+        background: none !important;
+    }
+    
+    .logo-preview {
+        display: flex;
+        gap: 24px;
+        flex-wrap: wrap;
+        margin-bottom: 20px;
+    }
+    
+    .preview-box {
+        text-align: center;
+    }
+    
+    .preview-box .preview-label {
+        font-size: 0.85rem;
+        color: #6b7280;
+        margin-bottom: 8px;
+    }
+    
+    .preview-box img {
+        max-width: 150px;
+        max-height: 80px;
+        border: 2px dashed #e5e7eb;
+        border-radius: 8px;
+        padding: 10px;
+        background: #f9fafb;
+    }
+    
+    .preview-box.dark-bg img {
+        background: linear-gradient(135deg, #914c77 0%, #7a3d64 100%);
+        border-color: transparent;
+    }
+    
+    .btn-save {
+        background: linear-gradient(135deg, #914c77 0%, #7a3d64 100%);
+        border: none;
+        padding: 14px 32px;
+        border-radius: 10px;
+        color: #fff;
+        font-weight: 600;
+        font-size: 1rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-save:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(145, 76, 119, 0.35);
+        color: #fff;
+    }
+    
+    .btn-save i {
+        background: none !important;
+    }
+    
+    .form-label {
+        font-weight: 500;
+        color: #374151;
+        margin-bottom: 8px;
+    }
+    
+    .form-control, .form-select {
+        border: 2px solid #e5e7eb;
+        border-radius: 10px;
+        padding: 12px 16px;
+        transition: all 0.3s ease;
+    }
+    
+    .form-control:focus, .form-select:focus {
+        border-color: #914c77;
+        box-shadow: 0 0 0 3px rgba(145, 76, 119, 0.1);
+    }
+    
+    input[type="color"] {
+        height: 50px;
+        cursor: pointer;
+    }
+    
+    .help-text {
+        font-size: 0.85rem;
+        color: #6b7280;
+        margin-top: 6px;
+    }
+</style>
+
+<nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/">{% trans 'Home' %}</a></li>
+        <li class="breadcrumb-item active" aria-current="page">{% trans 'Site Settings' %}</li>
+    </ol>
+</nav>
+
+{% include 'snippets/messages.html' %}
+
+<div class="settings-container">
+    <form method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
+        
+        <!-- Branding Section -->
+        <div class="settings-card">
+            <div class="settings-card-header">
+                <i class="fas fa-palette"></i>
+                <h3>{% trans 'Branding & Logo' %}</h3>
+            </div>
+            <div class="settings-card-body">
+                <!-- Logo Previews -->
+                {% if settings.logo or settings.logo_white %}
+                <div class="logo-preview">
+                    {% if settings.logo %}
+                    <div class="preview-box">
+                        <div class="preview-label">{% trans 'Current Logo' %}</div>
+                        <img src="{{ settings.logo.url }}" alt="Logo">
+                    </div>
+                    {% endif %}
+                    {% if settings.logo_white %}
+                    <div class="preview-box dark-bg">
+                        <div class="preview-label">{% trans 'Logo (White/Light)' %}</div>
+                        <img src="{{ settings.logo_white.url }}" alt="Logo White">
+                    </div>
+                    {% endif %}
+                    {% if settings.favicon %}
+                    <div class="preview-box">
+                        <div class="preview-label">{% trans 'Favicon' %}</div>
+                        <img src="{{ settings.favicon.url }}" alt="Favicon" style="max-width: 64px; max-height: 64px;">
+                    </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+                
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">{% trans 'Site Name' %}</label>
+                        {{ form.site_name }}
+                        <div class="help-text">{% trans 'The name displayed in the browser tab and system' %}</div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">{% trans 'Site Tagline' %}</label>
+                        {{ form.site_tagline }}
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">{% trans 'Logo' %}</label>
+                        {{ form.logo }}
+                        <div class="help-text">{% trans 'Main logo for light backgrounds' %}</div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">{% trans 'Logo (White/Light version)' %}</label>
+                        {{ form.logo_white }}
+                        <div class="help-text">{% trans 'Logo for dark backgrounds (sidebar, login)' %}</div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">{% trans 'Favicon' %}</label>
+                        {{ form.favicon }}
+                        <div class="help-text">{% trans 'Small icon for browser tab (32x32 recommended)' %}</div>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">{% trans 'Primary Color' %}</label>
+                        {{ form.primary_color }}
+                        <div class="help-text">{% trans 'Main theme color' %}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- School Information Section -->
+        <div class="settings-card">
+            <div class="settings-card-header">
+                <i class="fas fa-school"></i>
+                <h3>{% trans 'School Information' %}</h3>
+            </div>
+            <div class="settings-card-body">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">{% trans 'School Name' %}</label>
+                        {{ form.school_name }}
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">{% trans 'School Email' %}</label>
+                        {{ form.school_email }}
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">{% trans 'School Phone' %}</label>
+                        {{ form.school_phone }}
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">{% trans 'School Website' %}</label>
+                        {{ form.school_website }}
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">{% trans 'School Address' %}</label>
+                    {{ form.school_address }}
+                </div>
+            </div>
+        </div>
+        
+        <div class="text-end">
+            <button type="submit" class="btn-save">
+                <i class="fas fa-save"></i> {% trans 'Save Settings' %}
+            </button>
+        </div>
+    </form>
+</div>
+
+{% endblock content %}

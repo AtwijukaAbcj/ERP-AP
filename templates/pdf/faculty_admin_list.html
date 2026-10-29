@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Faculty Administrator Register</title>
+    {% include 'includes/document_print_styles.html' %}
+</head>
+<body>
+    {% now "d M Y" as generated_date %}
+    {% include 'includes/document_header.html' with title='Faculty Administrator Register' subtitle=faculty_admins|length|add:' records' label_1='Generated:' value_1=generated_date label_2='' value_2='' label_3='' value_3='' %}
+    <table>
+        <thead><tr><th>#</th><th>Administrator</th><th>Email</th><th>Phone</th><th>Joined</th></tr></thead>
+        <tbody>
+            {% for faculty_admin in faculty_admins %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ faculty_admin.get_full_name|default:faculty_admin.username }}</td>
+                <td>{{ faculty_admin.email|default:"—" }}</td>
+                <td>{{ faculty_admin.phone|default:"—" }}</td>
+                <td>{{ faculty_admin.date_joined|date:"d M Y" }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="5" class="text-center muted">No faculty administrators found.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% include 'includes/document_footer.html' %}
+</body>
+</html>

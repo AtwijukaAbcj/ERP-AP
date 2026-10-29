@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+{% load i18n %}
+{% load crispy_forms_tags %}
+{% block title %}Add Purchase Order{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'home' %}">{% trans 'Home' %}</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'procurement:purchase_order_list' %}">{% trans 'Purchase Orders' %}</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{% trans 'Add' %}</li>
+        </ol>
+    </nav>
+
+    <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">{% trans 'Add Purchase Order' %}</h5>
+            <a href="{% url 'procurement:purchase_order_list' %}" class="btn btn-outline-light btn-sm">{% trans 'Back' %}</a>
+        </div>
+        <div class="card-body">
+            {% include 'snippets/messages.html' %}
+            <form method="post" novalidate>
+                {% csrf_token %}
+                {{ form|crispy }}
+                <p class="small text-muted mt-3">{% trans 'The purchase order will use the supplier, requisition, items, and prices from the selected accepted quotation.' %}</p>
+
+                <div class="mt-3">
+                    <button type="submit" class="btn btn-primary">{% trans 'Save Order' %}</button>
+                    <a href="{% url 'procurement:purchase_order_list' %}" class="btn btn-secondary">{% trans 'Cancel' %}</a>
+                </div>
+
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

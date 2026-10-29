@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+{% load i18n crispy_forms_tags %}
+{% block title %}{% trans 'Record Supplier Quotation' %}{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h1 class="h3 mb-1">{% trans 'Record Supplier Quotation' %}</h1>
+            <p class="text-muted mb-0">{% trans 'Enter the supplier’s offer and quoted line prices.' %}</p>
+        </div>
+        <a class="btn btn-outline-secondary" href="{% url 'procurement:purchase_quotation_list' %}">{% trans 'Back to quotations' %}</a>
+    </div>
+    <form method="post" enctype="multipart/form-data" class="card shadow-sm">
+        {% csrf_token %}
+        <div class="card-body">
+            {% include 'snippets/messages.html' %}
+            {{ form|crispy }}
+            <h2 class="h5 mt-4">{% trans 'Quoted items' %}</h2>
+            {{ formset.management_form }}
+            <div class="table-responsive">
+                <table class="table table-bordered align-middle">
+                    <thead><tr><th>{% trans 'Description' %}</th><th>{% trans 'Quantity' %}</th><th>{% trans 'Unit price' %}</th><th>{% trans 'Remove' %}</th></tr></thead>
+                    <tbody id="quotation-items">
+                    {% for item_form in formset.forms %}
+                        <tr>
+                            <td>{{ item_form.description }}{{ item_form.description.errors }}</td>
+                            <td>{{ item_form.quantity }}{{ item_form.quantity.errors }}</td>
+                            <td>{{ item_form.unit_price }}{{ item_form.unit_price.errors }}</td>
+                            <td class="text-center">{{ item_form.DELETE }}</td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {{ formset.non_form_errors }}
+            <template id="quotation-item-template">
+                <tr>
+                    <td>{{ formset.empty_form.description }}</td>
+                    <td>{{ formset.empty_form.quantity }}</td>
+                    <td>{{ formset.empty_form.unit_price }}</td>
+                    <td class="text-center">{{ formset.empty_form.DELETE }}</td>
+                </tr>
+            </template>
+            <button type="button" class="btn btn-outline-secondary" id="add-quotation-item">{% trans 'Add item' %}</button>
+        </div>
+        <div class="card-footer d-flex gap-2">
+            <button type="submit" class="btn btn-primary">{% trans 'Save quotation' %}</button>
+            <a class="btn btn-outline-secondary" href="{% url 'procurement:purchase_quotation_list' %}">{% trans 'Cancel' %}</a>
+        </div>
+    </form>
+</div>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const button = document.getElementById("add-quotation-item");
+    const rows = document.getElementById("quotation-items");
+    const totalForms = document.querySelector('input[name$="-TOTAL_FORMS"]');
+    const template = document.getElementById("quotation-item-template");
+    if (!button || !rows || !totalForms || !template) return;
+    button.addEventListener("click", function () {
+        const index = Number.parseInt(totalForms.value, 10);
+        rows.insertAdjacentHTML("beforeend", template.innerHTML.replace(/__prefix__/g, index));
+        totalForms.value = String(index + 1);
+    });
+});
+</script>
+{% endblock %}

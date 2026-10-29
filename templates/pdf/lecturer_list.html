@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Lecturer Register</title>
+    {% include 'includes/document_print_styles.html' %}
+</head>
+<body>
+    {% load i18n %}
+    {% now "d M Y" as generated_date %}
+    {% include 'includes/document_header.html' with title='Lecturer Register' subtitle=lecturers|length|add:' records' label_1='Generated:' value_1=generated_date label_2='' value_2='' label_3='' value_3='' %}
+    <table>
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>{% trans 'ID No.' %}</th>
+                <th>{% trans 'Full Name' %}</th>
+                <th>{% trans 'Email' %}</th>
+                <th>{% trans 'Phone' %}</th>
+                <th>{% trans 'Address/City' %}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for lecturer in lecturers %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ lecturer.username }}</td>
+                <td>{{ lecturer.get_full_name|default:"—" }}</td>
+                <td>{{ lecturer.email|default:"—" }}</td>
+                <td>{{ lecturer.phone|default:"—" }}</td>
+                <td>{{ lecturer.address|default:"—" }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="6" class="text-center muted">{% trans 'No lecturers found.' %}</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% include 'includes/document_footer.html' %}
+</body>
+</html>

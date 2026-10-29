@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+{% load i18n %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+<nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/">{% trans 'Home' %}</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'assignment:assignment_list' course.slug %}">{% trans 'Assignments' %}</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'assignment:assignment_groups' course.slug %}">{% trans 'Assignment Groups' %}</a></li>
+        <li class="breadcrumb-item active">{% if form.instance.pk %}{% trans 'Edit' %}{% else %}{% trans 'Create' %}{% endif %}</li>
+    </ol>
+</nav>
+
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-layer-group me-2"></i>
+                    {% if form.instance.pk %}{% trans 'Edit Assignment Group' %}{% else %}{% trans 'New Assignment Group' %}{% endif %}
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label class="form-label">{% trans 'Name' %} <span class="text-danger">*</span></label>
+                        <input type="text" name="name" class="form-control" value="{{ form.instance.name|default:'' }}" required
+                               placeholder="{% trans 'e.g., Exams, Homework, Projects' %}">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">{% trans 'Weight' %} (%) <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <input type="number" name="weight" class="form-control" 
+                                   value="{{ form.instance.weight|default:0 }}"
+                                   min="0" max="100" step="0.5" required>
+                            <span class="input-group-text">%</span>
+                        </div>
+                        <small class="text-muted">{% trans 'Percentage of total grade this group contributes' %}</small>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <label class="form-label">{% trans 'Drop Lowest' %}</label>
+                            <input type="number" name="drop_lowest" class="form-control" 
+                                   value="{{ form.instance.drop_lowest|default:0 }}"
+                                   min="0">
+                            <small class="text-muted">{% trans 'Lowest scores to drop' %}</small>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">{% trans 'Drop Highest' %}</label>
+                            <input type="number" name="drop_highest" class="form-control" 
+                                   value="{{ form.instance.drop_highest|default:0 }}"
+                                   min="0">
+                            <small class="text-muted">{% trans 'Highest scores to drop' %}</small>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-info py-2 mb-3">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <small>{% trans 'Dropping scores allows you to exclude the lowest or highest assignment scores from grade calculation automatically.' %}</small>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-1"></i>
+                            {% if form.instance.pk %}{% trans 'Save Changes' %}{% else %}{% trans 'Create Group' %}{% endif %}
+                        </button>
+                        <a href="{% url 'assignment:assignment_groups' course.slug %}" class="btn btn-outline-secondary">
+                            {% trans 'Cancel' %}
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

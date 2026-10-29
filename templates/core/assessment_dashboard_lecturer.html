@@ -1,0 +1,417 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load static %}
+
+{% block title %}Assessment Dashboard | {% trans 'Learning Management System' %}{% endblock %}
+
+{% block content %}
+<nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/">{% trans 'Home' %}</a></li>
+        <li class="breadcrumb-item active" aria-current="page">{% trans 'Assessment Dashboard' %}</li>
+    </ol>
+</nav>
+
+<div class="title-1 mb-4"><i class="fas fa-clipboard-check me-2"></i>{% trans 'Assessment Dashboard' %}</div>
+
+{% include 'snippets/messages.html' %}
+
+<style>
+    .stat-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 16px;
+        padding: 24px;
+        color: white;
+        margin-bottom: 20px;
+        transition: transform 0.2s;
+    }
+    .stat-card:hover { transform: translateY(-3px); }
+    .stat-card.assignments { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); }
+    .stat-card.exams { background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%); }
+    .stat-card.practice { background: linear-gradient(135deg, #4776E6 0%, #8E54E9 100%); }
+    .stat-card.pending { background: linear-gradient(135deg, #ff9a56 0%, #ff6a00 100%); }
+    .stat-icon { font-size: 2.5rem; opacity: 0.8; }
+    .stat-number { font-size: 2.2rem; font-weight: 700; }
+    .stat-label { font-size: 0.9rem; opacity: 0.9; }
+    
+    .section-card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+        margin-bottom: 24px;
+    }
+    .section-header {
+        background: #f8f9fc;
+        padding: 16px 20px;
+        border-bottom: 1px solid #eee;
+        border-radius: 12px 12px 0 0;
+        font-weight: 600;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .section-body { padding: 20px; }
+    
+    .assessment-item {
+        display: flex;
+        align-items: center;
+        padding: 12px;
+        border-radius: 8px;
+        transition: background 0.2s;
+        margin-bottom: 8px;
+    }
+    .assessment-item:hover { background: #f8f9fc; }
+    .assessment-icon {
+        width: 42px;
+        height: 42px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 14px;
+        font-size: 1.1rem;
+    }
+    .assessment-icon.assignment { background: #d4edda; color: #155724; }
+    .assessment-icon.exam { background: #f8d7da; color: #721c24; }
+    .assessment-icon.practice { background: #cce5ff; color: #004085; }
+    
+    .course-card {
+        background: #f8f9fc;
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 16px;
+        border: 1px solid #e9ecef;
+    }
+    .course-stats { display: flex; gap: 20px; flex-wrap: wrap; margin-top: 12px; }
+    .course-stat {
+        background: white;
+        padding: 8px 16px;
+        border-radius: 8px;
+        font-size: 0.9rem;
+    }
+    .course-stat-value { font-weight: 700; color: #5a5c69; }
+    
+    .btn-action {
+        padding: 8px 16px;
+        border-radius: 8px;
+        font-size: 0.85rem;
+        transition: all 0.2s;
+    }
+    
+    .attempt-row { border-bottom: 1px solid #f0f0f0; padding: 12px 0; }
+    .attempt-row:last-child { border-bottom: none; }
+    
+    .grade-badge {
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+    .grade-badge.pass { background: #d4edda; color: #155724; }
+    .grade-badge.fail { background: #f8d7da; color: #721c24; }
+    .grade-badge.pending { background: #fff3cd; color: #856404; }
+</style>
+
+<!-- Stats Overview -->
+<div class="row mb-4">
+    <div class="col-md-3 col-6">
+        <div class="stat-card assignments">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="stat-number">{{ total_assignments }}</div>
+                    <div class="stat-label">{% trans 'Assignments' %}</div>
+                </div>
+                <i class="fas fa-tasks stat-icon"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6">
+        <div class="stat-card exams">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="stat-number">{{ total_exams }}</div>
+                    <div class="stat-label">{% trans 'Exams' %}</div>
+                </div>
+                <i class="fas fa-file-alt stat-icon"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6">
+        <div class="stat-card practice">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="stat-number">{{ total_practice }}</div>
+                    <div class="stat-label">{% trans 'Practice Quizzes' %}</div>
+                </div>
+                <i class="fas fa-brain stat-icon"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6">
+        <div class="stat-card pending">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="stat-number">{{ pending_count }}</div>
+                    <div class="stat-label">{% trans 'Pending Marking' %}</div>
+                </div>
+                <i class="fas fa-hourglass-half stat-icon"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Course Breakdown -->
+    <div class="col-lg-8">
+        <div class="section-card">
+            <div class="section-header">
+                <span><i class="fas fa-book me-2"></i>{% trans 'My Courses - Assessment Overview' %}</span>
+                <span class="badge bg-primary">{{ allocated_courses.count }} {% trans 'Courses' %}</span>
+            </div>
+            <div class="section-body">
+                {% for cd in course_data %}
+                <div class="course-card">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h6 class="mb-1">{{ cd.course.title }}</h6>
+                            <small class="text-muted">{{ cd.course.code }} | {{ cd.course.semester }} Semester</small>
+                        </div>
+                        <div>
+                            <a href="{% url 'add_score_for' cd.course.id %}" class="btn btn-sm btn-outline-primary me-1">
+                                <i class="fas fa-edit"></i> {% trans 'Grade' %}
+                            </a>
+                            <a href="{% url 'quiz_index' cd.course.slug %}" class="btn btn-sm btn-outline-secondary">
+                                <i class="fas fa-list"></i> {% trans 'Quizzes' %}
+                            </a>
+                        </div>
+                    </div>
+                    <div class="course-stats">
+                        <div class="course-stat">
+                            <i class="fas fa-tasks text-success me-1"></i>
+                            <span class="course-stat-value">{{ cd.assignment_count }}</span> Assignments
+                        </div>
+                        <div class="course-stat">
+                            <i class="fas fa-file-alt text-danger me-1"></i>
+                            <span class="course-stat-value">{{ cd.exam_count }}</span> Exams
+                        </div>
+                        <div class="course-stat">
+                            <i class="fas fa-users text-primary me-1"></i>
+                            <span class="course-stat-value">{{ cd.student_count }}</span> Students
+                        </div>
+                        <div class="course-stat">
+                            <i class="fas fa-check-circle text-info me-1"></i>
+                            <span class="course-stat-value">{{ cd.graded_count }}/{{ cd.student_count }}</span> Graded
+                        </div>
+                        <div class="course-stat">
+                            <i class="fas fa-chart-line text-warning me-1"></i>
+                            Avg: <span class="course-stat-value">{{ cd.avg_score|floatformat:1 }}%</span>
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="text-center text-muted py-4">
+                    <i class="fas fa-inbox fa-3x mb-3"></i>
+                    <p>{% trans 'No courses allocated for this semester.' %}</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Students Needing Grades -->
+        <div class="section-card">
+            <div class="section-header">
+                <span><i class="fas fa-user-graduate me-2"></i>{% trans 'Student Grades' %}</span>
+                <span>
+                    <span class="badge bg-warning me-2">{{ ungraded_count }} {% trans 'Ungraded' %}</span>
+                    <span class="badge bg-success">{{ enrolled_count }} {% trans 'Total' %}</span>
+                </span>
+            </div>
+            <div class="section-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>{% trans 'Student' %}</th>
+                                <th>{% trans 'Course' %}</th>
+                                <th>{% trans 'Assignment' %}</th>
+                                <th>{% trans 'Mid Exam' %}</th>
+                                <th>{% trans 'Quiz' %}</th>
+                                <th>{% trans 'Final' %}</th>
+                                <th>{% trans 'Total' %}</th>
+                                <th>{% trans 'Grade' %}</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for tc in enrolled_students|slice:":15" %}
+                            <tr>
+                                <td>
+                                    <a href="{{ tc.student.student.get_absolute_url }}">
+                                        {{ tc.student.student.get_full_name|default:tc.student }}
+                                    </a>
+                                </td>
+                                <td><small>{{ tc.course.code }}</small></td>
+                                <td>{{ tc.assignment }}</td>
+                                <td>{{ tc.mid_exam }}</td>
+                                <td>{{ tc.quiz }}</td>
+                                <td>{{ tc.final_exam }}</td>
+                                <td><strong>{{ tc.total }}</strong></td>
+                                <td>
+                                    {% if tc.total > 0 %}
+                                    <span class="grade-badge {% if tc.comment == 'PASS' %}pass{% else %}fail{% endif %}">
+                                        {{ tc.grade }}
+                                    </span>
+                                    {% else %}
+                                    <span class="grade-badge pending">{% trans 'Pending' %}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="{% url 'add_score_for' tc.course.id %}" class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="9" class="text-center text-muted py-4">
+                                    {% trans 'No students enrolled.' %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="col-lg-4">
+        <!-- Quick Actions -->
+        <div class="section-card">
+            <div class="section-header">
+                <span><i class="fas fa-bolt me-2"></i>{% trans 'Quick Actions' %}</span>
+            </div>
+            <div class="section-body">
+                <a href="{% url 'add_score' %}" class="btn btn-primary w-100 mb-2">
+                    <i class="fas fa-table me-2"></i>{% trans 'Manage All Scores' %}
+                </a>
+                <a href="{% url 'quiz_marking' %}" class="btn btn-warning w-100 mb-2">
+                    <i class="fas fa-check-double me-2"></i>{% trans 'Mark Quiz Attempts' %}
+                    {% if pending_count > 0 %}<span class="badge bg-light text-dark ms-1">{{ pending_count }}</span>{% endif %}
+                </a>
+                <a href="{% url 'quiz_progress' %}" class="btn btn-info w-100 mb-2">
+                    <i class="fas fa-chart-pie me-2"></i>{% trans 'View Quiz Progress' %}
+                </a>
+                <a href="{% url 'course_progress' %}" class="btn btn-secondary w-100">
+                    <i class="fas fa-chart-bar me-2"></i>{% trans 'Student Progress' %}
+                </a>
+            </div>
+        </div>
+
+        <!-- Pending Marking -->
+        <div class="section-card">
+            <div class="section-header">
+                <span><i class="fas fa-hourglass-half me-2"></i>{% trans 'Pending Marking' %}</span>
+                <span class="badge bg-warning">{{ pending_count }}</span>
+            </div>
+            <div class="section-body" style="max-height: 300px; overflow-y: auto;">
+                {% for sitting in pending_marking|slice:":10" %}
+                <div class="attempt-row">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>{{ sitting.user.get_full_name|default:sitting.user.username }}</strong>
+                            <br>
+                            <small class="text-muted">{{ sitting.quiz.title }} ({{ sitting.quiz.course.code }})</small>
+                        </div>
+                        <a href="{% url 'quiz_marking_detail' sitting.pk sitting.quiz.pk %}" class="btn btn-sm btn-outline-warning">
+                            <i class="fas fa-pen"></i> {% trans 'Mark' %}
+                        </a>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="text-center text-muted py-3">
+                    <i class="fas fa-check-circle fa-2x mb-2 text-success"></i>
+                    <p class="mb-0">{% trans 'All caught up!' %}</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Recent Attempts -->
+        <div class="section-card">
+            <div class="section-header">
+                <span><i class="fas fa-history me-2"></i>{% trans 'Recent Attempts' %}</span>
+            </div>
+            <div class="section-body" style="max-height: 350px; overflow-y: auto;">
+                {% for attempt in recent_attempts %}
+                <div class="attempt-row">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>{{ attempt.user.get_full_name|default:attempt.user.username }}</strong>
+                            <br>
+                            <small class="text-muted">{{ attempt.quiz.title }}</small>
+                        </div>
+                        <div class="text-end">
+                            <span class="badge bg-{% if attempt.get_percent_correct >= 50 %}success{% else %}danger{% endif %}">
+                                {{ attempt.get_percent_correct }}%
+                            </span>
+                            <br>
+                            <small class="text-muted">{{ attempt.end|timesince }} ago</small>
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="text-center text-muted py-3">
+                    <i class="fas fa-inbox fa-2x mb-2"></i>
+                    <p class="mb-0">{% trans 'No recent attempts.' %}</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Assessments by Category -->
+        <div class="section-card">
+            <div class="section-header">
+                <span><i class="fas fa-folder me-2"></i>{% trans 'Assessments' %}</span>
+            </div>
+            <div class="section-body">
+                <h6 class="text-success"><i class="fas fa-tasks me-2"></i>{% trans 'Assignments' %}</h6>
+                {% for quiz in assignments|slice:":5" %}
+                <div class="assessment-item">
+                    <div class="assessment-icon assignment"><i class="fas fa-tasks"></i></div>
+                    <div class="flex-grow-1">
+                        <div>{{ quiz.title }}</div>
+                        <small class="text-muted">{{ quiz.course.code }}</small>
+                    </div>
+                    <a href="{% url 'quiz_update' quiz.course.slug quiz.id %}" class="btn btn-sm btn-link">
+                        <i class="fas fa-edit"></i>
+                    </a>
+                </div>
+                {% empty %}
+                <p class="text-muted small">{% trans 'No assignments created.' %}</p>
+                {% endfor %}
+                
+                <hr>
+                
+                <h6 class="text-danger"><i class="fas fa-file-alt me-2"></i>{% trans 'Exams' %}</h6>
+                {% for quiz in exams|slice:":5" %}
+                <div class="assessment-item">
+                    <div class="assessment-icon exam"><i class="fas fa-file-alt"></i></div>
+                    <div class="flex-grow-1">
+                        <div>{{ quiz.title }}</div>
+                        <small class="text-muted">{{ quiz.course.code }}</small>
+                    </div>
+                    <a href="{% url 'quiz_update' quiz.course.slug quiz.id %}" class="btn btn-sm btn-link">
+                        <i class="fas fa-edit"></i>
+                    </a>
+                </div>
+                {% empty %}
+                <p class="text-muted small">{% trans 'No exams created.' %}</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

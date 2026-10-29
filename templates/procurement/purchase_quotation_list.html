@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+{% load i18n permission_tags %}
+{% block title %}{% trans 'Supplier Quotations' %}{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
+        <div>
+            <h1 class="h3 mb-1">{% trans 'Supplier Quotations' %}</h1>
+            <p class="text-muted mb-0">{% trans 'Compare supplier offers against purchase requirements.' %}</p>
+        </div>
+        {% has_module_permission 'procurement_requisitions_add' as can_add %}
+        {% if can_add %}
+        <a class="btn btn-primary" href="{% url 'procurement:purchase_quotation_add' %}">{% trans 'Record quotation' %}</a>
+        {% endif %}
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead>
+                <tr>
+                    <th>{% trans 'Quotation' %}</th>
+                    <th>{% trans 'Supplier' %}</th>
+                    <th>{% trans 'Requisition' %}</th>
+                    <th>{% trans 'Received' %}</th>
+                    <th>{% trans 'Valid until' %}</th>
+                    <th>{% trans 'Document' %}</th>
+                    <th class="text-end">{% trans 'Total' %}</th>
+                    <th>{% trans 'Status' %}</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for quotation in quotations %}
+                <tr>
+                    <td>{{ quotation.quotation_number }}</td>
+                    <td>{{ quotation.supplier.name }}</td>
+                    <td>{{ quotation.requisition|default:"—" }}</td>
+                    <td>{{ quotation.date_received|date:"d M Y" }}</td>
+                    <td>{{ quotation.valid_until|date:"d M Y"|default:"—" }}</td>
+                    <td>{% if quotation.document %}<a href="{% url 'procurement:purchase_quotation_print' quotation.pk %}" target="_blank" rel="noopener">{% trans 'Open file' %}</a>{% else %}—{% endif %}</td>
+                    <td class="text-end">{{ quotation.total_amount|floatformat:2 }}</td>
+                    <td><span class="badge text-bg-secondary">{{ quotation.get_status_display }}</span></td>
+                    <td><a class="btn btn-sm btn-outline-primary" href="{% url 'procurement:purchase_quotation_detail' quotation.pk %}">{% trans 'View' %}</a></td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="9" class="text-center text-muted py-4">{% trans 'No supplier quotations recorded yet.' %}</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

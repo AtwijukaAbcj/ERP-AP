@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1 class="h3">{% trans "Clinical wards" %}</h1>
+        <a class="btn btn-outline-secondary" href="{% url 'clinical:placement_list' %}">{% trans "Placements" %}</a>
+    </div>
+    {% include 'snippets/messages.html' %}
+    <div class="row g-4">
+        <div class="col-lg-5">
+            <div class="card">
+                <div class="card-header">{% if ward_instance %}{% trans "Edit ward" %}{% else %}{% trans "Add ward" %}{% endif %}</div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        {% if ward_instance %}<input type="hidden" name="edit" value="{{ ward_instance.pk }}">{% endif %}
+                        {{ form.as_p }}
+                        <button class="btn btn-primary" type="submit">{% trans "Save ward" %}</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-7">
+            <div class="table-responsive">
+                <table class="table table-striped align-middle">
+                    <thead><tr><th>{% trans "Ward" %}</th><th>{% trans "Facility" %}</th><th>{% trans "Capacity" %}</th><th>{% trans "Status" %}</th><th></th></tr></thead>
+                    <tbody>
+                        {% for ward in wards %}
+                        <tr>
+                            <td>{{ ward.name }}</td><td>{{ ward.facility }}</td><td>{{ ward.capacity }}</td>
+                            <td>{% if ward.is_active %}{% trans "Active" %}{% else %}{% trans "Inactive" %}{% endif %}</td>
+                            <td><a class="btn btn-sm btn-outline-primary" href="{% url 'clinical:ward_list' %}?edit={{ ward.pk }}">{% trans "Edit" %}</a></td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="5">{% trans "No clinical wards have been added." %}</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

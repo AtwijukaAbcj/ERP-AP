@@ -1,0 +1,215 @@
+{% extends 'base.html' %}
+{% load i18n %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+
+<nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/">{% trans 'Home' %}</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'programs' %}">{% trans 'Programs' %}</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'program_detail' course.program.id %}">{{ course.program }}</a></li>
+        <li class="breadcrumb-item"><a href="{{ course.get_absolute_url }}">{{ course }}</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'quiz_index' course.slug %}">{% trans 'Quizzes' %}</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'file_submission_list' course.slug submission.sitting.quiz.id %}">{% trans 'Submissions' %}</a></li>
+        <li class="breadcrumb-item active" aria-current="page">{% trans 'Grade' %}</li>
+    </ol>
+</nav>
+
+<div class="title-1 mb-3">
+    <i class="fas fa-check-circle me-2"></i>{{ title }}
+</div>
+
+<div class="container">
+    <div class="row">
+        <!-- Submission Details -->
+        <div class="col-lg-7 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <i class="fas fa-file-alt me-2"></i>{% trans 'Submission Details' %}
+                </div>
+                <div class="card-body">
+                    <!-- Student Info -->
+                    <div class="d-flex align-items-center mb-4 pb-3 border-bottom">
+                        <div class="avatar bg-primary text-white rounded-circle me-3 d-flex align-items-center justify-content-center" style="width: 50px; height: 50px; font-size: 1.2rem;">
+                            {{ submission.sitting.user.first_name|slice:":1" }}{{ submission.sitting.user.last_name|slice:":1" }}
+                        </div>
+                        <div>
+                            <h5 class="mb-0">{{ submission.sitting.user.get_full_name }}</h5>
+                            <small class="text-muted">{{ submission.sitting.user.email }}</small>
+                        </div>
+                    </div>
+
+                    <!-- Question -->
+                    <div class="mb-4">
+                        <label class="form-label text-muted">
+                            <i class="fas fa-question-circle me-1"></i>{% trans 'Question' %}
+                        </label>
+                        <div class="p-3 bg-light rounded">
+                            {{ question.content }}
+                        </div>
+                        {% if question.instructions %}
+                        <div class="mt-2 p-2 bg-info bg-opacity-10 rounded">
+                            <small class="text-info">
+                                <i class="fas fa-info-circle me-1"></i>{% trans 'Instructions' %}: {{ question.instructions }}
+                            </small>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- File Info -->
+                    <div class="mb-4">
+                        <label class="form-label text-muted">
+                            <i class="fas fa-file me-1"></i>{% trans 'Submitted File' %}
+                        </label>
+                        <div class="d-flex align-items-center p-3 bg-light rounded">
+                            <div class="me-3">
+                                {% if '.pdf' in submission.original_filename %}
+                                <i class="fas fa-file-pdf fa-3x text-danger"></i>
+                                {% elif '.doc' in submission.original_filename %}
+                                <i class="fas fa-file-word fa-3x text-primary"></i>
+                                {% elif '.zip' in submission.original_filename or '.rar' in submission.original_filename %}
+                                <i class="fas fa-file-archive fa-3x text-warning"></i>
+                                {% elif '.jpg' in submission.original_filename or '.png' in submission.original_filename or '.jpeg' in submission.original_filename %}
+                                <i class="fas fa-file-image fa-3x text-success"></i>
+                                {% elif '.py' in submission.original_filename or '.js' in submission.original_filename or '.java' in submission.original_filename %}
+                                <i class="fas fa-file-code fa-3x text-info"></i>
+                                {% else %}
+                                <i class="fas fa-file-alt fa-3x text-secondary"></i>
+                                {% endif %}
+                            </div>
+                            <div class="flex-grow-1">
+                                <div class="fw-semibold">{{ submission.original_filename }}</div>
+                                <small class="text-muted">
+                                    {% trans 'Size' %}: {{ submission.file_size|filesizeformat }}
+                                </small>
+                            </div>
+                            <a href="{% url 'file_submission_download' submission.id %}" class="btn btn-primary">
+                                <i class="fas fa-download me-1"></i>{% trans 'Download' %}
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Submission Time -->
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label class="form-label text-muted">
+                                <i class="fas fa-clock me-1"></i>{% trans 'Submitted At' %}
+                            </label>
+                            <div>
+                                {{ submission.submitted_at|date:"M d, Y H:i" }}
+                                {% if question.due_date and submission.submitted_at > question.due_date %}
+                                <span class="badge bg-danger ms-2">{% trans 'Late Submission' %}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% if question.due_date %}
+                        <div class="col-md-6">
+                            <label class="form-label text-muted">
+                                <i class="fas fa-calendar me-1"></i>{% trans 'Due Date' %}
+                            </label>
+                            <div>{{ question.due_date|date:"M d, Y H:i" }}</div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Previous Grading Info -->
+            {% if submission.graded_at %}
+            <div class="card shadow-sm mt-3">
+                <div class="card-header bg-secondary text-white">
+                    <i class="fas fa-history me-2"></i>{% trans 'Previous Grading' %}
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <small class="text-muted">{% trans 'Graded By' %}</small>
+                            <div>{{ submission.graded_by.get_full_name }}</div>
+                        </div>
+                        <div class="col-md-4">
+                            <small class="text-muted">{% trans 'Graded At' %}</small>
+                            <div>{{ submission.graded_at|date:"M d, Y H:i" }}</div>
+                        </div>
+                        <div class="col-md-4">
+                            <small class="text-muted">{% trans 'Current Score' %}</small>
+                            <div class="fw-bold">{{ submission.score }}/{{ question.max_score }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Grading Form -->
+        <div class="col-lg-5">
+            <div class="card shadow-sm sticky-top" style="top: 20px;">
+                <div class="card-header bg-success text-white">
+                    <i class="fas fa-edit me-2"></i>{% trans 'Grade Submission' %}
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label class="form-label">
+                                <i class="fas fa-star me-1"></i>{% trans 'Score' %}
+                                <small class="text-muted">({% trans 'Max' %}: {{ question.max_score }})</small>
+                            </label>
+                            {{ form.score|as_crispy_field }}
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label">
+                                <i class="fas fa-comment me-1"></i>{% trans 'Feedback' %}
+                            </label>
+                            {{ form.feedback|as_crispy_field }}
+                            <small class="text-muted">
+                                {% trans 'Provide constructive feedback to help the student improve.' %}
+                            </small>
+                        </div>
+
+                        <!-- Quick Score Buttons -->
+                        <div class="mb-4">
+                            <label class="form-label text-muted">{% trans 'Quick Score' %}</label>
+                            <div class="d-flex flex-wrap gap-2">
+                                <button type="button" class="btn btn-sm btn-outline-danger quick-score" data-score="0">0%</button>
+                                <button type="button" class="btn btn-sm btn-outline-warning quick-score" data-score="{{ question.max_score|floatformat:0|add:'0.25'|floatformat:0 }}">25%</button>
+                                <button type="button" class="btn btn-sm btn-outline-info quick-score" data-score="{{ question.max_score|floatformat:0|add:'0.5'|floatformat:0 }}">50%</button>
+                                <button type="button" class="btn btn-sm btn-outline-primary quick-score" data-score="{{ question.max_score|floatformat:0|add:'0.75'|floatformat:0 }}">75%</button>
+                                <button type="button" class="btn btn-sm btn-outline-success quick-score" data-score="{{ question.max_score }}">100%</button>
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-success btn-lg">
+                                <i class="fas fa-check me-2"></i>{% trans 'Save Grade' %}
+                            </button>
+                            <a href="{% url 'file_submission_list' course.slug submission.sitting.quiz.id %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left me-1"></i>{% trans 'Back to Submissions' %}
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Quick score buttons
+    const scoreInput = document.querySelector('input[name="score"]');
+    const quickScoreButtons = document.querySelectorAll('.quick-score');
+    
+    quickScoreButtons.forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            const maxScore = {{ question.max_score }};
+            const percentage = parseFloat(this.textContent) / 100;
+            scoreInput.value = Math.round(maxScore * percentage);
+        });
+    });
+});
+</script>
+
+{% endblock %}

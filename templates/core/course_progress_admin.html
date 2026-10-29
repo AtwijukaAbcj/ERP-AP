@@ -1,0 +1,425 @@
+{% extends 'base.html' %}
+{% load i18n %}
+{% block title %}{{ title }} | {% trans 'FalconLMS' %}{% endblock title %}
+
+{% block content %}
+<style>
+    .progress-container {
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+    
+    .progress-header {
+        background: linear-gradient(135deg, #914c77 0%, #7a3d64 100%);
+        border-radius: 16px;
+        padding: 24px;
+        color: white;
+        margin-bottom: 24px;
+    }
+    
+    .progress-header h2 {
+        margin: 0 0 8px 0;
+        font-size: 1.5rem;
+    }
+    
+    .progress-header p {
+        margin: 0;
+        opacity: 0.9;
+    }
+    
+    .stats-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 20px;
+        margin-bottom: 24px;
+    }
+    
+    .stat-card {
+        background: #fff;
+        border-radius: 16px;
+        padding: 24px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .stat-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 4px;
+    }
+    
+    .stat-card.students::before { background: #3b82f6; }
+    .stat-card.courses::before { background: #8b5cf6; }
+    .stat-card.enrollments::before { background: #ec4899; }
+    .stat-card.passed::before { background: #22c55e; }
+    .stat-card.failed::before { background: #ef4444; }
+    .stat-card.quizzes::before { background: #f59e0b; }
+    
+    .stat-card .stat-icon {
+        font-size: 2rem;
+        margin-bottom: 12px;
+        opacity: 0.2;
+    }
+    
+    .stat-card .stat-value {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: #1f2937;
+    }
+    
+    .stat-card .stat-label {
+        color: #6b7280;
+        font-size: 0.9rem;
+        margin-top: 4px;
+    }
+    
+    .overview-section {
+        background: #fff;
+        border-radius: 16px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+        margin-bottom: 24px;
+        overflow: hidden;
+    }
+    
+    .overview-header {
+        padding: 20px 24px;
+        border-bottom: 1px solid #f1f5f9;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .overview-header h3 {
+        margin: 0;
+        font-size: 1.1rem;
+        color: #1f2937;
+    }
+    
+    .overview-body {
+        padding: 24px;
+    }
+    
+    .pass-rate-display {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 40px;
+        flex-wrap: wrap;
+    }
+    
+    .rate-circle {
+        position: relative;
+        width: 180px;
+        height: 180px;
+    }
+    
+    .rate-circle svg {
+        transform: rotate(-90deg);
+    }
+    
+    .rate-circle .circle-bg {
+        fill: none;
+        stroke: #e5e7eb;
+        stroke-width: 12;
+    }
+    
+    .rate-circle .circle-progress {
+        fill: none;
+        stroke: #22c55e;
+        stroke-width: 12;
+        stroke-linecap: round;
+        stroke-dasharray: 440;
+        stroke-dashoffset: calc(440 - (440 * {{ pass_rate }}) / 100);
+        transition: stroke-dashoffset 1s ease;
+    }
+    
+    .rate-circle .rate-text {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        text-align: center;
+    }
+    
+    .rate-circle .rate-value {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: #22c55e;
+    }
+    
+    .rate-circle .rate-label {
+        font-size: 0.9rem;
+        color: #6b7280;
+    }
+    
+    .rate-breakdown {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+    
+    .breakdown-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    
+    .breakdown-item .dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+    }
+    
+    .breakdown-item .dot.passed { background: #22c55e; }
+    .breakdown-item .dot.failed { background: #ef4444; }
+    .breakdown-item .dot.pending { background: #f59e0b; }
+    
+    .breakdown-item .label {
+        color: #6b7280;
+        font-size: 0.9rem;
+        width: 80px;
+    }
+    
+    .breakdown-item .value {
+        font-weight: 600;
+        color: #1f2937;
+    }
+    
+    .recent-attempts-table {
+        width: 100%;
+    }
+    
+    .recent-attempts-table th {
+        text-align: left;
+        padding: 12px 16px;
+        background: #f8fafc;
+        font-weight: 600;
+        color: #374151;
+        font-size: 0.85rem;
+    }
+    
+    .recent-attempts-table td {
+        padding: 14px 16px;
+        border-bottom: 1px solid #f1f5f9;
+        color: #4b5563;
+    }
+    
+    .recent-attempts-table tr:last-child td {
+        border-bottom: none;
+    }
+    
+    .user-cell {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .user-avatar {
+        width: 32px;
+        height: 32px;
+        background: #914c77;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: 600;
+        font-size: 0.75rem;
+    }
+    
+    .score-badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 0.85rem;
+        font-weight: 600;
+    }
+    
+    .score-badge.passed {
+        background: #dcfce7;
+        color: #16a34a;
+    }
+    
+    .score-badge.failed {
+        background: #fee2e2;
+        color: #dc2626;
+    }
+    
+    .quick-actions {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+    
+    .quick-action-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 18px;
+        background: #f8fafc;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        color: #374151;
+        text-decoration: none;
+        font-size: 0.9rem;
+        transition: all 0.2s;
+    }
+    
+    .quick-action-btn:hover {
+        background: #914c77;
+        border-color: #914c77;
+        color: white;
+    }
+</style>
+
+<nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/">{% trans 'Home' %}</a></li>
+        <li class="breadcrumb-item active" aria-current="page">{% trans 'Course Progress' %}</li>
+    </ol>
+</nav>
+
+<div class="progress-container">
+    <!-- Header -->
+    <div class="progress-header">
+        <h2><i class="fas fa-chart-pie"></i> {% trans 'System Progress Overview' %}</h2>
+        <p>{% trans 'Monitor academic performance across the entire institution' %}</p>
+        {% if current_semester and current_session %}
+        <p style="margin-top: 8px; font-size: 0.9rem;">
+            <strong>{{ current_semester }}</strong> | {{ current_session }}
+        </p>
+        {% endif %}
+    </div>
+    
+    <!-- Statistics Cards -->
+    <div class="stats-row">
+        <div class="stat-card students">
+            <i class="fas fa-user-graduate stat-icon"></i>
+            <div class="stat-value">{{ total_students }}</div>
+            <div class="stat-label">{% trans 'Total Students' %}</div>
+        </div>
+        <div class="stat-card courses">
+            <i class="fas fa-book stat-icon"></i>
+            <div class="stat-value">{{ total_courses }}</div>
+            <div class="stat-label">{% trans 'Total Courses' %}</div>
+        </div>
+        <div class="stat-card enrollments">
+            <i class="fas fa-clipboard-list stat-icon"></i>
+            <div class="stat-value">{{ total_enrollments }}</div>
+            <div class="stat-label">{% trans 'Total Enrollments' %}</div>
+        </div>
+        <div class="stat-card quizzes">
+            <i class="fas fa-tasks stat-icon"></i>
+            <div class="stat-value">{{ total_quizzes }}</div>
+            <div class="stat-label">{% trans 'Total Quizzes' %}</div>
+        </div>
+        <div class="stat-card passed">
+            <i class="fas fa-check-circle stat-icon"></i>
+            <div class="stat-value">{{ total_quiz_attempts }}</div>
+            <div class="stat-label">{% trans 'Quiz Attempts' %}</div>
+        </div>
+    </div>
+    
+    <!-- Pass Rate Overview -->
+    <div class="overview-section">
+        <div class="overview-header">
+            <h3><i class="fas fa-percentage"></i> {% trans 'Overall Pass Rate' %}</h3>
+            <div class="quick-actions">
+                <a href="{% url 'student_list' %}" class="quick-action-btn">
+                    <i class="fas fa-users"></i> {% trans 'View Students' %}
+                </a>
+                <a href="{% url 'quiz_marking' %}" class="quick-action-btn">
+                    <i class="fas fa-pen"></i> {% trans 'Quiz Marking' %}
+                </a>
+            </div>
+        </div>
+        <div class="overview-body">
+            <div class="pass-rate-display">
+                <div class="rate-circle">
+                    <svg width="180" height="180">
+                        <circle class="circle-bg" cx="90" cy="90" r="70"></circle>
+                        <circle class="circle-progress" cx="90" cy="90" r="70"></circle>
+                    </svg>
+                    <div class="rate-text">
+                        <div class="rate-value">{{ pass_rate }}%</div>
+                        <div class="rate-label">{% trans 'Pass Rate' %}</div>
+                    </div>
+                </div>
+                <div class="rate-breakdown">
+                    <div class="breakdown-item">
+                        <span class="dot passed"></span>
+                        <span class="label">{% trans 'Passed' %}</span>
+                        <span class="value">{{ passed_count }}</span>
+                    </div>
+                    <div class="breakdown-item">
+                        <span class="dot failed"></span>
+                        <span class="label">{% trans 'Failed' %}</span>
+                        <span class="value">{{ failed_count }}</span>
+                    </div>
+                    <div class="breakdown-item">
+                        <span class="dot pending"></span>
+                        <span class="label">{% trans 'Pending' %}</span>
+                        <span class="value">{{ total_enrollments|add:"-"|add:passed_count|add:"-"|add:failed_count }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Recent Quiz Attempts -->
+    {% if recent_attempts %}
+    <div class="overview-section">
+        <div class="overview-header">
+            <h3><i class="fas fa-history"></i> {% trans 'Recent Quiz Attempts' %}</h3>
+            <a href="{% url 'quiz_progress' %}" class="quick-action-btn">
+                <i class="fas fa-external-link-alt"></i> {% trans 'View All' %}
+            </a>
+        </div>
+        <div class="overview-body" style="padding: 0;">
+            <table class="recent-attempts-table">
+                <thead>
+                    <tr>
+                        <th>{% trans 'Student' %}</th>
+                        <th>{% trans 'Quiz' %}</th>
+                        <th>{% trans 'Course' %}</th>
+                        <th>{% trans 'Score' %}</th>
+                        <th>{% trans 'Date' %}</th>
+                        <th>{% trans 'Status' %}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for attempt in recent_attempts %}
+                    <tr>
+                        <td>
+                            <div class="user-cell">
+                                <div class="user-avatar">
+                                    {{ attempt.user.first_name.0|upper|default:"?" }}{{ attempt.user.last_name.0|upper|default:"?" }}
+                                </div>
+                                <span>{{ attempt.user.get_full_name|default:attempt.user.username }}</span>
+                            </div>
+                        </td>
+                        <td>{{ attempt.quiz.title }}</td>
+                        <td>{{ attempt.course.code }}</td>
+                        <td>{{ attempt.current_score }}/{{ attempt.get_max_score }}</td>
+                        <td>{{ attempt.end|date:"M d, Y" }}</td>
+                        <td>
+                            {% if attempt.get_percent_correct >= attempt.quiz.pass_mark %}
+                                <span class="score-badge passed">{% trans 'Passed' %}</span>
+                            {% else %}
+                                <span class="score-badge failed">{% trans 'Failed' %}</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock content %}

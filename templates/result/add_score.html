@@ -1,0 +1,260 @@
+{% extends 'base.html' %}
+{% load i18n %}
+{% block title %}{{ title }} | {% trans 'Learning management system' %}{% endblock title %}
+{% load static %}
+
+{% block content %}
+
+<nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/">{% trans 'Home' %}</a></li>
+        <li class="breadcrumb-item active" aria-current="page">{% trans 'Manage Score' %}</li>
+    </ol>
+</nav>
+
+{% include 'snippets/messages.html' %}
+
+<style>
+    .score-hero {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 20px;
+        padding: 40px;
+        color: white;
+        margin-bottom: 30px;
+        position: relative;
+        overflow: hidden;
+    }
+    .score-hero::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -20%;
+        width: 400px;
+        height: 400px;
+        background: rgba(255,255,255,0.1);
+        border-radius: 50%;
+    }
+    .score-hero h1 { font-size: 2rem; font-weight: 700; margin-bottom: 8px; }
+    .score-hero .semester-badge {
+        display: inline-block;
+        background: rgba(255,255,255,0.2);
+        padding: 8px 20px;
+        border-radius: 30px;
+        font-size: 1rem;
+        backdrop-filter: blur(10px);
+    }
+    
+    .course-card {
+        background: white;
+        border-radius: 16px;
+        padding: 24px;
+        margin-bottom: 20px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        border: 1px solid #eef2f7;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+    .course-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 12px 30px rgba(0,0,0,0.12);
+    }
+    .course-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 5px;
+        height: 100%;
+        background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+    }
+    .course-icon {
+        width: 60px;
+        height: 60px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 1.5rem;
+        margin-right: 20px;
+    }
+    .course-title { font-size: 1.1rem; font-weight: 600; color: #2d3748; margin-bottom: 4px; }
+    .course-code { font-size: 0.85rem; color: #718096; }
+    .course-meta { display: flex; gap: 15px; margin-top: 12px; }
+    .course-meta-item {
+        background: #f7fafc;
+        padding: 6px 12px;
+        border-radius: 8px;
+        font-size: 0.8rem;
+        color: #4a5568;
+    }
+    .course-meta-item i { margin-right: 6px; color: #667eea; }
+    
+    .grade-btn {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        padding: 12px 28px;
+        border-radius: 10px;
+        font-weight: 600;
+        transition: all 0.3s;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .grade-btn:hover {
+        transform: scale(1.05);
+        color: white;
+        box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 60px 40px;
+        background: #f8fafc;
+        border-radius: 20px;
+        border: 2px dashed #e2e8f0;
+    }
+    .empty-state i { font-size: 4rem; color: #cbd5e0; margin-bottom: 20px; }
+    .empty-state h4 { color: #4a5568; margin-bottom: 10px; }
+    .empty-state p { color: #718096; }
+    
+    .info-card {
+        background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        border-radius: 16px;
+        padding: 24px;
+        color: white;
+        margin-bottom: 20px;
+    }
+    .info-card h5 { margin-bottom: 15px; }
+    .info-card ul { margin: 0; padding-left: 20px; }
+    .info-card li { margin-bottom: 8px; opacity: 0.95; }
+</style>
+
+{% if current_semester %}
+<!-- Hero Section -->
+<div class="score-hero">
+    <div class="row align-items-center">
+        <div class="col-md-8">
+            <h1><i class="fas fa-clipboard-list me-3"></i>{% trans 'Manage Scores' %}</h1>
+            <p class="mb-3 opacity-75">{% trans 'Grade and manage student assessments for your courses' %}</p>
+            <div class="semester-badge">
+                <i class="fas fa-calendar-alt me-2"></i>{{ current_semester }} {% trans 'Semester' %} - {{ current_session }}
+            </div>
+        </div>
+        <div class="col-md-4 text-end d-none d-md-block">
+            <i class="fas fa-graduation-cap" style="font-size: 6rem; opacity: 0.2;"></i>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <h5 class="mb-3 text-muted"><i class="fas fa-book me-2"></i>{% trans 'Your Courses' %} ({{ courses|length }})</h5>
+        
+        {% for course in courses %}
+        <div class="course-card">
+            <div class="d-flex align-items-start justify-content-between flex-wrap">
+                <div class="d-flex align-items-start mb-3 mb-md-0">
+                    <div class="course-icon">
+                        <i class="fas fa-book-open"></i>
+                    </div>
+                    <div>
+                        <div class="course-title">{{ course.title }}</div>
+                        <div class="course-code">{{ course.code }} | {{ course.program }}</div>
+                        <div class="course-meta">
+                            <span class="course-meta-item">
+                                <i class="fas fa-layer-group"></i>{{ course.level }}
+                            </span>
+                            <span class="course-meta-item">
+                                <i class="fas fa-clock"></i>{{ course.credit }} Credits
+                            </span>
+                            <span class="course-meta-item">
+                                <i class="fas fa-calendar"></i>{{ course.semester }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div class="d-flex flex-column gap-2">
+                    <a href="{% url 'add_score_for' course.id %}" class="grade-btn">
+                        <i class="fas fa-edit"></i> {% trans 'Grade Students' %}
+                    </a>
+                    <div class="d-flex gap-2">
+                        <a href="{% url 'assessment_config' course.id %}" class="btn btn-sm btn-outline-primary" title="{% trans 'Assessment Config' %}">
+                            <i class="fas fa-cog"></i>
+                        </a>
+                        <a href="{% url 'attendance_management' course.id %}" class="btn btn-sm btn-outline-success" title="{% trans 'Attendance' %}">
+                            <i class="fas fa-user-check"></i>
+                        </a>
+                        <a href="{% url 'course_assignments' course.id %}" class="btn btn-sm btn-outline-warning" title="{% trans 'Assignments' %}">
+                            <i class="fas fa-tasks"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="empty-state">
+            <i class="fas fa-inbox"></i>
+            <h4>{% trans 'No Courses Allocated' %}</h4>
+            <p>{% trans 'You have no courses allocated for this semester. Please contact the administrator.' %}</p>
+        </div>
+        {% endfor %}
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="info-card">
+            <h5><i class="fas fa-info-circle me-2"></i>{% trans 'Grading Guide' %}</h5>
+            <ul>
+                <li>{% trans 'Select a course to grade students' %}</li>
+                <li>{% trans 'Enter scores for each assessment type' %}</li>
+                <li>{% trans 'Grades are calculated automatically' %}</li>
+                <li>{% trans 'Save to update student records' %}</li>
+            </ul>
+        </div>
+        
+        <div class="card" style="border-radius: 16px; border: none; box-shadow: 0 4px 20px rgba(0,0,0,0.08);">
+            <div class="card-body">
+                <h6 class="mb-3"><i class="fas fa-chart-bar me-2 text-primary"></i>{% trans 'Score Components' %}</h6>
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">{% trans 'Assignment' %}</span>
+                    <span class="fw-bold">10%</span>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">{% trans 'Mid Exam' %}</span>
+                    <span class="fw-bold">15%</span>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">{% trans 'Quiz' %}</span>
+                    <span class="fw-bold">10%</span>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">{% trans 'Attendance' %}</span>
+                    <span class="fw-bold">5%</span>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <span class="text-muted">{% trans 'Final Exam' %}</span>
+                    <span class="fw-bold">60%</span>
+                </div>
+                <hr>
+                <div class="d-flex justify-content-between">
+                    <span class="fw-bold">{% trans 'Total' %}</span>
+                    <span class="fw-bold text-primary">100%</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% else %}
+<div class="empty-state">
+    <i class="fas fa-exclamation-triangle text-warning"></i>
+    <h4>{% trans 'No Active Semester' %}</h4>
+    <p>{% trans 'Please contact the administrator to set up an active session and semester.' %}</p>
+</div>
+{% endif %}
+
+{% endblock content %}

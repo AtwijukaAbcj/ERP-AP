@@ -1,0 +1,77 @@
+{% load i18n %}
+<a href="{% url 'assignment:assignment_detail' course.slug assignment.id %}" 
+   class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+    <div class="d-flex align-items-center">
+        <div class="me-3">
+            {% if assignment.assignment_type == 'quiz' %}
+            <i class="fas fa-question-circle fa-2x text-info"></i>
+            {% elif assignment.assignment_type == 'discussion' %}
+            <i class="fas fa-comments fa-2x text-success"></i>
+            {% elif assignment.assignment_type == 'project' %}
+            <i class="fas fa-project-diagram fa-2x text-warning"></i>
+            {% elif assignment.assignment_type == 'attendance' %}
+            <i class="fas fa-clipboard-check fa-2x text-secondary"></i>
+            {% else %}
+            <i class="fas fa-file-alt fa-2x text-primary"></i>
+            {% endif %}
+        </div>
+        <div>
+            <h6 class="mb-0">
+                {{ assignment.title }}
+                {% if assignment.is_group_assignment %}
+                <span class="badge bg-info ms-2"><i class="fas fa-users me-1"></i>{% trans 'Group' %}</span>
+                {% endif %}
+                {% if not assignment.published %}
+                <span class="badge bg-warning ms-2">{% trans 'Draft' %}</span>
+                {% endif %}
+            </h6>
+            <small class="text-muted">
+                {{ assignment.points_possible }} {% trans 'pts' %}
+                {% if assignment.due_date %}
+                | {% trans 'Due' %}: {{ assignment.due_date|date:"M d, Y H:i" }}
+                {% if assignment.is_past_due %}
+                <span class="text-danger">({% trans 'Past due' %})</span>
+                {% endif %}
+                {% endif %}
+            </small>
+        </div>
+    </div>
+    <div class="text-end">
+        {% if request.user.is_student %}
+            {% if assignment.user_submission %}
+                {% if assignment.user_submission.status == 'graded' %}
+                <span class="badge bg-success">
+                    {{ assignment.user_submission.final_score|floatformat:1 }}/{{ assignment.points_possible }}
+                </span>
+                {% elif assignment.user_submission.status == 'submitted' %}
+                <span class="badge bg-primary">{% trans 'Submitted' %}</span>
+                {% elif assignment.user_submission.status == 'late' %}
+                <span class="badge bg-warning text-dark">{% trans 'Late' %}</span>
+                {% else %}
+                <span class="badge bg-secondary">{% trans 'Draft' %}</span>
+                {% endif %}
+            {% else %}
+                {% if assignment.is_available %}
+                <span class="badge bg-outline-primary">{% trans 'Not Submitted' %}</span>
+                {% else %}
+                <span class="badge bg-secondary">{% trans 'Not Available' %}</span>
+                {% endif %}
+            {% endif %}
+        {% else %}
+            <div class="d-flex align-items-center">
+                <span class="me-3">
+                    <small class="text-muted">{% trans 'Graded' %}:</small>
+                    <span class="badge bg-success">{{ assignment.graded_count }}/{{ assignment.submission_count }}</span>
+                </span>
+                <div class="btn-group btn-group-sm">
+                    <a href="{% url 'assignment:speedgrader' course.slug assignment.id %}" class="btn btn-outline-success" title="{% trans 'SpeedGrader' %}">
+                        <i class="fas fa-bolt"></i>
+                    </a>
+                    <a href="{% url 'assignment:assignment_edit' course.slug assignment.id %}" class="btn btn-outline-primary" title="{% trans 'Edit' %}">
+                        <i class="fas fa-edit"></i>
+                    </a>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</a>

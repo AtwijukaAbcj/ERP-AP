@@ -1,0 +1,102 @@
+{% extends 'base.html' %}
+{% load i18n %}
+{% block title %}{{ title }} | {% trans 'Learning management system' %}{% endblock title %}
+{% load crispy_forms_tags %}
+{% load static %}
+
+{% block content %}
+<nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/">{% trans 'Home' %}</a></li>
+        <li class="breadcrumb-item active" aria-current="page">{% trans 'Lecturers' %}</li>
+    </ol>
+</nav>
+
+{% if request.user.is_faculty_admin %}
+<div class="manage-wrap mb-3 d-flex gap-2">
+    <a class="btn btn-primary" href="{% url 'faculty_add_lecturer' %}">
+        <i class="fas fa-plus me-1"></i> {% trans 'Add Lecturer' %}
+    </a>
+    <a class="btn btn-secondary" target="_blank" href="{% url 'faculty_lecturer_list_pdf' %}">
+        <i class="fas fa-file-pdf me-1"></i> {% trans 'Download PDF' %}
+    </a>
+</div>
+{% endif %}
+
+<p class="title-1"><i class="fas fa-chalkboard-teacher"></i> {% trans 'Lecturers' %}</p>
+
+{% include 'snippets/messages.html' %}
+{% include 'snippets/filter_form.html' %}
+
+<div class="table-responsive table-shadow table-light table-striped mt-4">
+    <table class="table align-middle">
+        <thead class="table-light">
+            <tr>
+                <th>#</th>
+                <th>{% trans 'ID No.' %}</th>
+                <th>{% trans 'Full Name' %}</th>
+                <th>{% trans 'Email' %}</th>
+                <th>{% trans 'Mob No.' %}</th>
+                <th>{% trans 'Address/City' %}</th>
+                <th>{% trans 'Last Login' %}</th>
+                {% if request.user.is_faculty_admin %}
+                <th>{% trans 'Action' %}</th>
+                {% endif %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for lecturer in filter.qs %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ lecturer.username }}</td>
+                <td>
+                    <a href="{% url 'profile_single' lecturer.id %}">{{ lecturer.get_full_name }}</a>
+                </td>
+                <td>{{ lecturer.email }}</td>
+                <td>{{ lecturer.phone }}</td>
+                <td>{{ lecturer.address }}</td>
+                <td>{{ lecturer.last_login }}</td>
+                {% if request.user.is_faculty_admin %}
+                <td>
+                    <div class="dropdown">
+                        <button class="btn btn-sm btn-light border" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-ellipsis-v"></i>
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li>
+                                <a class="dropdown-item" href="{% url 'faculty_edit_lecturer' pk=lecturer.pk %}">
+                                    <i class="fas fa-edit me-2"></i> {% trans 'Update' %}
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" target="_blank" href="{% url 'profile_single' lecturer.id %}?download_pdf=1">
+                                    <i class="fas fa-file-pdf me-2"></i> {% trans 'Download PDF' %}
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item text-danger" href="{% url 'lecturer_delete' pk=lecturer.pk %}">
+                                    <i class="fas fa-trash-alt me-2"></i> {% trans 'Delete' %}
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </td>
+                {% endif %}
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="8" class="text-center text-danger">
+                    {% trans 'No Lecturer(s).' %}
+                    {% if request.user.is_faculty_admin %}
+                    <br>
+                    <a href="{% url 'faculty_add_lecturer' %}" class="text-primary">
+                        <i class="fas fa-plus-circle"></i> {% trans 'Add Lecturer Now.' %}
+                    </a>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock content %}

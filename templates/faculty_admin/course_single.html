@@ -1,0 +1,206 @@
+{% extends 'base.html' %}
+{% load i18n %}
+{% load static %}
+{% block title %}{{ title }} | {% trans 'Learning management system' %}{% endblock title %}
+
+{% block content %}
+
+<!-- Breadcrumb Navigation -->
+<nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/">{% trans 'Home' %}</a></li>
+        {% if request.user.is_student %}
+            <li class="breadcrumb-item"><a href="{% url 'user_course_list' %}">{% trans 'My courses' %}</a></li>
+        {% elif request.user.is_faculty_admin %}
+            <li class="breadcrumb-item"><a href="{% url 'faculty_program_list' %}">{% trans 'Programs' %}</a></li>
+        {% else %}
+            <li class="breadcrumb-item"><a href="{% url 'programs' %}">{% trans 'Programs' %}</a></li>
+        {% endif %}
+        <li class="breadcrumb-item"><a href="{% url 'faculty_program_detail' program.pk %}">{{ course.program }}</a></li>
+        <li class="breadcrumb-item active" aria-current="page">{{ course }}</li>
+    </ol>
+</nav>
+
+<!-- Management Controls -->
+<div class="manage-wrap">
+    <div class="d-flex">
+        <div>
+            {% if request.user.is_faculty_admin %}
+                <a class="btn btn-sm btn-light" href="{% url 'faculty_edit_course' course.slug %}">
+                    <i class="fas fa-pencil-alt"></i> {% trans 'Edit course' %}
+                </a>
+            {% elif request.user.is_lecturer %}
+                <a class="btn btn-sm btn-light" href="{% url 'edit_course' course.slug %}">
+                    <i class="fas fa-pencil-alt"></i> {% trans 'Edit course' %}
+                </a>
+            {% endif %}
+
+            {% if request.user.is_faculty_admin or request.user.is_lecturer %}
+                <a class="btn btn-sm btn-primary" href="{% url 'upload_file_view' course.slug %}">
+                    <i class="fas fa-upload"></i> {% trans 'Upload File' %}
+                </a>
+                <a class="btn btn-sm btn-primary" href="{% url 'upload_video' course.slug %}">
+                    <i class="fas fa-video"></i> {% trans 'Upload Video' %}
+                </a>
+            {% endif %}
+        </div>
+
+        <div class="ms-auto">
+            <a class="btn btn-sm btn-warning" href="{% url 'quiz_index' course.slug %}">
+                <i class="fas fa-list"></i> {% trans 'Take a Quiz' %}
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Course Title -->
+<div class="title-1">{{ course }}</div>
+<p class="small text-muted">{{ course.summary }}</p>
+
+{% include 'snippets/messages.html' %}
+
+<div class="container">
+    <!-- Videos -->
+    <div class="row mb-5">
+        <div class="col-md-12">
+            <p class="form-title">{% trans 'Video Tutorials' %}</p>
+            <div class="table-responsive">
+                <table class="table table-light table-striped">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>{% trans 'Video Title' %}</th>
+                            <th>{% trans 'Uploaded Date' %}</th>
+                            <th>{% trans 'Play' %}</th>
+                            {% if request.user.is_faculty_admin or request.user.is_lecturer %}
+                            <th>{% trans 'Actions' %}</th>
+                            {% endif %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for video in videos %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td>
+                                <a href="{{ video.get_absolute_url }}">
+                                    <i class="fas fa-video me-1"></i> {{ video.title|title }}
+                                </a>
+                            </td>
+                            <td>{{ video.timestamp|date }}</td>
+                            <td>
+                                <a class="download-btn" href="{{ video.get_absolute_url }}">
+                                    <i class="fas fa-play me-1"></i> {% trans 'Play now' %}
+                                </a>
+                            </td>
+                            {% if request.user.is_faculty_admin or request.user.is_lecturer %}
+                            <td>
+                                <div class="update-delete">
+                                    <a href="{% url 'upload_video_edit' slug=course.slug video_slug=video.slug %}" class="update">
+                                        <i class="fas fa-pencil-alt"></i>
+                                    </a>
+                                    <a href="{% url 'upload_video_delete' slug=course.slug video_slug=video.slug %}" class="delete">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </a>
+                                </div>
+                            </td>
+                            {% endif %}
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-danger">
+                                {% trans 'No video uploaded.' %}
+                                {% if request.user.is_faculty_admin or request.user.is_lecturer %}
+                                <a href="{% url 'upload_video' course.slug %}" class="text-primary">{% trans 'Upload now.' %}</a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Files -->
+    <div class="row">
+        <div class="col-md-12">
+            <p class="form-title">{% trans 'Documentations' %}</p>
+            <div class="table-responsive">
+                <table class="table table-light table-striped">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>{% trans 'File name' %}</th>
+                            <th>{% trans 'Uploaded' %}</th>
+                            <th>{% trans 'Updated' %}</th>
+                            <th>{% trans 'Download' %}</th>
+                            {% if request.user.is_faculty_admin or request.user.is_lecturer %}
+                            <th>{% trans 'Actions' %}</th>
+                            {% endif %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for file in files %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td><a href="{{ file.file.url }}"><i class="fas fa-file me-1"></i>{{ file.title|title }}</a></td>
+                            <td>{{ file.upload_time|date }}</td>
+                            <td>{{ file.updated_date|date }}</td>
+                            <td>
+                                <a class="download-btn" href="{{ file.file.url }}">
+                                    <i class="fas fa-download me-1"></i>{% trans 'Download' %}
+                                </a>
+                            </td>
+                            {% if request.user.is_faculty_admin or request.user.is_lecturer %}
+                            <td>
+                                <div class="update-delete">
+                                    <a href="{% url 'upload_file_edit' slug=course.slug file_id=file.pk %}" class="update">
+                                        <i class="fas fa-pencil-alt"></i>
+                                    </a>
+                                    <a href="{% url 'upload_file_delete' slug=course.slug file_id=file.pk %}" class="delete">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </a>
+                                </div>
+                            </td>
+                            {% endif %}
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-danger">
+                                {% trans 'No file uploaded.' %}
+                                {% if request.user.is_faculty_admin or request.user.is_lecturer %}
+                                <a href="{% url 'upload_file_view' course.slug %}" class="text-primary">{% trans 'Upload now.' %}</a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Lecturer Info -->
+<div class="site-section mt-5">
+    <div class="title-1">{% trans 'Lecturer(s)' %}</div>
+    <div class="row">
+        {% for lecturer in lecturers %}
+        <div class="col-lg-4">
+            <div class="card text-center">
+                <div class="card-body">
+                    {% if lecturer.lecturer.picture %}
+                    <img class="avatar avatar-lg" src="{{ lecturer.lecturer.picture.url }}" alt="">
+                    {% endif %}
+                    <h5 class="fw-bold">{{ lecturer|title }}</h5>
+                    <p>{{ lecturer.lecturer.email }}</p>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12 text-muted mt-3">{% trans 'No lecturer assigned for this course.' %}</div>
+        {% endfor %}
+    </div>
+</div>
+
+{% endblock content %}

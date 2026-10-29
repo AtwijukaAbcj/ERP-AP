@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+{% block title %}Add General Ledger Entry{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <h2>Add General Ledger Entry</h2>
+    <div class="card p-4">
+        <form method="post">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit" class="btn btn-primary">Save Entry</button>
+            <a href="{% url 'finance:general_ledger_list' %}" class="btn btn-secondary">Cancel</a>
+        </form>
+    </div>
+</div>
+{% endblock %}

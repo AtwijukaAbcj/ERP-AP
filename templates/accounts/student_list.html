@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+{% load i18n permission_tags %}
+
+{% block title %}{{ title }} | {% trans 'Student Management' %}{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+    <div>
+        <h1 class="h3 mb-1">{% trans 'Student Management' %}</h1>
+        <p class="text-muted mb-0">{% trans 'Student profiles, enrolment status, and records' %}</p>
+    </div>
+    {% if can_manage %}
+    <a class="btn btn-primary" href="{% url 'add_student' %}">
+        <i class="fas fa-plus me-1"></i>{% trans 'Add Student' %}
+    </a>
+    {% endif %}
+    {% if can_export %}
+    <a class="btn btn-outline-secondary" target="_blank" href="{% url 'student_list_pdf' %}">
+        <i class="fas fa-download me-1"></i>{% trans 'Download PDF' %}
+    </a>
+    {% endif %}
+</div>
+
+<div class="row g-3 mb-4">
+    {% for status_count in student_counts %}
+    <div class="col-sm-6 col-lg">
+        <div class="card h-100"><div class="card-body">
+            <div class="small text-muted">{{ status_count.label }}</div>
+            <div class="fs-3 fw-semibold">{{ status_count.count }}</div>
+        </div></div>
+    </div>
+    {% endfor %}
+</div>
+
+<form method="get" class="card card-body mb-3">
+    <div class="row g-2 align-items-end">
+        {% for field in filter.form %}
+        <div class="col-sm-6 col-lg">
+            <label class="form-label" for="{{ field.id_for_label }}">{{ field.label|default:field.name|title }}</label>
+            {{ field }}
+        </div>
+        {% endfor %}
+        <div class="col-sm-6 col-lg-auto"><button class="btn btn-outline-primary w-100" type="submit">{% trans 'Filter' %}</button></div>
+        <div class="col-sm-6 col-lg-auto"><a class="btn btn-outline-secondary w-100" href="{% url 'student_list' %}">{% trans 'Clear' %}</a></div>
+    </div>
+</form>
+
+<div class="table-responsive">
+    <table class="table table-hover align-middle">
+        <thead>
+            <tr>
+                <th>{% trans 'Registration No.' %}</th>
+                <th>{% trans 'Student' %}</th>
+                <th>{% trans 'Program / Cohort' %}</th>
+                <th>{% trans 'Year' %}</th>
+                <th>{% trans 'Status' %}</th>
+                <th>{% trans 'Details' %}</th>
+                {% if can_manage %}<th>{% trans 'Actions' %}</th>{% endif %}
+            </tr>
+        </thead>
+        <tbody>
+        {% for student in object_list %}
+            <tr>
+                <td>{{ student.registration_number|default:"—" }}</td>
+                <td>
+                    <a href="{% url 'student_record_detail' student.pk %}">{{ student.student.get_full_name }}</a>
+                    <div class="small text-muted">{{ student.student.email }}</div>
+                </td>
+                <td>{{ student.program|default:"—" }}{% if student.cohort %}<div class="small text-muted">{{ student.cohort }}</div>{% endif %}</td>
+                <td>{{ student.get_year_display|default:"—" }}</td>
+                <td><span class="badge {% if student.status == 'active' %}text-bg-success{% elif student.status == 'graduated' %}text-bg-primary{% elif student.status == 'withdrawn' %}text-bg-dark{% else %}text-bg-warning{% endif %}">{{ student.get_status_display }}</span></td>
+                <td><a class="btn btn-sm btn-outline-primary" href="{% url 'student_record_detail' student.pk %}">{% trans 'Open record' %}</a></td>
+                {% if can_manage %}
+                <td>
+                    <a class="btn btn-sm btn-outline-secondary" href="{% url 'student_edit' student.student_id %}">{% trans 'Edit' %}</a>
+                    {% if student.status != 'withdrawn' and student.status != 'graduated' %}
+                    <form method="post" action="{% url 'student_delete' student.pk %}" class="d-inline" onsubmit="return confirm('{% trans 'Archive this student as withdrawn?' %}')">
+                        {% csrf_token %}
+                        <button class="btn btn-sm btn-outline-danger" type="submit">{% trans 'Withdraw' %}</button>
+                    </form>
+                    {% endif %}
+                </td>
+                {% endif %}
+            </tr>
+        {% empty %}
+            <tr><td class="text-center text-muted py-4" colspan="{% if can_manage %}7{% else %}6{% endif %}">{% trans 'No student records found.' %}</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% if is_paginated %}
+<nav aria-label="{% trans 'Student pages' %}">
+    <ul class="pagination">
+        {% if page_obj.has_previous %}
+        <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}&id_no={{ filter.data.id_no|urlencode }}&name={{ filter.data.name|urlencode }}&email={{ filter.data.email|urlencode }}&program={{ filter.data.program|urlencode }}&status={{ filter.data.status|urlencode }}">{% trans 'Previous' %}</a></li>
+        {% endif %}
+        <li class="page-item disabled"><span class="page-link">{% blocktrans with current=page_obj.number total=page_obj.paginator.num_pages %}Page {{ current }} of {{ total }}{% endblocktrans %}</span></li>
+        {% if page_obj.has_next %}
+        <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}&id_no={{ filter.data.id_no|urlencode }}&name={{ filter.data.name|urlencode }}&email={{ filter.data.email|urlencode }}&program={{ filter.data.program|urlencode }}&status={{ filter.data.status|urlencode }}">{% trans 'Next' %}</a></li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+{% endblock %}

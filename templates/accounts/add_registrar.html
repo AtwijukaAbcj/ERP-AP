@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+{% block title %}Add Registrar{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+  <h2 class="mb-3">Add Registrar</h2>
+  <form method="post">{% csrf_token %}
+    {{ form.as_p }}
+    <button class="btn btn-success" type="submit">Create</button>
+  </form>
+</div>
+{% endblock %}

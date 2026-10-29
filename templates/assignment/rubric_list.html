@@ -1,0 +1,102 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block content %}
+<nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/">{% trans 'Home' %}</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'assignment:assignment_list' course.slug %}">{% trans 'Assignments' %}</a></li>
+        <li class="breadcrumb-item active">{% trans 'Rubrics' %}</li>
+    </ol>
+</nav>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h3><i class="fas fa-table me-2 text-primary"></i>{% trans 'Rubrics' %}</h3>
+        <p class="text-muted mb-0">{% trans 'Create scoring guides for consistent grading' %}</p>
+    </div>
+    <a href="{% url 'assignment:rubric_create' course.slug %}" class="btn btn-primary">
+        <i class="fas fa-plus me-1"></i>{% trans 'New Rubric' %}
+    </a>
+</div>
+
+{% if rubrics %}
+<div class="row">
+    {% for rubric in rubrics %}
+    <div class="col-lg-6 mb-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="mb-0">{{ rubric.title }}</h6>
+                <span class="badge bg-primary">{{ rubric.total_points }} {% trans 'pts' %}</span>
+            </div>
+            <div class="card-body">
+                {% if rubric.description %}
+                <p class="text-muted small">{{ rubric.description }}</p>
+                {% endif %}
+                
+                <div class="mb-3">
+                    <small class="text-muted text-uppercase">{% trans 'Criteria' %} ({{ rubric.criteria.count }})</small>
+                </div>
+                
+                {% if rubric.criteria.exists %}
+                <table class="table table-sm table-bordered mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>{% trans 'Criterion' %}</th>
+                            <th class="text-center" style="width: 80px;">{% trans 'Points' %}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for criterion in rubric.criteria.all|slice:":4" %}
+                        <tr>
+                            <td class="small">{{ criterion.description }}</td>
+                            <td class="text-center">{{ criterion.points }}</td>
+                        </tr>
+                        {% endfor %}
+                        {% if rubric.criteria.count > 4 %}
+                        <tr>
+                            <td colspan="2" class="text-center text-muted small">
+                                + {{ rubric.criteria.count|add:"-4" }} {% trans 'more criteria' %}
+                            </td>
+                        </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+                {% else %}
+                <p class="text-muted small mb-0">{% trans 'No criteria defined yet' %}</p>
+                {% endif %}
+            </div>
+            <div class="card-footer bg-transparent">
+                <div class="d-flex justify-content-between align-items-center">
+                    <small class="text-muted">
+                        {% with count=rubric.assignments.count %}
+                        {% trans 'Used in' %} {{ count }} {% trans 'assignment' %}{% if count != 1 %}s{% endif %}
+                        {% endwith %}
+                    </small>
+                    <div>
+                        <a href="{% url 'assignment:rubric_edit' course.slug rubric.id %}" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-edit me-1"></i>{% trans 'Edit' %}
+                        </a>
+                        <a href="{% url 'assignment:rubric_delete' course.slug rubric.id %}" class="btn btn-sm btn-outline-danger ms-1">
+                            <i class="fas fa-trash"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="card shadow-sm">
+    <div class="card-body text-center py-5">
+        <i class="fas fa-table fa-4x text-muted mb-3"></i>
+        <h5 class="text-muted">{% trans 'No rubrics yet' %}</h5>
+        <p class="text-muted">{% trans 'Create rubrics to establish clear grading criteria' %}</p>
+        <a href="{% url 'assignment:rubric_create' course.slug %}" class="btn btn-primary">
+            <i class="fas fa-plus me-1"></i>{% trans 'Create First Rubric' %}
+        </a>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
