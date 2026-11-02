@@ -4,7 +4,7 @@ from django.core.management import call_command
 from django.test import TestCase, TransactionTestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal
 from unittest.mock import patch
 
@@ -786,6 +786,34 @@ class DashboardModuleNavigationTests(TestCase):
         self.assertContains(response, "Traffic Analytics")
         self.assertContains(response, "Enrollment Trends")
         self.assertContains(response, "not page-view tracking")
+
+    def test_dashboard_lists_users_active_within_five_minutes(self):
+        online_user = User.objects.create_user(
+            username="recent-dashboard-user",
+            email="recent-dashboard-user@example.test",
+        )
+        online_user.last_activity = timezone.now() - timedelta(minutes=3)
+        online_user.save(update_fields=["last_activity"])
+        offline_user = User.objects.create_user(
+            username="stale-dashboard-user",
+            email="stale-dashboard-user@example.test",
+        )
+        offline_user.last_activity = timezone.now() - timedelta(minutes=6)
+        offline_user.save(update_fields=["last_activity"])
+
+        response = self.client.get(reverse("dashboard"))
+
+        listed_usernames = {
+            user.username for user in response.context["online_users"]
+        }
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Online users")
+        self.assertContains(response, "recent-dashboard-user")
+        self.assertNotContains(response, "stale-dashboard-user")
+        self.assertIn(self.admin.username, listed_usernames)
+        self.assertIn(online_user.username, listed_usernames)
+        self.assertNotIn(offline_user.username, listed_usernames)
+        self.assertEqual(response.context["online_user_count"], 2)
 
     def test_dashboard_charts_use_real_lifecycle_counts(self):
         program = Program.objects.create(title="Dashboard Nursing")

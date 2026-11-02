@@ -206,6 +206,7 @@ GENDERS = ((_("M"), _("Male")), (_("F"), _("Female")))
 
 
 class User(AbstractUser):
+    last_activity = models.DateTimeField(blank=True, null=True, db_index=True)
     is_student = models.BooleanField(default=False)
     is_lecturer = models.BooleanField(default=False)
     is_parent = models.BooleanField(default=False)

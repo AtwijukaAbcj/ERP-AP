@@ -1,5 +1,11 @@
+from datetime import timedelta
+
 from django.core.exceptions import PermissionDenied
+from django.db.models import Q
 from django.utils.deprecation import MiddlewareMixin
+from django.utils import timezone
+
+from accounts.models import User
 
 
 MODULE_ACCESS_BY_APP = {
@@ -9,6 +15,20 @@ MODULE_ACCESS_BY_APP = {
     "voting": "voting",
     "audit": "audit",
 }
+
+
+class OnlineUserTrackingMiddleware(MiddlewareMixin):
+    def process_request(self, request):
+        user = request.user
+        if not user.is_authenticated or not user.is_active:
+            return None
+
+        now = timezone.now()
+        User.objects.filter(pk=user.pk).filter(
+            Q(last_activity__isnull=True)
+            | Q(last_activity__lt=now - timedelta(minutes=1))
+        ).update(last_activity=now)
+        return None
 
 
 class AssignedModuleAccessMiddleware(MiddlewareMixin):

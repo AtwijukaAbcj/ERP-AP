@@ -145,6 +145,7 @@
                 </div>
             </li>
             {% endif %}
+            {% endif %}
             {% if request.user.is_superuser or request.user.is_finance or request.user.is_finance_manager or request.user.is_accountant or assigned_finance_access %}
             <!-- Finance Dropdown -->
             <li class="menu-dropdown orange {% if request.resolver_match.namespace == 'finance' %}open{% endif %}" data-dropdown="finance">
@@ -198,6 +199,7 @@
             </li>
             {% endif %}
 
+            {% if request.user.is_superuser %}
             <li class="menu-item">
                 <a href="{{ sess }}" class="menu-link {% if request.path == sess %}active{% endif %}">
                     <i class="fas fa-calendar-week"></i> {% trans 'Manage Sessions' %}

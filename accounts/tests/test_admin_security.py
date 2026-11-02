@@ -427,6 +427,27 @@ class AccessControlAdministrationTests(TestCase):
         self.assertNotIn("User Directory", sidebar_menu)
         self.assertNotIn(reverse("user_list"), sidebar_menu)
 
+    def test_role_granted_finance_and_procurement_modules_appear_in_sidebar(self):
+        role = Role.objects.create(name="Finance and Procurement User", slug="finance-procurement-user")
+        for code, name in (
+            ("finance", "Finance"),
+            ("procurement_dashboard", "Procurement Dashboard"),
+        ):
+            permission = Permission.objects.get_or_create(
+                code=code,
+                defaults={"name": name},
+            )[0]
+            RolePermission.objects.create(role=role, permission=permission)
+        self.user.roles.add(role)
+        self.client.force_login(self.user)
+
+        response = self.client.get(reverse("home"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, reverse("finance:invoice_list"))
+        self.assertContains(response, reverse("procurement:dashboard"))
+        self.assertNotContains(response, reverse("user_list"))
+
     def test_procurement_actions_are_available_for_role_assignment(self):
         permission = Permission.objects.get(code="procurement_plans_approve")
         role = Role.objects.create(name="Plan Approver", slug="plan-approver")

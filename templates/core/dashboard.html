@@ -475,6 +475,39 @@
   </div>
 </section>
 
+<section aria-labelledby="online-users-heading">
+  <div class="dashboard-section-heading">
+    <div>
+      <h2 id="online-users-heading">{% trans 'Online users' %}</h2>
+      <p>{% trans 'Users active in the last five minutes.' %}</p>
+    </div>
+    <span class="badge text-bg-success">{{ online_user_count }} {% trans 'online' %}</span>
+  </div>
+  <div class="card shadow-sm">
+    <div class="card-body">
+      {% if online_users %}
+      <ul class="list-group list-group-flush">
+        {% for online_user in online_users %}
+        <li class="list-group-item d-flex justify-content-between align-items-center gap-3 px-0">
+          <span>
+            <span class="text-success me-2" aria-label="{% trans 'Online' %}">●</span>
+            {{ online_user.get_full_name }}
+            <span class="text-muted small">({{ online_user.username }})</span>
+          </span>
+          <span class="text-muted small">{% trans 'Active' %} {{ online_user.last_activity|timesince }} {% trans 'ago' %}</span>
+        </li>
+        {% endfor %}
+      </ul>
+      {% if online_user_count > 20 %}
+      <p class="text-muted small mb-0 mt-2">{% blocktrans with shown=20 total=online_user_count %}Showing {{ shown }} of {{ total }} online users.{% endblocktrans %}</p>
+      {% endif %}
+      {% else %}
+      <p class="text-muted mb-0">{% trans 'No users are online right now.' %}</p>
+      {% endif %}
+    </div>
+  </div>
+</section>
+
 <section aria-labelledby="modules-heading">
   <div class="dashboard-section-heading">
     <div>

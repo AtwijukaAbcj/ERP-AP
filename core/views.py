@@ -1,4 +1,5 @@
 from datetime import date, datetime, time
+from datetime import timedelta
 
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
@@ -85,6 +86,12 @@ def _dashboard_months():
 @login_required
 @admin_required
 def dashboard_view(request):
+    online_since = timezone.now() - timedelta(minutes=5)
+    online_users = User.objects.filter(
+        is_active=True,
+        last_activity__gte=online_since,
+    ).order_by("-last_activity", "username")
+    online_user_count = online_users.count()
     logs = ActivityLog.objects.all().order_by("-created_at")[:10]
     student_count = User.objects.get_student_count()
     lecturer_count = User.objects.get_lecturer_count()
@@ -343,6 +350,8 @@ def dashboard_view(request):
         "student_count": student_count,
         "lecturer_count": lecturer_count,
         "superuser_count": superuser_count,
+        "online_users": online_users[:20],
+        "online_user_count": online_user_count,
         "course_count": course_count,
         "procurement_plan_count": procurement_plan_count,
         "module_cards": module_cards,
