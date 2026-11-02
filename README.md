@@ -105,6 +105,17 @@ with `DEMO`, creates fictional admissions, academic, clinical, staff, finance,
 and procurement records, and is safe to rerun. Demo accounts have unusable
 passwords; set credentials manually only if you need to sign in as one.
 
+To seed only fictional Procurement examples, use:
+
+```bash
+python manage.py seed_demo_data --procurement-only --dry-run
+python manage.py seed_demo_data --procurement-only
+```
+
+This creates only the demo procurement account and its sample suppliers,
+department, plan, requisition, quotation, and order. It never imports records
+from the local database.
+
 ```bash
 python manage.py runserver
 ```

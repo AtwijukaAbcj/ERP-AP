@@ -51,6 +51,11 @@ class Command(BaseCommand):
             action="store_true",
             help="Create the sample inside a transaction and roll it back.",
         )
+        parser.add_argument(
+            "--procurement-only",
+            action="store_true",
+            help="Create only fictional procurement demo records.",
+        )
 
     def handle(self, *args, **options):
         if not settings.DEBUG or connection.vendor != "sqlite":
@@ -62,7 +67,10 @@ class Command(BaseCommand):
         self.created_count = 0
         today = timezone.localdate()
         with transaction.atomic():
-            self._seed(today)
+            if options["procurement_only"]:
+                self._seed_procurement(today)
+            else:
+                self._seed(today)
             created_count = self.created_count
             if options["dry_run"]:
                 transaction.set_rollback(True)
@@ -176,12 +184,6 @@ class Command(BaseCommand):
             "demo.departmenthead@example.test",
             "Department Head",
             is_dep_head=True,
-        )
-        procurement_user = self._demo_user(
-            "demo_procurement",
-            "demo.procurement@example.test",
-            "Procurement Officer",
-            is_procurement_officer=True,
         )
         finance_user = self._demo_user(
             "demo_finance",
@@ -462,6 +464,15 @@ class Command(BaseCommand):
             },
         )
 
+        self._seed_procurement(today)
+
+    def _seed_procurement(self, today):
+        procurement_user = self._demo_user(
+            "demo_procurement",
+            "demo.procurement@example.test",
+            "Procurement Officer",
+            is_procurement_officer=True,
+        )
         procurement_department = self._ensure(
             ProcurementDepartment,
             {"name": "DEMO - Nursing Department"},

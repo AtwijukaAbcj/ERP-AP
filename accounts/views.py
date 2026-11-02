@@ -708,19 +708,29 @@ def role_permission_add_view(request):
     if request.method == "POST":
         form = RolePermissionForm(request.POST)
         if form.is_valid():
-            role_permission = form.save()
-            log_activity(
-                request.user,
-                "rbac.role_permission.granted",
-                f"Granted {role_permission.permission.code} to {role_permission.role.slug}.",
-                request=request,
-                instance=role_permission,
-                after={
-                    "role": role_permission.role.slug,
-                    "permission": role_permission.permission.code,
-                },
-            )
-            messages.success(request, "Permission assigned to role successfully.")
+            role_permissions = form.save()
+            for role_permission in role_permissions:
+                log_activity(
+                    request.user,
+                    "rbac.role_permission.granted",
+                    f"Granted {role_permission.permission.code} to {role_permission.role.slug}.",
+                    request=request,
+                    instance=role_permission,
+                    after={
+                        "role": role_permission.role.slug,
+                        "permission": role_permission.permission.code,
+                    },
+                )
+            if role_permissions:
+                messages.success(
+                    request,
+                    f"Assigned {len(role_permissions)} permission(s) to the role.",
+                )
+            else:
+                messages.info(
+                    request,
+                    "All selected permissions were already assigned to this role.",
+                )
             return redirect("role_permission_list")
     else:
         form = RolePermissionForm()

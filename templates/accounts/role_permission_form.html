@@ -16,10 +16,26 @@
 
 {% include 'snippets/messages.html' %}
 
-<form method="post" novalidate>
+<form method="post" novalidate class="role-permission-form">
     {% csrf_token %}
-    {{ form|crispy }}
-    <button type="submit" class="btn btn-primary mt-3">{% trans 'Save' %}</button>
-    <a href="{% url 'role_permission_list' %}" class="btn btn-secondary mt-3">{% trans 'Cancel' %}</a>
+    {{ form.non_field_errors }}
+    <div class="card shadow-sm mb-3">
+        <div class="card-header">
+            <h5 class="mb-0">{% trans 'Choose a role' %}</h5>
+        </div>
+        <div class="card-body">
+            {{ form.role|as_crispy_field }}
+        </div>
+    </div>
+    <div class="card shadow-sm mb-3">
+        <div class="card-header">
+            <h5 class="mb-0">{% trans 'Choose permissions' %}</h5>
+        </div>
+        <div class="card-body">
+            {{ form.permissions|as_crispy_field }}
+        </div>
+    </div>
+    <button type="submit" class="btn btn-primary mt-2">{% trans 'Save Permissions' %}</button>
+    <a href="{% url 'role_permission_list' %}" class="btn btn-secondary mt-2">{% trans 'Cancel' %}</a>
 </form>
 {% endblock content %}

@@ -1173,6 +1173,74 @@ class DemoDataCommandTests(TransactionTestCase):
         self.assertEqual(User.objects.filter(username__startswith="demo_").count(), 0)
         self.assertIn("rolled back", output.getvalue())
 
+    def test_procurement_only_dry_run_rolls_back_all_changes(self):
+        output = StringIO()
+        call_command(
+            "seed_demo_data",
+            "--procurement-only",
+            "--dry-run",
+            stdout=output,
+        )
+
+        self.assertFalse(User.objects.filter(username="demo_procurement").exists())
+        self.assertFalse(
+            Supplier.objects.filter(name="DEMO - Health Supplies Ltd").exists()
+        )
+        self.assertIn("rolled back", output.getvalue())
+
+    def test_procurement_only_seed_is_synthetic_scoped_and_idempotent(self):
+        call_command(
+            "seed_demo_data",
+            "--procurement-only",
+            stdout=StringIO(),
+        )
+
+        procurement_user = User.objects.get(username="demo_procurement")
+        self.assertFalse(procurement_user.has_usable_password())
+        self.assertEqual(User.objects.filter(username__startswith="demo_").count(), 1)
+        self.assertEqual(Student.objects.count(), 0)
+        self.assertEqual(Course.objects.filter(code__startswith="DEMO-").count(), 0)
+        self.assertEqual(Invoice.objects.count(), 0)
+        supplier = Supplier.objects.get(name="DEMO - Health Supplies Ltd")
+        self.assertIn("not a real supplier", supplier.address)
+        requisition = PurchaseRequisition.objects.get(
+            title="DEMO - Ward training supplies"
+        )
+        self.assertEqual(requisition.requested_by, procurement_user)
+        self.assertEqual(
+            PurchaseQuotation.objects.get(reference="DEMO-QUOTE-0001").items_total,
+            Decimal("825000.00"),
+        )
+        self.assertEqual(
+            PurchaseOrder.objects.get(requisition=requisition).items_total,
+            Decimal("850000.00"),
+        )
+
+        seeded_counts = (
+            User.objects.filter(username="demo_procurement").count(),
+            Supplier.objects.filter(name__startswith="DEMO -").count(),
+            PurchaseRequisition.objects.filter(title__startswith="DEMO -").count(),
+            PurchaseQuotation.objects.filter(reference__startswith="DEMO-").count(),
+            PurchaseOrder.objects.filter(requisition__title__startswith="DEMO -").count(),
+        )
+        call_command(
+            "seed_demo_data",
+            "--procurement-only",
+            stdout=StringIO(),
+        )
+        self.assertEqual(
+            seeded_counts,
+            (
+                User.objects.filter(username="demo_procurement").count(),
+                Supplier.objects.filter(name__startswith="DEMO -").count(),
+                PurchaseRequisition.objects.filter(title__startswith="DEMO -").count(),
+                PurchaseQuotation.objects.filter(reference__startswith="DEMO-").count(),
+                PurchaseOrder.objects.filter(
+                    requisition__title__startswith="DEMO -"
+                ).count(),
+            ),
+        )
+
     def test_demo_seed_is_idempotent(self):
         call_command("seed_demo_data", stdout=StringIO())
         self.assertTrue(User.objects.filter(username="demo_student").exists())

@@ -148,14 +148,55 @@ class PermissionForm(forms.ModelForm):
         }
 
 
-class RolePermissionForm(forms.ModelForm):
-    class Meta:
-        model = RolePermission
-        fields = ["role", "permission"]
-        widgets = {
-            "role": forms.Select(attrs={"class": "form-control"}),
-            "permission": forms.Select(attrs={"class": "form-control"}),
-        }
+class RolePermissionForm(forms.Form):
+    role = forms.ModelChoiceField(
+        queryset=Role.objects.none(),
+        widget=forms.RadioSelect,
+        label="Role",
+    )
+    permissions = forms.ModelMultipleChoiceField(
+        queryset=Permission.objects.none(),
+        widget=forms.CheckboxSelectMultiple,
+        label="Permissions",
+        help_text="Select every permission to grant to this role.",
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["role"].queryset = Role.objects.order_by("name")
+        permissions = Permission.objects.order_by("module", "name")
+        self.fields["permissions"].queryset = permissions
+
+        grouped_choices = {}
+        for permission in permissions:
+            module = permission.module
+            if not module and permission.code:
+                module = (
+                    permission.code.split(".", 1)[0]
+                    .split("__", 1)[0]
+                    .replace("_", " ")
+                    .title()
+                )
+            module = module or "Other"
+            grouped_choices.setdefault(module, []).append(
+                (permission.pk, f"{permission.name} ({permission.code})")
+            )
+        self.fields["permissions"].choices = [
+            (module, choices)
+            for module, choices in grouped_choices.items()
+        ]
+
+    def save(self):
+        role = self.cleaned_data["role"]
+        created_role_permissions = []
+        for permission in self.cleaned_data["permissions"]:
+            role_permission, created = RolePermission.objects.get_or_create(
+                role=role,
+                permission=permission,
+            )
+            if created:
+                created_role_permissions.append(role_permission)
+        return created_role_permissions
 
 
 class UserPermissionForm(forms.ModelForm):

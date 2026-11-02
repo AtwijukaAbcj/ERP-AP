@@ -11,7 +11,7 @@ from accounts.models import (
     User,
     UserPermission,
 )
-from accounts.forms import UserAddForm, UserRolesForm
+from accounts.forms import RolePermissionForm, UserAddForm, UserRolesForm
 from audit.models import ActivityLog
 from finance.models import FinanceModulePermission as FinanceAppModulePermission
 from finance.permissions import has_finance_permission
@@ -239,6 +239,58 @@ class AccessControlAdministrationTests(TestCase):
             ActivityLog.objects.filter(
                 action="rbac.role_permission.revoked",
             ).exists()
+        )
+
+    def test_role_permission_form_uses_role_radio_and_permission_checkboxes(self):
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse("role_permission_add"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'type="radio"')
+        self.assertContains(response, 'type="checkbox"')
+        self.assertContains(response, "Choose a role")
+        self.assertContains(response, "Choose permissions")
+        self.assertIsInstance(response.context["form"].fields["role"].widget, forms.RadioSelect)
+        self.assertIsInstance(
+            response.context["form"].fields["permissions"].widget,
+            forms.CheckboxSelectMultiple,
+        )
+        self.assertNotIn(
+            "Other",
+            [
+                group_label
+                for group_label, _options in response.context["form"].fields[
+                    "permissions"
+                ].choices
+            ],
+        )
+
+    def test_role_permission_form_assigns_multiple_permissions_without_duplicate_grants(self):
+        additional_permission = Permission.objects.create(
+            name="Export example report",
+            code="example.report_export",
+        )
+        self.client.force_login(self.admin)
+
+        response = self.client.post(
+            reverse("role_permission_add"),
+            {
+                "role": self.role.pk,
+                "permissions": [self.permission.pk, additional_permission.pk],
+            },
+        )
+
+        self.assertRedirects(response, reverse("role_permission_list"))
+        self.assertEqual(
+            RolePermission.objects.filter(role=self.role).count(),
+            2,
+        )
+        self.assertEqual(
+            ActivityLog.objects.filter(
+                action="rbac.role_permission.granted",
+                after__permission=additional_permission.code,
+            ).count(),
+            1,
         )
 
     def test_role_and_permission_removal_reject_get_requests(self):
