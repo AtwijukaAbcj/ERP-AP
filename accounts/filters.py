@@ -34,16 +34,16 @@ class LecturerFilter(django_filters.FilterSet):
 
 class StudentFilter(django_filters.FilterSet):
     id_no = django_filters.CharFilter(
-        field_name="student__username", lookup_expr="exact", label=""
+        field_name="student__username", lookup_expr="exact", label="ID No."
     )
     name = django_filters.CharFilter(
-        field_name="student__name", method="filter_by_name", label=""
+        field_name="student__name", method="filter_by_name", label="Name"
     )
     email = django_filters.CharFilter(
-        field_name="student__email", lookup_expr="icontains", label=""
+        field_name="student__email", lookup_expr="icontains", label="Email"
     )
     program = django_filters.CharFilter(
-        field_name="program__title", lookup_expr="icontains", label=""
+        field_name="program__title", lookup_expr="icontains", label="Program"
     )
     status = django_filters.ChoiceFilter(
         choices=Student.Status.choices,
@@ -77,7 +77,7 @@ class StudentFilter(django_filters.FilterSet):
             {"class": "au-input", "placeholder": "Program"}
         )
         self.filters["status"].field.widget.attrs.update(
-            {"class": "au-input"}
+            {"class": "form-select"}
         )
 
     def filter_by_name(self, queryset, name, value):

@@ -15,6 +15,22 @@ from .models import Role, Permission, RolePermission, UserPermission, User, Stud
 
 
 class UserAddForm(UserCreationForm):
+    ACCOUNT_TYPE_CHOICES = (
+        ("user", "General User"),
+        ("student", "Student"),
+        ("lecturer", "Lecturer"),
+        ("finance", "Finance"),
+        ("registrar", "Registrar"),
+    )
+
+    account_type = forms.ChoiceField(
+        choices=ACCOUNT_TYPE_CHOICES,
+        initial="user",
+        widget=forms.Select(attrs={"class": "form-select"}),
+        label="Account type",
+        help_text="Choose the user's account type. Assign permission roles separately after creating the account.",
+    )
+
     username = forms.CharField(
         max_length=30,
         widget=forms.TextInput(attrs={"type": "text", "class": "form-control"}),
@@ -59,25 +75,16 @@ class UserAddForm(UserCreationForm):
         label="Email",
     )
 
-    role = forms.ModelChoiceField(
-        queryset=Role.objects.all(),
-        required=False,
-        widget=forms.Select(attrs={"class": "form-control"}),
-        label="Role",
-    )
-
     password1 = forms.CharField(
         max_length=30,
-        widget=forms.TextInput(attrs={"type": "password", "class": "form-control"}),
+        widget=forms.PasswordInput(attrs={"class": "form-control"}),
         label="Password",
-        required=False,
     )
 
     password2 = forms.CharField(
         max_length=30,
-        widget=forms.TextInput(attrs={"type": "password", "class": "form-control"}),
+        widget=forms.PasswordInput(attrs={"class": "form-control"}),
         label="Password Confirmation",
-        required=False,
     )
 
     class Meta(UserCreationForm.Meta):
@@ -90,7 +97,6 @@ class UserAddForm(UserCreationForm):
             "gender",
             "address",
             "phone",
-            "role",
             "password1",
             "password2",
         )
@@ -98,16 +104,21 @@ class UserAddForm(UserCreationForm):
     @transaction.atomic()
     def save(self, commit=True):
         user = super().save(commit=False)
+        account_type = self.cleaned_data["account_type"]
         user.first_name = self.cleaned_data.get("first_name")
         user.last_name = self.cleaned_data.get("last_name")
         user.phone = self.cleaned_data.get("phone")
         user.address = self.cleaned_data.get("address")
         user.email = self.cleaned_data.get("email")
-        user.role = self.cleaned_data.get("role")
-        user.is_staff = True
+        user.is_student = account_type == "student"
+        user.is_lecturer = account_type == "lecturer"
+        user.is_finance = account_type == "finance"
+        user.is_registrar = account_type == "registrar"
 
         if commit:
             user.save()
+            if user.is_student:
+                Student.objects.create(student=user)
 
         return user
 
@@ -218,13 +229,6 @@ class StaffAddForm(UserAddForm):
         label="Faculty",
     )
 
-    role = forms.ModelChoiceField(
-        queryset=Role.objects.all(),
-        required=False,
-        widget=forms.Select(attrs={"class": "form-control"}),
-        label="Role",
-    )
-
     password1 = forms.CharField(
         max_length=30,
         widget=forms.TextInput(attrs={"type": "password", "class": "form-control"}),
@@ -250,7 +254,6 @@ class StaffAddForm(UserAddForm):
             "address",
             "phone",
             "faculty",
-            "role",
         )
 
     @transaction.atomic()
@@ -263,12 +266,39 @@ class StaffAddForm(UserAddForm):
         user.address = self.cleaned_data.get("address")
         user.email = self.cleaned_data.get("email")
         user.faculty = self.cleaned_data.get("faculty")
-        user.role = self.cleaned_data.get("role")
-        user.is_staff = True
 
         if commit:
             user.save()
 
+        return user
+
+
+class UserRolesForm(forms.ModelForm):
+    roles = forms.ModelMultipleChoiceField(
+        queryset=Role.objects.none(),
+        required=False,
+        widget=forms.CheckboxSelectMultiple,
+        help_text="Select all permission roles this user should receive.",
+    )
+
+    class Meta:
+        model = User
+        fields = ("roles",)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["roles"].queryset = Role.objects.order_by("name")
+        if self.instance.pk:
+            self.initial["roles"] = self.instance.roles.all()
+
+    @transaction.atomic
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        selected_roles = self.cleaned_data["roles"]
+        user.role = selected_roles.first() if selected_roles else None
+        if commit:
+            user.save(update_fields=("role",))
+            self.save_m2m()
         return user
 # accounts/forms.py
 # accounts/forms.py
@@ -305,6 +335,7 @@ class FacultyLecturerAddForm(UserCreationForm):
 
 class StudentEditForm(forms.ModelForm):
     registration_number = forms.CharField(
+        max_length=60,
         label="Registration Number",
         required=False,
         widget=forms.TextInput(attrs={"class": "form-control"})
@@ -507,16 +538,17 @@ class StudentAddForm(forms.ModelForm):
     semester = forms.ModelChoiceField(
         queryset=Semester.objects.all(),
         widget=forms.Select(attrs={"class": "form-control"}),
-        required=False,
+        required=True,
     )
     program = forms.ModelChoiceField(queryset=Program.objects.all(), widget=forms.Select(attrs={"class": "form-control"}))
-    registration_number = forms.CharField(widget=forms.TextInput(attrs={"class": "form-control"}), label="Registration Number")
     date_of_birth = forms.DateField(
         required=False,
         widget=forms.DateInput(attrs={"type": "date", "class": "form-control"}),
     )
     cohort = forms.CharField(
-        required=False,
+        required=True,
+        label="Intake / Cohort",
+        help_text="Enter the intake month and academic year, for example August 2026.",
         widget=forms.TextInput(attrs={"class": "form-control"}),
     )
     admission_date = forms.DateField(
@@ -555,7 +587,6 @@ class StudentAddForm(forms.ModelForm):
                 year=self.cleaned_data.get("year"),
                 semester=self.cleaned_data.get("semester"),
                 program=self.cleaned_data.get("program"),
-                registration_number=self.cleaned_data.get("registration_number"),
                 date_of_birth=self.cleaned_data.get("date_of_birth"),
                 cohort=self.cleaned_data.get("cohort", ""),
                 admission_date=self.cleaned_data.get("admission_date"),
@@ -573,14 +604,6 @@ class StudentAddForm(forms.ModelForm):
         if date_of_birth and date_of_birth >= timezone.localdate():
             raise forms.ValidationError("Date of birth must be in the past.")
         return date_of_birth
-
-    def clean_registration_number(self):
-        registration_number = self.cleaned_data.get("registration_number")
-        if registration_number and Student.objects.filter(
-            registration_number=registration_number
-        ).exists():
-            raise forms.ValidationError("This registration number is already in use.")
-        return registration_number
 
     def clean(self):
         cleaned_data = super().clean()
@@ -921,14 +944,15 @@ class RegistrarModulePermissionForm(forms.ModelForm):
 
 class AssignModuleForm(forms.Form):
     user = forms.ModelChoiceField(
-        queryset=User.objects.all(),
+        queryset=User.objects.filter(is_superuser=False).order_by("username"),
         widget=forms.Select(attrs={'class': 'form-control'}),
         label='Select User'
     )
     modules = forms.MultipleChoiceField(
         choices=ACTIVE_MODULE_CHOICES,
         widget=forms.CheckboxSelectMultiple,
-        label='Modules'
+        label='Modules',
+        required=False,
     )
 
 class FacultyAdminAddForm(forms.ModelForm):

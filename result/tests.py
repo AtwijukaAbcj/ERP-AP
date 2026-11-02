@@ -4,7 +4,7 @@ from django.http import Http404
 from django.test import RequestFactory, TestCase, override_settings
 from django.urls import reverse
 
-from accounts.models import Student, User
+from accounts.models import ModulePermission, Student, User
 from core.models import Semester, Session
 from course.models import Course, CourseAllocation, Program
 from result.models import TakenCourse
@@ -154,6 +154,45 @@ class AssessmentScoreEntryTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Assessment")
+
+    def test_results_module_grant_does_not_expose_student_grade_page_to_staff(self):
+        staff_user = User.objects.create_user(
+            username="results-access-only",
+            password="test-password",
+        )
+        ModulePermission.objects.create(
+            user=staff_user,
+            module_name="results",
+        )
+        self.client.force_login(staff_user)
+
+        response = self.client.get(reverse("grade_results"))
+
+        self.assertRedirects(
+            response,
+            reverse("permission_denied"),
+            fetch_redirect_response=False,
+        )
+
+    def test_student_account_without_student_profile_cannot_view_grades(self):
+        incomplete_student = User.objects.create_user(
+            username="grade-student-without-profile",
+            password="test-password",
+            is_student=True,
+        )
+        ModulePermission.objects.create(
+            user=incomplete_student,
+            module_name="results",
+        )
+        self.client.force_login(incomplete_student)
+
+        response = self.client.get(reverse("grade_results"))
+
+        self.assertRedirects(
+            response,
+            reverse("permission_denied"),
+            fetch_redirect_response=False,
+        )
 
     def test_scores_are_saved_and_result_gpa_is_updated(self):
         response = self.client.post(

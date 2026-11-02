@@ -3,6 +3,7 @@ from . import views
 
 urlpatterns = [
     path("logout/", views.custom_logout_view, name="logout"),
+    path("post-login/", views.account_landing, name="account_landing"),
     path("", include("django.contrib.auth.urls")),
     path("admin_panel/", views.admin_panel, name="admin_panel"),
     path("profile/", views.profile, name="profile"),
@@ -12,7 +13,10 @@ urlpatterns = [
     path('send-code/', views.send_code_to_email, name='send_code'),
     path('verify-code/', views.verify_code, name='verify_code'),
     path("lecturers/", views.LecturerFilterView.as_view(), name="lecturer_list"),
+    path("lecturers/pdf/", views.render_lecturer_pdf_list, name="lecturer_list_pdf"),
     path("lecturer/add/", views.staff_add_view, name="add_lecturer"),
+    path("lecturer/<int:pk>/edit/", views.edit_staff, name="staff_edit"),
+    path("lecturer/<int:pk>/delete/", views.delete_staff, name="lecturer_delete"),
     path("students/", views.StudentListView.as_view(), name="student_list"),
     path("students/<int:pk>/record/", views.student_record_detail, name="student_record_detail"),
     path(
@@ -34,6 +38,8 @@ urlpatterns = [
     path("student/add/", views.student_add_view, name="add_student"),
     path("users/", views.user_list, name="user_list"),
     path("users/add/", views.user_add_view, name="user_add"),
+    path("users/<int:user_id>/roles/", views.user_roles_view, name="user_roles"),
+    path("users/<int:user_id>/password/", views.user_password_reset, name="user_password_reset"),
     path("roles/", views.role_list_view, name="role_list"),
     path("roles/add/", views.role_add_view, name="role_add"),
     path("roles/<int:pk>/edit/", views.role_edit_view, name="role_edit"),

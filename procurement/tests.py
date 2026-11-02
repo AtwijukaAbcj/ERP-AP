@@ -1,12 +1,15 @@
+import csv
+from io import BytesIO, StringIO
 from decimal import Decimal
 from unittest.mock import patch
 
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
 from django.urls import reverse
+from openpyxl import load_workbook
 from rest_framework.test import APIClient
 
-from accounts.models import Role, User
+from accounts.models import ModulePermission, Permission, Role, User, UserPermission
 
 from .serializers import PurchaseOrderSerializer
 from .models import (
@@ -92,6 +95,67 @@ class ProcurementWorkflowTests(TestCase):
         self.assertEqual(response.status_code, 302)
         self.requisition.refresh_from_db()
         self.assertEqual(self.requisition.status.slug, "approved")
+
+    def test_procurement_module_assignment_controls_dashboard_access(self):
+        dashboard_url = reverse("procurement:dashboard")
+        self.client.force_login(self.officer)
+        self.assertEqual(self.client.get(dashboard_url).status_code, 403)
+
+        ModulePermission.objects.create(
+            user=self.officer,
+            module_name="procurement_dashboard",
+        )
+        self.assertEqual(self.client.get(dashboard_url).status_code, 200)
+
+        ModulePermission.objects.filter(
+            user=self.officer,
+            module_name="procurement_dashboard",
+        ).delete()
+        ModulePermission.objects.create(
+            user=self.officer,
+            module_name="procurement",
+        )
+        self.assertEqual(self.client.get(dashboard_url).status_code, 200)
+
+        permission = Permission.objects.get(code="procurement_dashboard")
+        UserPermission.objects.create(
+            user=self.officer,
+            permission=permission,
+            effect=UserPermission.DENY,
+        )
+        self.assertEqual(self.client.get(dashboard_url).status_code, 403)
+
+    def test_procurement_sidebar_exposes_quotation_and_configuration_workflows(self):
+        self.client.force_login(self.superuser)
+        response = self.client.get(reverse("procurement:dashboard"))
+
+        self.assertEqual(response.status_code, 200)
+        for route_name in (
+            "purchase_quotation_list",
+            "procurement_department_list",
+            "procurement_status_list",
+        ):
+            with self.subTest(route=route_name):
+                self.assertContains(
+                    response,
+                    reverse(f"procurement:{route_name}"),
+                )
+        self.assertContains(response, "Supplier Quotations")
+        self.assertContains(response, "Statuses &amp; Workflow")
+
+    def test_explicit_procurement_deny_overrides_manager_access(self):
+        permission = Permission.objects.get(code="procurement_dashboard")
+        UserPermission.objects.create(
+            user=self.manager,
+            permission=permission,
+            effect=UserPermission.DENY,
+        )
+        self.client.force_login(self.manager)
+
+        self.assertEqual(
+            self.client.get(reverse("procurement:dashboard")).status_code,
+            403,
+        )
 
     def test_requisition_review_requires_a_reason(self):
         self.client.force_login(self.manager)
@@ -383,6 +447,75 @@ class ProcurementWorkflowTests(TestCase):
         self.assertEqual(order.supplier, quotation.supplier)
         self.assertEqual(order.requisition, quotation.requisition)
 
+    def test_legacy_purchase_order_edit_shows_items_and_keeps_unchanged_lines_in_total(self):
+        self.requisition.status = self.approved_status
+        self.requisition.save()
+        order = PurchaseOrder.objects.create(
+            supplier=self.supplier,
+            requisition=self.requisition,
+            total_amount=Decimal("80.00"),
+        )
+        first_item = PurchaseOrderItem.objects.create(
+            purchase_order=order,
+            description="Examination couch",
+            quantity=1,
+            unit_price=Decimal("50.00"),
+        )
+        second_item = PurchaseOrderItem.objects.create(
+            purchase_order=order,
+            description="Stethoscope",
+            quantity=2,
+            unit_price=Decimal("15.00"),
+        )
+        self.client.force_login(self.superuser)
+        edit_url = reverse("procurement:purchase_order_edit", args=(order.pk,))
+
+        page = self.client.get(edit_url)
+        self.assertEqual(page.status_code, 200)
+        self.assertContains(page, f'name="items-0-description"')
+        self.assertContains(page, "Add item")
+
+        response = self.client.post(
+            edit_url,
+            {
+                "quotation": "",
+                "supplier": str(self.supplier.pk),
+                "requisition": str(self.requisition.pk),
+                "items-TOTAL_FORMS": "3",
+                "items-INITIAL_FORMS": "2",
+                "items-MIN_NUM_FORMS": "0",
+                "items-MAX_NUM_FORMS": "1000",
+                "items-0-id": str(first_item.pk),
+                "items-0-purchase_order": str(order.pk),
+                "items-0-description": "Examination couch",
+                "items-0-quantity": "1",
+                "items-0-unit_price": "50.00",
+                "items-0-DELETE": "",
+                "items-1-id": str(second_item.pk),
+                "items-1-purchase_order": str(order.pk),
+                "items-1-description": "Stethoscope",
+                "items-1-quantity": "2",
+                "items-1-unit_price": "15.00",
+                "items-1-DELETE": "",
+                "items-2-description": "",
+                "items-2-quantity": "1",
+                "items-2-unit_price": "0",
+                "items-2-DELETE": "",
+            },
+        )
+
+        self.assertEqual(
+            response.status_code,
+            302,
+            (
+                f"form errors: {response.context['form'].errors}; "
+                f"formset errors: {response.context['formset'].errors}"
+            ) if response.status_code == 200 else "",
+        )
+        order.refresh_from_db()
+        self.assertEqual(order.total_amount, Decimal("80.00"))
+        self.assertEqual(order.items.count(), 2)
+
     def test_purchase_order_cannot_exceed_requisition_amount_or_use_blacklisted_supplier(self):
         self.requisition.status = self.approved_status
         self.requisition.save()
@@ -526,6 +659,51 @@ class ProcurementWorkflowTests(TestCase):
         )
 
         self.assertEqual(orders_for_manager_response.status_code, 200)
+
+    def test_requisition_exports_include_names_and_excel_downloads_are_real_xlsx_files(self):
+        self.officer.first_name = "Taylor"
+        self.officer.last_name = "Buyer"
+        self.officer.save(update_fields=["first_name", "last_name"])
+        self.requisition.requested_by = self.officer
+        self.requisition.save(update_fields=["requested_by"])
+        PurchaseOrder.objects.create(
+            supplier=self.supplier,
+            requisition=self.requisition,
+            total_amount=Decimal("500.00"),
+        )
+        self.client.force_login(self.superuser)
+
+        requisition_csv = self.client.get(
+            reverse("procurement:export_purchase_requisition_csv")
+        )
+        self.assertEqual(requisition_csv.status_code, 200)
+        csv_rows = list(csv.reader(StringIO(requisition_csv.content.decode())))
+        self.assertEqual(csv_rows[1][2], "Taylor Buyer")
+
+        requisition_xlsx = self.client.get(
+            reverse("procurement:export_purchase_requisition_excel")
+        )
+        self.assertEqual(requisition_xlsx.status_code, 200)
+        self.assertEqual(
+            requisition_xlsx["Content-Type"],
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+        self.assertIn(".xlsx", requisition_xlsx["Content-Disposition"])
+        workbook = load_workbook(BytesIO(requisition_xlsx.content), read_only=True)
+        self.assertEqual(
+            list(workbook.active.iter_rows(values_only=True))[1][2],
+            "Taylor Buyer",
+        )
+
+        order_xlsx = self.client.get(
+            reverse("procurement:export_purchase_order_excel")
+        )
+        self.assertEqual(order_xlsx.status_code, 200)
+        self.assertTrue(order_xlsx.content.startswith(b"PK"))
+        order_workbook = load_workbook(BytesIO(order_xlsx.content), read_only=True)
+        order_rows = list(order_workbook.active.iter_rows(values_only=True))
+        self.assertEqual(order_rows[1][0], self.supplier.name)
+        self.assertEqual(order_rows[1][1], self.requisition.title)
 
     @patch(
         "django.core.files.storage.FileSystemStorage._save",

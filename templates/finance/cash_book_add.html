@@ -1,15 +1,27 @@
 {% extends 'base.html' %}
+{% load crispy_forms_tags %}
 {% block title %}Add Cash Book Entry{% endblock %}
 {% block content %}
-<div class="container mt-4">
-    <h2>Add Cash Book Entry</h2>
-    <div class="card p-4">
-        <form method="post">
-            {% csrf_token %}
-            {{ form.as_p }}
-            <button type="submit" class="btn btn-primary">Save Entry</button>
-            <a href="{% url 'finance:cash_book_list' %}" class="btn btn-secondary">Cancel</a>
-        </form>
+<div class="container mt-4 finance-form-page">
+    <div class="finance-form-heading">
+        <span class="finance-form-heading-icon"><i class="fas fa-book"></i></span>
+        <div>
+            <h2>Add Cash Book Entry</h2>
+            <p>Record a debit or credit transaction in the cash book.</p>
+        </div>
+    </div>
+    <div class="card finance-form-card">
+        <div class="card-body">
+            {% include 'snippets/messages.html' %}
+            <form method="post" novalidate>
+                {% csrf_token %}
+                {{ form|crispy }}
+                <div class="finance-form-actions">
+                    <button type="submit" class="btn btn-primary">Save Entry</button>
+                    <a href="{% url 'finance:cash_book_list' %}" class="btn btn-secondary">Cancel</a>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 {% endblock %}

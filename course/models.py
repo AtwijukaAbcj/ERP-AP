@@ -6,6 +6,7 @@ from django.db.models.signals import pre_save, post_delete, post_save
 from django.dispatch import receiver
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
+import re
 
 from core.models import ActivityLog, Semester
 from core.utils import unique_slug_generator
@@ -20,8 +21,18 @@ class ProgramManager(models.Manager):
         return queryset
 
 
+def program_code_from_title(title):
+    words = re.findall(r"[A-Za-z0-9]+", title)
+    ignored_words = {"a", "an", "and", "for", "in", "of", "the", "to"}
+    significant_words = [word for word in words if word.casefold() not in ignored_words]
+    if len(significant_words) == 1:
+        return significant_words[0][:5].upper()
+    return "".join(word[0] for word in significant_words).upper()[:20] or "PROG"
+
+
 class Program(models.Model):
     title = models.CharField(max_length=150, unique=True)
+    code = models.CharField(max_length=20, unique=True, blank=True)
     summary = models.TextField(blank=True)
     faculty = models.ForeignKey('course.Faculty', on_delete=models.SET_NULL, null=True, blank=True)
 
@@ -29,6 +40,18 @@ class Program(models.Model):
 
     def __str__(self):
         return f"{self.title}"
+
+    def save(self, *args, **kwargs):
+        self.code = self.code.strip().upper()
+        if not self.code:
+            base_code = program_code_from_title(self.title)
+            self.code = base_code
+            suffix = 2
+            while Program.objects.exclude(pk=self.pk).filter(code=self.code).exists():
+                suffix_text = str(suffix)
+                self.code = f"{base_code[:20 - len(suffix_text)]}{suffix_text}"
+                suffix += 1
+        super().save(*args, **kwargs)
 
     def get_absolute_url(self):
         return reverse("program_detail", kwargs={"pk": self.pk})

@@ -1,6 +1,19 @@
 {% load static i18n %}
 {% load permission_tags %}
 {% get_current_language as LANGUAGE_CODE %}
+{% can_access_module 'finance' as assigned_finance_access %}
+{% can_access_module 'procurement' as assigned_procurement_access %}
+{% can_access_module 'programs' as assigned_program_access %}
+{% can_access_module 'course' as assigned_course_access %}
+{% can_access_module 'courses' as assigned_courses_access %}
+{% can_access_module 'admissions' as assigned_admissions_access %}
+{% can_access_module 'students' as assigned_student_access %}
+{% can_access_module 'clinical' as assigned_clinical_access %}
+{% can_access_module 'course_registration' as assigned_course_registration_access %}
+{% has_permission "students.manage_students" as student_manage_access %}
+{% has_permission "students.export_students" as student_export_access %}
+{% can_access_module 'quizzes' as assigned_quiz_access %}
+{% can_access_module 'results' as assigned_results_access %}
 
 {# URL Definitions #}
 {% url 'home' as hom %} {% url 'dashboard' as dash %} {% url 'profile' as prof %}
@@ -21,7 +34,7 @@
             </button>
         </div>
         {% if request.user.is_superuser %}
-        <a href="{% url 'site_settings' %}" title="Click to change logo" style="display: inline-block; position: relative;">
+        <a href="{% url 'site_settings_branding' %}" title="Click to change logo" style="display: inline-block; position: relative;">
             {% if site_settings.logo_white %}
             <img src="{{ site_settings.logo_white.url }}" alt="{{ site_name }}" style="max-width: 140px; max-height: 50px; margin-bottom: 12px; transition: opacity 0.2s;">
             {% elif site_settings.logo %}
@@ -62,6 +75,25 @@
                     <i class="fas fa-user"></i> {% trans 'Profile' %}
                 </a>
             </li>
+            {% if request.user.is_superuser or request.user.is_lecturer or assigned_program_access or assigned_course_access or assigned_courses_access %}
+            <li class="menu-dropdown blue {% if request.resolver_match.url_name == 'programs' or request.resolver_match.url_name == 'program_detail' or request.resolver_match.url_name == 'add_program' or request.resolver_match.url_name == 'edit_program' or request.resolver_match.url_name == 'program_delete' or request.resolver_match.url_name == 'course_add' or request.resolver_match.url_name == 'course_detail' or request.resolver_match.url_name == 'edit_course' or request.resolver_match.url_name == 'delete_course' or request.resolver_match.url_name == 'course_allocation' or request.resolver_match.url_name == 'course_allocation_view' or request.resolver_match.url_name == 'edit_allocated_course' or request.resolver_match.url_name == 'course_deallocate' %}open{% endif %}" data-dropdown="programs-courses">
+                <button class="dropdown-toggle" type="button" aria-controls="programs-courses-submenu" aria-expanded="false" onclick="toggleDropdown(this)">
+                    <span><i class="fas fa-book-open"></i> {% trans 'Programs & Courses' %}</span>
+                    <i class="fas fa-chevron-down toggle-icon"></i>
+                </button>
+                <div class="dropdown-content" id="programs-courses-submenu">
+                    <a href="{% url 'programs' %}" class="{% if request.resolver_match.url_name == 'programs' or request.resolver_match.url_name == 'program_detail' or request.resolver_match.url_name == 'add_program' or request.resolver_match.url_name == 'edit_program' or request.resolver_match.url_name == 'program_delete' or request.resolver_match.url_name == 'course_add' or request.resolver_match.url_name == 'course_detail' or request.resolver_match.url_name == 'edit_course' or request.resolver_match.url_name == 'delete_course' %}active{% endif %}" {% if request.resolver_match.url_name == 'programs' or request.resolver_match.url_name == 'program_detail' or request.resolver_match.url_name == 'add_program' or request.resolver_match.url_name == 'edit_program' or request.resolver_match.url_name == 'program_delete' or request.resolver_match.url_name == 'course_add' or request.resolver_match.url_name == 'course_detail' or request.resolver_match.url_name == 'edit_course' or request.resolver_match.url_name == 'delete_course' %}aria-current="page"{% endif %}>
+                        <i class="fas fa-sitemap"></i> {% trans 'Program Tree & Courses' %}
+                    </a>
+                    <a href="{% url 'course_allocation_view' %}" class="{% if request.resolver_match.url_name == 'course_allocation_view' or request.resolver_match.url_name == 'edit_allocated_course' or request.resolver_match.url_name == 'course_deallocate' %}active{% endif %}" {% if request.resolver_match.url_name == 'course_allocation_view' or request.resolver_match.url_name == 'edit_allocated_course' or request.resolver_match.url_name == 'course_deallocate' %}aria-current="page"{% endif %}>
+                        <i class="fas fa-tasks"></i> {% trans 'Course Allocation' %}
+                    </a>
+                    <a href="{% url 'course_allocation' %}" class="{% if request.resolver_match.url_name == 'course_allocation' %}active{% endif %}" {% if request.resolver_match.url_name == 'course_allocation' %}aria-current="page"{% endif %}>
+                        <i class="fas fa-user-plus"></i> {% trans 'Allocate Courses' %}
+                    </a>
+                </div>
+            </li>
+            {% endif %}
 
             {# ===== SUPERUSER SECTION ===== #}
             {% if request.user.is_superuser %}
@@ -77,70 +109,94 @@
                     <i class="fas fa-user-shield"></i> {% trans 'Admin Panel' %}
                 </a>
             </li>
-            <li class="menu-dropdown blue" data-dropdown="access-management">
-                <div class="dropdown-toggle" onclick="toggleDropdown(this)">
+            <li class="menu-dropdown blue {% if request.resolver_match.url_name == 'access_control_home' or request.resolver_match.url_name == 'user_list' or request.resolver_match.url_name == 'role_list' or request.resolver_match.url_name == 'permission_list' or request.resolver_match.url_name == 'role_permission_list' or request.resolver_match.url_name == 'user_permission_list' or request.resolver_match.url_name == 'assign_modules' %}open{% endif %}" data-dropdown="access-management">
+                <button class="dropdown-toggle" type="button" aria-controls="access-management-submenu" aria-expanded="false" onclick="toggleDropdown(this)">
                     <span><i class="fas fa-shield-alt"></i> {% trans 'Access Control' %}</span>
                     <i class="fas fa-chevron-down toggle-icon"></i>
-                </div>
-                <div class="dropdown-content">
-                    <a href="{% url 'access_control_home' %}"><i class="fas fa-th-large"></i> {% trans 'Access Control Dashboard' %}</a>
-                    <a href="{% url 'user_list' %}"><i class="fas fa-users"></i> {% trans 'Users' %}</a>
-                    <a href="{% url 'role_list' %}"><i class="fas fa-user-tag"></i> {% trans 'Roles' %}</a>
-                    <a href="{% url 'permission_list' %}"><i class="fas fa-key"></i> {% trans 'Permissions' %}</a>
-                    <a href="{% url 'role_permission_list' %}"><i class="fas fa-user-shield"></i> {% trans 'Role Permissions' %}</a>
-                    <a href="{% url 'assign_modules' %}"><i class="fas fa-layer-group"></i> {% trans 'User Module Access' %}</a>
+                </button>
+                <div class="dropdown-content" id="access-management-submenu">
+                    <a href="{% url 'access_control_home' %}" class="{% if request.resolver_match.url_name == 'access_control_home' %}active{% endif %}" {% if request.resolver_match.url_name == 'access_control_home' %}aria-current="page"{% endif %}><i class="fas fa-th-large"></i> {% trans 'Access Control Dashboard' %}</a>
+                    <a href="{% url 'role_list' %}" class="{% if request.resolver_match.url_name == 'role_list' %}active{% endif %}" {% if request.resolver_match.url_name == 'role_list' %}aria-current="page"{% endif %}><i class="fas fa-user-tag"></i> {% trans 'Roles' %}</a>
+                    <a href="{% url 'permission_list' %}" class="{% if request.resolver_match.url_name == 'permission_list' %}active{% endif %}" {% if request.resolver_match.url_name == 'permission_list' %}aria-current="page"{% endif %}><i class="fas fa-key"></i> {% trans 'Permissions' %}</a>
+                    <a href="{% url 'role_permission_list' %}" class="{% if request.resolver_match.url_name == 'role_permission_list' or request.resolver_match.url_name == 'role_permission_add' or request.resolver_match.url_name == 'role_permission_delete' or request.resolver_match.url_name == 'user_permission_list' or request.resolver_match.url_name == 'user_permission_add' or request.resolver_match.url_name == 'user_permission_delete' %}active{% endif %}" {% if request.resolver_match.url_name == 'role_permission_list' or request.resolver_match.url_name == 'role_permission_add' or request.resolver_match.url_name == 'role_permission_delete' or request.resolver_match.url_name == 'user_permission_list' or request.resolver_match.url_name == 'user_permission_add' or request.resolver_match.url_name == 'user_permission_delete' %}aria-current="page"{% endif %}><i class="fas fa-user-shield"></i> {% trans 'Role Permissions' %}</a>
+                    <a href="{% url 'assign_modules' %}" class="{% if request.resolver_match.url_name == 'assign_modules' %}active{% endif %}" {% if request.resolver_match.url_name == 'assign_modules' %}aria-current="page"{% endif %}><i class="fas fa-layer-group"></i> {% trans 'User Module Access' %}</a>
                 </div>
             </li>
             <li class="menu-item">
-                <a href="{% url 'site_settings' %}" class="menu-link {% if request.path == '/settings/' %}active{% endif %}">
+                <a href="{% url 'site_settings' %}" class="menu-link {% if request.path|slice:':10' == '/settings/' %}active{% endif %}">
                     <i class="fas fa-cogs"></i> {% trans 'Site Settings' %}
                 </a>
             </li>
 
             <li class="menu-section">People</li>
+            {% if request.user.is_superuser %}
+            <li class="menu-dropdown blue {% if request.resolver_match.url_name == 'user_list' or request.resolver_match.url_name == 'user_add' or request.resolver_match.url_name == 'user_roles' or request.resolver_match.url_name == 'user_password_reset' %}open{% endif %}" data-dropdown="users">
+                <button class="dropdown-toggle" type="button" aria-controls="users-submenu" aria-expanded="false" onclick="toggleDropdown(this)">
+                    <span><i class="fas fa-users"></i> {% trans 'Users' %}</span>
+                    <i class="fas fa-chevron-down toggle-icon"></i>
+                </button>
+                <div class="dropdown-content" id="users-submenu">
+                    <a href="{% url 'user_list' %}" class="{% if request.resolver_match.url_name == 'user_list' or request.resolver_match.url_name == 'user_roles' or request.resolver_match.url_name == 'user_password_reset' %}active{% endif %}" {% if request.resolver_match.url_name == 'user_list' or request.resolver_match.url_name == 'user_roles' or request.resolver_match.url_name == 'user_password_reset' %}aria-current="page"{% endif %}>
+                        <i class="fas fa-address-book"></i> {% trans 'User Directory' %}
+                    </a>
+                    <a href="{% url 'user_add' %}" class="{% if request.resolver_match.url_name == 'user_add' %}active{% endif %}" {% if request.resolver_match.url_name == 'user_add' %}aria-current="page"{% endif %}>
+                        <i class="fas fa-user-plus"></i> {% trans 'Add User' %}
+                    </a>
+                </div>
+            </li>
+            {% endif %}
+            {% if request.user.is_superuser or request.user.is_finance or request.user.is_finance_manager or request.user.is_accountant or assigned_finance_access %}
             <!-- Finance Dropdown -->
-            <li class="menu-dropdown orange" data-dropdown="finance">
-                <div class="dropdown-toggle" onclick="toggleDropdown(this)">
+            <li class="menu-dropdown orange {% if request.resolver_match.namespace == 'finance' %}open{% endif %}" data-dropdown="finance">
+                <button class="dropdown-toggle" type="button" aria-controls="finance-submenu" aria-expanded="false" onclick="toggleDropdown(this)">
                     <span><i class="fas fa-coins"></i> Finance</span>
                     <i class="fas fa-chevron-down toggle-icon"></i>
-                </div>
-                <div class="dropdown-content">
-                    <a href="{% url 'finance_user_list' %}"><i class="fas fa-users"></i> Finance Users</a>
-                    <a href="{% url 'finance:assign_finance_modules' %}"><i class="fas fa-tasks"></i> Assign Modules</a>
-                    <a href="{% url 'finance:invoice_list' %}"><i class="fas fa-file-invoice-dollar"></i> Invoices</a>
-                    <a href="{% url 'finance:fee_category_list' %}"><i class="fas fa-list"></i> Fee Categories</a>
-                    <a href="{% url 'finance:staff_category_list' %}"><i class="fas fa-user-tie"></i> Staff Categories</a>
-                    <a href="{% url 'finance:staff_list' %}"><i class="fas fa-user-tie"></i> Staff</a>
-                    <a href="{% url 'finance:payroll_list' %}"><i class="fas fa-money-check-alt"></i> Payroll</a>
-                    <a href="{% url 'finance:expense_category_list' %}"><i class="fas fa-folder-open"></i> Expense Categories</a>
-                    <a href="{% url 'finance:expense_list' %}"><i class="fas fa-file-invoice"></i> Expenses</a>
-                    <a href="{% url 'finance:petty_cash_list' %}"><i class="fas fa-wallet"></i> Petty Cash</a>
-                    <a href="{% url 'finance:accounts_payable_list' %}"><i class="fas fa-hand-holding-usd"></i> Accounts Payable</a>
-                    <a href="{% url 'finance:accounts_receivable_list' %}"><i class="fas fa-file-invoice-dollar"></i> Accounts Receivable</a>
-                    <a href="{% url 'finance:budget_list' %}"><i class="fas fa-file-invoice"></i> Budgets</a>
-                    <a href="{% url 'finance:cash_book_list' %}"><i class="fas fa-book"></i> Cash Book</a>
-                    <a href="{% url 'finance:bank_reconciliation_list' %}"><i class="fas fa-university"></i> Bank Reconciliation</a>
-                    <a href="{% url 'finance:ledger_account_list' %}"><i class="fas fa-book-open"></i> Ledger Accounts</a>
-                    <a href="{% url 'finance:general_ledger_list' %}"><i class="fas fa-balance-scale"></i> General Ledger</a>
-                    <a href="{% url 'finance:payment_voucher_list' %}"><i class="fas fa-money-check"></i> Payment Vouchers</a>
-                    <a href="{% url 'finance:finance_reports' %}"><i class="fas fa-chart-line"></i> Reports</a>
+                </button>
+                <div class="dropdown-content" id="finance-submenu">
+                    {% if request.user.is_superuser %}
+                    <a href="{% url 'finance_user_list' %}" class="{% if request.resolver_match.url_name == 'finance_user_list' %}active{% endif %}" {% if request.resolver_match.url_name == 'finance_user_list' %}aria-current="page"{% endif %}><i class="fas fa-users"></i> Finance Users</a>
+                    <a href="{% url 'finance:assign_finance_modules' %}" class="{% if request.resolver_match.url_name == 'assign_finance_modules' %}active{% endif %}" {% if request.resolver_match.url_name == 'assign_finance_modules' %}aria-current="page"{% endif %}><i class="fas fa-tasks"></i> Assign Modules</a>
+                    {% endif %}
+                    <a href="{% url 'finance:invoice_list' %}" class="{% if request.resolver_match.url_name == 'invoice_list' or request.resolver_match.url_name == 'view_invoice' or request.resolver_match.url_name == 'edit_invoice' or request.resolver_match.url_name == 'create_invoice' %}active{% endif %}" {% if request.resolver_match.url_name == 'invoice_list' or request.resolver_match.url_name == 'view_invoice' or request.resolver_match.url_name == 'edit_invoice' or request.resolver_match.url_name == 'create_invoice' %}aria-current="page"{% endif %}><i class="fas fa-file-invoice-dollar"></i> Invoices</a>
+                    <a href="{% url 'finance:fee_category_list' %}" class="{% if request.resolver_match.url_name == 'fee_category_list' or request.resolver_match.url_name == 'fee_category_add' or request.resolver_match.url_name == 'fee_category_edit' or request.resolver_match.url_name == 'fee_category_delete' %}active{% endif %}" {% if request.resolver_match.url_name == 'fee_category_list' or request.resolver_match.url_name == 'fee_category_add' or request.resolver_match.url_name == 'fee_category_edit' or request.resolver_match.url_name == 'fee_category_delete' %}aria-current="page"{% endif %}><i class="fas fa-list"></i> Fee Categories</a>
+                    <a href="{% url 'finance:staff_category_list' %}" class="{% if request.resolver_match.url_name == 'staff_category_list' %}active{% endif %}" {% if request.resolver_match.url_name == 'staff_category_list' %}aria-current="page"{% endif %}><i class="fas fa-user-tie"></i> Staff Categories</a>
+                    <a href="{% url 'finance:staff_list' %}" class="{% if request.resolver_match.url_name == 'staff_list' %}active{% endif %}" {% if request.resolver_match.url_name == 'staff_list' %}aria-current="page"{% endif %}><i class="fas fa-user-tie"></i> Staff</a>
+                    <a href="{% url 'finance:payroll_list' %}" class="{% if request.resolver_match.url_name == 'payroll_list' %}active{% endif %}" {% if request.resolver_match.url_name == 'payroll_list' %}aria-current="page"{% endif %}><i class="fas fa-money-check-alt"></i> Payroll</a>
+                    <a href="{% url 'finance:expense_category_list' %}" class="{% if request.resolver_match.url_name == 'expense_category_list' or request.resolver_match.url_name == 'expense_category_add' or request.resolver_match.url_name == 'expense_category_edit' %}active{% endif %}" {% if request.resolver_match.url_name == 'expense_category_list' or request.resolver_match.url_name == 'expense_category_add' or request.resolver_match.url_name == 'expense_category_edit' %}aria-current="page"{% endif %}><i class="fas fa-folder-open"></i> Expense Categories</a>
+                    <a href="{% url 'finance:expense_list' %}" class="{% if request.resolver_match.url_name == 'expense_list' %}active{% endif %}" {% if request.resolver_match.url_name == 'expense_list' %}aria-current="page"{% endif %}><i class="fas fa-file-invoice"></i> Expenses</a>
+                    <a href="{% url 'finance:petty_cash_list' %}" class="{% if request.resolver_match.url_name == 'petty_cash_list' %}active{% endif %}" {% if request.resolver_match.url_name == 'petty_cash_list' %}aria-current="page"{% endif %}><i class="fas fa-wallet"></i> Petty Cash</a>
+                    <a href="{% url 'finance:accounts_payable_list' %}" class="{% if request.resolver_match.url_name == 'accounts_payable_list' %}active{% endif %}" {% if request.resolver_match.url_name == 'accounts_payable_list' %}aria-current="page"{% endif %}><i class="fas fa-hand-holding-usd"></i> Accounts Payable</a>
+                    <a href="{% url 'finance:accounts_receivable_list' %}" class="{% if request.resolver_match.url_name == 'accounts_receivable_list' %}active{% endif %}" {% if request.resolver_match.url_name == 'accounts_receivable_list' %}aria-current="page"{% endif %}><i class="fas fa-file-invoice-dollar"></i> Accounts Receivable</a>
+                    <a href="{% url 'finance:budget_list' %}" class="{% if request.resolver_match.url_name == 'budget_list' %}active{% endif %}" {% if request.resolver_match.url_name == 'budget_list' %}aria-current="page"{% endif %}><i class="fas fa-file-invoice"></i> Budgets</a>
+                    <a href="{% url 'finance:cash_book_list' %}" class="{% if request.resolver_match.url_name == 'cash_book_list' %}active{% endif %}" {% if request.resolver_match.url_name == 'cash_book_list' %}aria-current="page"{% endif %}><i class="fas fa-book"></i> Cash Book</a>
+                    <a href="{% url 'finance:bank_reconciliation_list' %}" class="{% if request.resolver_match.url_name == 'bank_reconciliation_list' %}active{% endif %}" {% if request.resolver_match.url_name == 'bank_reconciliation_list' %}aria-current="page"{% endif %}><i class="fas fa-university"></i> Bank Reconciliation</a>
+                    <a href="{% url 'finance:ledger_account_list' %}" class="{% if request.resolver_match.url_name == 'ledger_account_list' %}active{% endif %}" {% if request.resolver_match.url_name == 'ledger_account_list' %}aria-current="page"{% endif %}><i class="fas fa-book-open"></i> Ledger Accounts</a>
+                    <a href="{% url 'finance:general_ledger_list' %}" class="{% if request.resolver_match.url_name == 'general_ledger_list' %}active{% endif %}" {% if request.resolver_match.url_name == 'general_ledger_list' %}aria-current="page"{% endif %}><i class="fas fa-balance-scale"></i> General Ledger</a>
+                    <a href="{% url 'finance:payment_voucher_list' %}" class="{% if request.resolver_match.url_name == 'payment_voucher_list' %}active{% endif %}" {% if request.resolver_match.url_name == 'payment_voucher_list' %}aria-current="page"{% endif %}><i class="fas fa-money-check"></i> Payment Vouchers</a>
+                    <a href="{% url 'finance:finance_reports' %}" class="{% if request.resolver_match.url_name == 'finance_reports' %}active{% endif %}" {% if request.resolver_match.url_name == 'finance_reports' %}aria-current="page"{% endif %}><i class="fas fa-chart-line"></i> Reports</a>
                 </div>
             </li>
+            {% endif %}
 
-            <li class="menu-dropdown green" data-dropdown="procurement">
-                <div class="dropdown-toggle" onclick="toggleDropdown(this)">
+            {% if assigned_procurement_access or request.user.is_procurement_manager or request.user.is_superuser %}
+            <li class="menu-dropdown green {% if request.resolver_match.namespace == 'procurement' %}open{% endif %}" data-dropdown="procurement">
+                <button class="dropdown-toggle" type="button" aria-controls="procurement-submenu" aria-expanded="false" onclick="toggleDropdown(this)">
                     <span><i class="fas fa-shopping-cart"></i> Procurement</span>
                     <i class="fas fa-chevron-down toggle-icon"></i>
-                </div>
-                <div class="dropdown-content">
-                    <a href="{% url 'procurement:dashboard' %}"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
-                    <a href="{% url 'procurement:supplier_category_list' %}"><i class="fas fa-list"></i> Supplier Categories</a>
-                    <a href="{% url 'procurement:supplier_list' %}"><i class="fas fa-truck"></i> Suppliers</a>
-                    <a href="{% url 'procurement:procurement_plan_list' %}"><i class="fas fa-file-alt"></i> Procurement Plans</a>
-                    <a href="{% url 'procurement:purchase_requisition_list' %}"><i class="fas fa-file-signature"></i> Requisitions</a>
-                    <a href="{% url 'procurement:purchase_order_list' %}"><i class="fas fa-file-invoice"></i> Purchase Orders</a>
+                </button>
+                <div class="dropdown-content" id="procurement-submenu">
+                    <a href="{% url 'procurement:dashboard' %}" class="{% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}" {% if request.resolver_match.url_name == 'dashboard' %}aria-current="page"{% endif %}><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+                    <a href="{% url 'procurement:supplier_category_list' %}" class="{% if request.resolver_match.url_name == 'supplier_category_list' %}active{% endif %}" {% if request.resolver_match.url_name == 'supplier_category_list' %}aria-current="page"{% endif %}><i class="fas fa-list"></i> Supplier Categories</a>
+                    <a href="{% url 'procurement:supplier_list' %}" class="{% if request.resolver_match.url_name == 'supplier_list' %}active{% endif %}" {% if request.resolver_match.url_name == 'supplier_list' %}aria-current="page"{% endif %}><i class="fas fa-truck"></i> Suppliers</a>
+                    <a href="{% url 'procurement:procurement_plan_list' %}" class="{% if request.resolver_match.url_name == 'procurement_plan_list' %}active{% endif %}" {% if request.resolver_match.url_name == 'procurement_plan_list' %}aria-current="page"{% endif %}><i class="fas fa-file-alt"></i> Procurement Plans</a>
+                    <a href="{% url 'procurement:purchase_requisition_list' %}" class="{% if request.resolver_match.url_name == 'purchase_requisition_list' %}active{% endif %}" {% if request.resolver_match.url_name == 'purchase_requisition_list' %}aria-current="page"{% endif %}><i class="fas fa-file-signature"></i> Requisitions</a>
+                    <a href="{% url 'procurement:purchase_quotation_list' %}" class="{% if request.resolver_match.url_name == 'purchase_quotation_list' or request.resolver_match.url_name == 'purchase_quotation_add' or request.resolver_match.url_name == 'purchase_quotation_detail' or request.resolver_match.url_name == 'purchase_quotation_change_status' or request.resolver_match.url_name == 'purchase_quotation_print' %}active{% endif %}" {% if request.resolver_match.url_name == 'purchase_quotation_list' or request.resolver_match.url_name == 'purchase_quotation_add' or request.resolver_match.url_name == 'purchase_quotation_detail' or request.resolver_match.url_name == 'purchase_quotation_change_status' or request.resolver_match.url_name == 'purchase_quotation_print' %}aria-current="page"{% endif %}><i class="fas fa-file-contract"></i> Supplier Quotations</a>
+                    <a href="{% url 'procurement:purchase_order_list' %}" class="{% if request.resolver_match.url_name == 'purchase_order_list' %}active{% endif %}" {% if request.resolver_match.url_name == 'purchase_order_list' %}aria-current="page"{% endif %}><i class="fas fa-file-invoice"></i> Purchase Orders</a>
+                    <a href="{% url 'procurement:procurement_department_list' %}" class="{% if request.resolver_match.url_name == 'procurement_department_list' %}active{% endif %}" {% if request.resolver_match.url_name == 'procurement_department_list' %}aria-current="page"{% endif %}><i class="fas fa-building"></i> Departments</a>
+                    <a href="{% url 'procurement:procurement_status_list' %}" class="{% if request.resolver_match.url_name == 'procurement_status_list' or request.resolver_match.url_name == 'procurement_status_add' or request.resolver_match.url_name == 'procurement_status_edit' or request.resolver_match.url_name == 'procurement_workflow_rule_list' or request.resolver_match.url_name == 'procurement_workflow_rule_add' or request.resolver_match.url_name == 'procurement_workflow_rule_edit' %}active{% endif %}" {% if request.resolver_match.url_name == 'procurement_status_list' or request.resolver_match.url_name == 'procurement_status_add' or request.resolver_match.url_name == 'procurement_status_edit' or request.resolver_match.url_name == 'procurement_workflow_rule_list' or request.resolver_match.url_name == 'procurement_workflow_rule_add' or request.resolver_match.url_name == 'procurement_workflow_rule_edit' %}aria-current="page"{% endif %}><i class="fas fa-diagram-project"></i> Statuses &amp; Workflow</a>
                 </div>
             </li>
+            {% endif %}
 
             <li class="menu-item">
                 <a href="{{ sess }}" class="menu-link {% if request.path == sess %}active{% endif %}">
@@ -155,7 +211,7 @@
             {% endif %}
 
             {% has_permission "admissions.view_applications" as admissions_access %}
-            {% if request.user.is_superuser or request.user.is_registrar or admissions_access %}
+            {% if request.user.is_superuser or request.user.is_registrar or admissions_access or assigned_admissions_access %}
             <li class="menu-item">
                 <a href="{% url 'admissions:dashboard' %}" class="menu-link {% if 'admissions' in request.path %}active{% endif %}">
                     <i class="fas fa-user-check"></i> Admissions
@@ -163,50 +219,117 @@
             </li>
             {% endif %}
             {% has_permission "students.view_students" as student_records_access %}
-            {% if request.user.is_superuser or request.user.is_registrar or student_records_access %}
-            <li class="menu-item">
-                <a href="{% url 'student_list' %}" class="menu-link {% if '/accounts/students/' in request.path or '/accounts/student/' in request.path %}active{% endif %}">
-                    <i class="fas fa-address-card"></i> {% trans 'Student Records' %}
-                </a>
+            {% if request.user.is_student or request.user.is_superuser or request.user.is_registrar or student_records_access or student_manage_access or student_export_access or assigned_student_access or assigned_course_registration_access %}
+            <li class="menu-dropdown blue {% if request.resolver_match.url_name == 'student_list' or request.resolver_match.url_name == 'student_record_detail' or request.resolver_match.url_name == 'add_student' or request.resolver_match.url_name == 'student_edit' or request.resolver_match.url_name == 'student_program_edit' or request.resolver_match.url_name == 'student_change_status' or request.resolver_match.url_name == 'student_document_upload' or request.resolver_match.url_name == 'student_list_pdf' or request.resolver_match.url_name == 'student_timetable' or request.resolver_match.url_name == 'course_registration' or request.resolver_match.url_name == 'assessment_hub' or request.resolver_match.url_name == 'grade_results' or request.resolver_match.url_name == 'student_invoices' or request.resolver_match.namespace == 'clinical' %}open{% endif %}" data-dropdown="students">
+                <button class="dropdown-toggle" type="button" aria-controls="students-submenu" aria-expanded="false" onclick="toggleDropdown(this)">
+                    <span><i class="fas fa-user-graduate"></i> {% trans 'Students' %}</span>
+                    <i class="fas fa-chevron-down toggle-icon"></i>
+                </button>
+                <div class="dropdown-content" id="students-submenu">
+                    {% if request.user.is_student or request.user.is_superuser or request.user.is_registrar or student_records_access or assigned_student_access %}
+                    <a href="{% url 'student_list' %}" class="{% if request.resolver_match.url_name == 'student_list' or request.resolver_match.url_name == 'student_record_detail' %}active{% endif %}" {% if request.resolver_match.url_name == 'student_list' or request.resolver_match.url_name == 'student_record_detail' %}aria-current="page"{% endif %}>
+                        {% if request.user.is_student %}
+                        <i class="fas fa-address-card"></i> {% trans 'My Student Record' %}
+                        {% else %}
+                        <i class="fas fa-address-book"></i> {% trans 'Student Directory' %}
+                        {% endif %}
+                    </a>
+                    {% endif %}
+                    {% if request.user.is_student %}
+                    <a href="{% url 'student_timetable' %}" class="{% if request.resolver_match.url_name == 'student_timetable' %}active{% endif %}" {% if request.resolver_match.url_name == 'student_timetable' %}aria-current="page"{% endif %}>
+                        <i class="fas fa-calendar-alt"></i> {% trans 'My Timetable' %}
+                    </a>
+                    <a href="{% url 'course_registration' %}" class="{% if request.resolver_match.url_name == 'course_registration' %}active{% endif %}" {% if request.resolver_match.url_name == 'course_registration' %}aria-current="page"{% endif %}>
+                        <i class="fas fa-book"></i> {% trans 'Course Registration' %}
+                    </a>
+                    <a href="{% url 'assessment_hub' %}" class="{% if request.resolver_match.url_name == 'assessment_hub' %}active{% endif %}" {% if request.resolver_match.url_name == 'assessment_hub' %}aria-current="page"{% endif %}>
+                        <i class="fas fa-clipboard-check"></i> {% trans 'Assessment & Results' %}
+                    </a>
+                    <a href="{% url 'grade_results' %}" class="{% if request.resolver_match.url_name == 'grade_results' %}active{% endif %}" {% if request.resolver_match.url_name == 'grade_results' %}aria-current="page"{% endif %}>
+                        <i class="fas fa-graduation-cap"></i> {% trans 'My Results' %}
+                    </a>
+                    <a href="{% url 'finance:student_invoices' %}" class="{% if request.resolver_match.url_name == 'student_invoices' %}active{% endif %}" {% if request.resolver_match.url_name == 'student_invoices' %}aria-current="page"{% endif %}>
+                        <i class="fas fa-file-invoice-dollar"></i> {% trans 'My Invoices' %}
+                    </a>
+                    <a href="{% url 'clinical:placement_list' %}" class="{% if request.resolver_match.namespace == 'clinical' %}active{% endif %}" {% if request.resolver_match.namespace == 'clinical' %}aria-current="page"{% endif %}>
+                        <i class="fas fa-user-nurse"></i> {% trans 'Clinical Training' %}
+                    </a>
+                    {% endif %}
+                    {% if request.user.is_superuser or request.user.is_registrar or student_manage_access %}
+                    <a href="{% url 'add_student' %}" class="{% if request.resolver_match.url_name == 'add_student' %}active{% endif %}" {% if request.resolver_match.url_name == 'add_student' %}aria-current="page"{% endif %}>
+                        <i class="fas fa-user-plus"></i> {% trans 'Add Student' %}
+                    </a>
+                    {% endif %}
+                    {% if request.user.is_superuser or student_export_access %}
+                    <a href="{% url 'student_list_pdf' %}" class="{% if request.resolver_match.url_name == 'student_list_pdf' %}active{% endif %}" {% if request.resolver_match.url_name == 'student_list_pdf' %}aria-current="page"{% endif %}>
+                        <i class="fas fa-file-pdf"></i> {% trans 'Export Student Register' %}
+                    </a>
+                    {% endif %}
+                    {% if assigned_course_registration_access and not request.user.is_student %}
+                    <a href="{% url 'course_registration' %}" class="{% if request.resolver_match.url_name == 'course_registration' %}active{% endif %}" {% if request.resolver_match.url_name == 'course_registration' %}aria-current="page"{% endif %}>
+                        <i class="fas fa-book"></i> {% trans 'Course Registration' %}
+                    </a>
+                    {% endif %}
+                </div>
+            </li>
+            {% endif %}
+            {% if request.user.is_superuser or request.user.is_lecturer %}
+            <li class="menu-dropdown blue {% if request.resolver_match.url_name == 'lecturer_list' or request.resolver_match.url_name == 'lecturer_list_pdf' or request.resolver_match.url_name == 'add_lecturer' or request.resolver_match.url_name == 'staff_edit' or request.resolver_match.url_name == 'lecturer_delete' or request.resolver_match.url_name == 'user_course_list' or request.resolver_match.url_name == 'add_score' or request.resolver_match.url_name == 'add_score_for' or request.resolver_match.url_name == 'quiz_marking' or request.resolver_match.url_name == 'quiz_marking_detail' or request.resolver_match.url_name == 'quiz_progress' %}open{% endif %}" data-dropdown="lecturers">
+                <button class="dropdown-toggle" type="button" aria-controls="lecturers-submenu" aria-expanded="false" onclick="toggleDropdown(this)">
+                    <span><i class="fas fa-chalkboard-teacher"></i> {% trans 'Lecturers' %}</span>
+                    <i class="fas fa-chevron-down toggle-icon"></i>
+                </button>
+                <div class="dropdown-content" id="lecturers-submenu">
+                    {% if request.user.is_superuser %}
+                    <a href="{% url 'lecturer_list' %}" class="{% if request.resolver_match.url_name == 'lecturer_list' or request.resolver_match.url_name == 'staff_edit' or request.resolver_match.url_name == 'lecturer_delete' %}active{% endif %}" {% if request.resolver_match.url_name == 'lecturer_list' or request.resolver_match.url_name == 'staff_edit' or request.resolver_match.url_name == 'lecturer_delete' %}aria-current="page"{% endif %}>
+                        <i class="fas fa-address-book"></i> {% trans 'Lecturer Directory' %}
+                    </a>
+                    <a href="{% url 'add_lecturer' %}" class="{% if request.resolver_match.url_name == 'add_lecturer' %}active{% endif %}" {% if request.resolver_match.url_name == 'add_lecturer' %}aria-current="page"{% endif %}>
+                        <i class="fas fa-user-plus"></i> {% trans 'Add Lecturer' %}
+                    </a>
+                    {% endif %}
+                    {% if request.user.is_lecturer %}
+                    <a href="{% url 'user_course_list' %}" class="{% if request.resolver_match.url_name == 'user_course_list' %}active{% endif %}" {% if request.resolver_match.url_name == 'user_course_list' %}aria-current="page"{% endif %}>
+                        <i class="fas fa-book-open"></i> {% trans 'My Courses' %}
+                    </a>
+                    {% endif %}
+            {% if assigned_results_access %}
+                    <a href="{% url 'add_score' %}" class="{% if request.resolver_match.url_name == 'add_score' or request.resolver_match.url_name == 'add_score_for' %}active{% endif %}" {% if request.resolver_match.url_name == 'add_score' or request.resolver_match.url_name == 'add_score_for' %}aria-current="page"{% endif %}>
+                        <i class="fas fa-table"></i> {% trans 'Manage Scores' %}
+                    </a>
+                    {% endif %}
+                    {% if assigned_quiz_access %}
+                    <a href="{% url 'quiz_marking' %}" class="{% if request.resolver_match.url_name == 'quiz_marking' or request.resolver_match.url_name == 'quiz_marking_detail' %}active{% endif %}" {% if request.resolver_match.url_name == 'quiz_marking' or request.resolver_match.url_name == 'quiz_marking_detail' %}aria-current="page"{% endif %}>
+                        <i class="fas fa-check-double"></i> {% trans 'Mark Quiz Attempts' %}
+                    </a>
+                    <a href="{% url 'quiz_progress' %}" class="{% if request.resolver_match.url_name == 'quiz_progress' %}active{% endif %}" {% if request.resolver_match.url_name == 'quiz_progress' %}aria-current="page"{% endif %}>
+                        <i class="fas fa-clipboard-list"></i> {% trans 'Quiz Progress' %}
+                    </a>
+                    {% endif %}
+                </div>
             </li>
             {% endif %}
             {% has_permission "clinical.view_placements" as clinical_view_access %}
             {% has_permission "clinical.manage_placements" as clinical_manage_access %}
             {% has_permission "clinical.verify_log_entries" as clinical_review_access %}
-            {% if request.user.is_superuser or request.user.is_student or clinical_view_access or clinical_manage_access or clinical_review_access %}
+            {% if not request.user.is_student %}
+            {% if request.user.is_superuser or clinical_view_access or clinical_manage_access or clinical_review_access or assigned_clinical_access %}
             <li class="menu-item">
                 <a href="{% url 'clinical:placement_list' %}" class="menu-link {% if '/clinical/' in request.path %}active{% endif %}">
                     <i class="fas fa-user-nurse"></i> {% trans 'Clinical Training' %}
                 </a>
             </li>
             {% endif %}
+            {% endif %}
 
-            {% if request.user.is_superuser or request.user.is_registrar or request.user.is_faculty_admin or request.user.is_lecturer or request.user.is_student %}
+            {% if not request.user.is_student %}
+            {% if request.user.is_superuser or request.user.is_registrar or request.user.is_faculty_admin or request.user.is_lecturer or assigned_results_access or assigned_quiz_access %}
             <li class="menu-item">
                 <a href="{% url 'assessment_hub' %}" class="menu-link {% if '/results/' in request.path %}active{% endif %}">
                     <i class="fas fa-clipboard-check"></i> {% trans 'Assessment & Results' %}
                 </a>
             </li>
             {% endif %}
-
-            {# ===== STUDENT SECTION ===== #}
-            {% if request.user.is_student %}
-            <li class="menu-section">My Academics</li>
-            <li class="menu-item">
-                <a href="{% url 'student_timetable' %}" class="menu-link">
-                    <i class="fas fa-calendar-alt"></i> My Timetable
-                </a>
-            </li>
-            <li class="menu-item">
-                <a href="{% url 'grade_results' %}" class="menu-link">
-                    <i class="fas fa-graduation-cap"></i> {% trans 'My Results' %}
-                </a>
-            </li>
-            <li class="menu-item">
-                <a href="{% url 'finance:student_invoices' %}" class="menu-link">
-                    <i class="fas fa-file-invoice-dollar"></i> My Invoices
-                </a>
-            </li>
             {% endif %}
 
             {# ===== FINANCE USER SECTION ===== #}
@@ -214,12 +337,12 @@
             <li class="menu-section">Finance Modules</li>
             {% if request.user.is_finance_manager or request.user.is_accountant %}
             <li class="menu-item">
-                <a href="{% url 'finance:invoice_list' %}" class="menu-link">
+                <a href="{% url 'finance:invoice_list' %}" class="menu-link {% if request.resolver_match.url_name == 'invoice_list' or request.resolver_match.url_name == 'view_invoice' or request.resolver_match.url_name == 'edit_invoice' %}active{% endif %}">
                     <i class="fas fa-file-invoice-dollar"></i> Manage Invoices
                 </a>
             </li>
             <li class="menu-item">
-                <a href="{% url 'finance:fee_category_list' %}" class="menu-link">
+                <a href="{% url 'finance:fee_category_list' %}" class="menu-link {% if request.resolver_match.url_name == 'fee_category_list' or request.resolver_match.url_name == 'fee_category_add' or request.resolver_match.url_name == 'fee_category_edit' or request.resolver_match.url_name == 'fee_category_delete' %}active{% endif %}">
                     <i class="fas fa-list"></i> Fee Categories
                 </a>
             </li>
@@ -234,13 +357,13 @@
                 </li>
                 {% elif permission.module_name == 'create_invoice' %}
                 <li class="menu-item">
-                    <a href="{% url 'finance:create_invoice' %}" class="menu-link">
+                    <a href="{% url 'finance:create_invoice' %}" class="menu-link {% if request.resolver_match.url_name == 'create_invoice' %}active{% endif %}">
                         <i class="fas fa-plus"></i> Create Invoice
                     </a>
                 </li>
                 {% elif permission.module_name == 'fee_category_add' %}
                 <li class="menu-item">
-                    <a href="{% url 'finance:fee_category_list' %}" class="menu-link">
+                    <a href="{% url 'finance:fee_category_list' %}" class="menu-link {% if request.resolver_match.url_name == 'fee_category_list' or request.resolver_match.url_name == 'fee_category_add' or request.resolver_match.url_name == 'fee_category_edit' or request.resolver_match.url_name == 'fee_category_delete' %}active{% endif %}">
                         <i class="fas fa-list"></i> Fee Categories
                     </a>
                 </li>
@@ -291,7 +414,8 @@
 // Single dropdown toggle function
 function toggleDropdown(element) {
     const dropdown = element.closest('.menu-dropdown');
-    dropdown.classList.toggle('open');
+    const isOpen = dropdown.classList.toggle('open');
+    element.setAttribute('aria-expanded', isOpen);
 }
 
 // Language selector auto-submit
@@ -299,17 +423,8 @@ document.getElementById("lang-select").addEventListener("change", function() {
     document.getElementById("lang-form").submit();
 });
 
-// Optional: Close other dropdowns when opening one
-document.addEventListener('DOMContentLoaded', function() {
-    const toggles = document.querySelectorAll('.dropdown-toggle');
-    toggles.forEach(toggle => {
-        toggle.addEventListener('click', function() {
-            const currentDropdown = this.closest('.menu-dropdown');
-            // Optional: uncomment below to close other dropdowns
-            // document.querySelectorAll('.menu-dropdown.open').forEach(dd => {
-            //     if (dd !== currentDropdown) dd.classList.remove('open');
-            // });
-        });
-    });
+document.querySelectorAll('.menu-dropdown').forEach(dropdown => {
+    const toggle = dropdown.querySelector('.dropdown-toggle');
+    toggle.setAttribute('aria-expanded', dropdown.classList.contains('open'));
 });
 </script>

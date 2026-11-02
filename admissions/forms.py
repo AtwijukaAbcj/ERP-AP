@@ -5,7 +5,7 @@ from django.utils import timezone
 from django.utils.text import slugify
 
 from accounts.models import Student
-from core.models import Session
+from core.models import Semester, Session
 from course.models import Program
 from .models import (
     Application,
@@ -208,22 +208,16 @@ class LinkStudentForm(forms.Form):
 
 
 class ProvisionAcceptedStudentForm(forms.Form):
-    registration_number = forms.CharField(max_length=30)
     level = forms.ChoiceField(choices=Student._meta.get_field("level").choices)
     year = forms.TypedChoiceField(
         coerce=int,
         choices=settings.YEARS,
+    )
+    semester = forms.ModelChoiceField(
+        queryset=Semester.objects.order_by("session__session", "semester"),
     )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         for field in self.fields.values():
             field.widget.attrs["class"] = "form-control"
-
-    def clean_registration_number(self):
-        registration_number = self.cleaned_data["registration_number"].strip()
-        if Student.objects.filter(
-            registration_number__iexact=registration_number,
-        ).exists():
-            raise forms.ValidationError("This registration number is already assigned.")
-        return registration_number

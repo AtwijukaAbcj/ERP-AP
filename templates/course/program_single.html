@@ -26,6 +26,7 @@
 
 {% if program %}
 <div class="title-1">{{ program.title }}</div>
+<p class="text-muted">{% trans 'Program Code' %}: {{ program.code }}</p>
 {% if program.summary %}
 <p>{{ program.summary }}</p>
 {% endif %}

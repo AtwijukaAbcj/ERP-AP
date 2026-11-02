@@ -24,7 +24,7 @@
                     <td>{{ budget.department }}</td>
                     <td>{{ budget.fiscal_year }}</td>
                     <td>{{ budget.amount }}</td>
-                    <td>{{ budget.requested_by.get_full_name if budget.requested_by else '—' }}</td>
+                    <td>{{ budget.requested_by.get_full_name|default:"—" }}</td>
                     <td>{{ budget.approved|yesno:"Yes,No" }}</td>
                     <td>{{ budget.approved_at|date:'SHORT_DATETIME_FORMAT' }}</td>
                 </tr>

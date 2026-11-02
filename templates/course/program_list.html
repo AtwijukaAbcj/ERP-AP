@@ -11,7 +11,7 @@
     </ol>
 </nav>
 
-{% if request.user.is_superuser %}
+{% if request.user.is_superuser or request.user.is_lecturer %}
 <div class="manage-wrap">
     <a class="btn btn-primary" href="{% url 'add_program' %}"><i class="fas fa-plus"></i>{% trans 'Add Program' %}</a>
 </div>
@@ -30,9 +30,10 @@
                 <tr>
                     <th>#</th>
                     <th>{% trans 'Program Name' %}</th>
+                    <th>{% trans 'Program Code' %}</th>
                     <th>{% trans 'Summary' %}</th>
                     <th>{% trans 'Faculty' %}</th>  {# ✅ Added Faculty column #}
-                    {% if request.user.is_superuser %}
+                    {% if request.user.is_superuser or request.user.is_lecturer %}
                     <th>{% trans 'Action' %}</th>
                     {% endif %}
                 </tr>
@@ -46,9 +47,10 @@
                             {{ program.title }}
                         </a>
                     </td>
+                    <td>{{ program.code }}</td>
                     <td>{{ program.summary }}</td>
                     <td>{{ program.faculty.name }}</td>  {# ✅ Display faculty name #}
-                    {% if request.user.is_superuser %}
+                    {% if request.user.is_superuser or request.user.is_lecturer %}
                     <td>
                         <div class="dropdown">
                             <button class="btn btn-sm" type="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -64,10 +66,10 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="5">
+                    <td colspan="{% if request.user.is_superuser or request.user.is_lecturer %}6{% else %}5{% endif %}">
                         <span class="text-danger">
                             {% trans 'No program.' %}
-                            {% if request.user.is_superuser %}
+                            {% if request.user.is_superuser or request.user.is_lecturer %}
                             <a href="{% url 'add_program' %}">
                                 <i class="primary" style="font-size: 22px;">{% trans 'Add program now.' %}</i>
                             </a>

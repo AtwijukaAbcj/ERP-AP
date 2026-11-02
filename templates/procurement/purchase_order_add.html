@@ -1,20 +1,20 @@
 {% extends 'base.html' %}
 {% load i18n %}
 {% load crispy_forms_tags %}
-{% block title %}Add Purchase Order{% endblock %}
+{% block title %}{% if order %}{% trans 'Edit Purchase Order' %}{% else %}{% trans 'Add Purchase Order' %}{% endif %}{% endblock %}
 {% block content %}
 <div class="container mt-4">
     <nav aria-label="breadcrumb">
         <ol class="breadcrumb">
             <li class="breadcrumb-item"><a href="{% url 'home' %}">{% trans 'Home' %}</a></li>
             <li class="breadcrumb-item"><a href="{% url 'procurement:purchase_order_list' %}">{% trans 'Purchase Orders' %}</a></li>
-            <li class="breadcrumb-item active" aria-current="page">{% trans 'Add' %}</li>
+            <li class="breadcrumb-item active" aria-current="page">{% if order %}{% trans 'Edit' %}{% else %}{% trans 'Add' %}{% endif %}</li>
         </ol>
     </nav>
 
     <div class="card shadow-sm">
         <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">{% trans 'Add Purchase Order' %}</h5>
+            <h5 class="mb-0">{% if order %}{% trans 'Edit Purchase Order' %}{% else %}{% trans 'Add Purchase Order' %}{% endif %}</h5>
             <a href="{% url 'procurement:purchase_order_list' %}" class="btn btn-outline-light btn-sm">{% trans 'Back' %}</a>
         </div>
         <div class="card-body">
@@ -22,7 +22,37 @@
             <form method="post" novalidate>
                 {% csrf_token %}
                 {{ form|crispy }}
-                <p class="small text-muted mt-3">{% trans 'The purchase order will use the supplier, requisition, items, and prices from the selected accepted quotation.' %}</p>
+                {% if formset %}
+                    <h2 class="h5 mt-4">{% trans 'Order items' %}</h2>
+                    {{ formset.management_form }}
+                    <div class="table-responsive">
+                        <table class="table table-bordered align-middle">
+                            <thead><tr><th>{% trans 'Description' %}</th><th>{% trans 'Quantity' %}</th><th>{% trans 'Unit price' %}</th><th>{% trans 'Remove' %}</th></tr></thead>
+                            <tbody id="order-items">
+                            {% for item_form in formset.forms %}
+                                <tr>
+                                    <td>{{ item_form.id }}{{ item_form.description }}{{ item_form.description.errors }}</td>
+                                    <td>{{ item_form.quantity }}{{ item_form.quantity.errors }}</td>
+                                    <td>{{ item_form.unit_price }}{{ item_form.unit_price.errors }}</td>
+                                    <td class="text-center">{{ item_form.DELETE }}</td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {{ formset.non_form_errors }}
+                    <template id="order-item-template">
+                        <tr>
+                            <td>{{ formset.empty_form.description }}</td>
+                            <td>{{ formset.empty_form.quantity }}</td>
+                            <td>{{ formset.empty_form.unit_price }}</td>
+                            <td class="text-center">{{ formset.empty_form.DELETE }}</td>
+                        </tr>
+                    </template>
+                    <button type="button" class="btn btn-outline-secondary" id="add-order-item">{% trans 'Add item' %}</button>
+                {% else %}
+                    <p class="small text-muted mt-3">{% trans 'The purchase order will use the supplier, requisition, items, and prices from the selected accepted quotation.' %}</p>
+                {% endif %}
 
                 <div class="mt-3">
                     <button type="submit" class="btn btn-primary">{% trans 'Save Order' %}</button>
@@ -33,4 +63,20 @@
         </div>
     </div>
 </div>
+{% if formset %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const button = document.getElementById("add-order-item");
+    const rows = document.getElementById("order-items");
+    const totalForms = document.querySelector('input[name$="-TOTAL_FORMS"]');
+    const template = document.getElementById("order-item-template");
+    if (!button || !rows || !totalForms || !template) return;
+    button.addEventListener("click", function () {
+        const index = Number.parseInt(totalForms.value, 10);
+        rows.insertAdjacentHTML("beforeend", template.innerHTML.replace(/__prefix__/g, index));
+        totalForms.value = String(index + 1);
+    });
+});
+</script>
+{% endif %}
 {% endblock %}

@@ -1,119 +1,291 @@
 {% extends 'base.html' %}
-{% load i18n %}
-{% block title %}Assign Modules | {% trans 'Access Control' %}{% endblock title %}
+{% load i18n static %}
+{% block title %}{% trans 'Assign Modules' %} | {% trans 'Access Control' %}{% endblock title %}
+
+{% block header %}
+<link rel="stylesheet" href="{% static 'css/module-access.css' %}?v=20261101">
+{% endblock %}
 
 {% block content %}
-<nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
-    <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="/">{% trans 'Home' %}</a></li>
-        <li class="breadcrumb-item"><a href="{% url 'access_control_home' %}">{% trans 'Access Control' %}</a></li>
-        <li class="breadcrumb-item active" aria-current="page">{% trans 'Assign Modules' %}</li>
-    </ol>
-</nav>
+<div class="module-access-page">
+    <nav aria-label="{% trans 'Breadcrumb' %}">
+        <ol class="breadcrumb module-access-breadcrumb">
+            <li class="breadcrumb-item"><a href="/">{% trans 'Home' %}</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'access_control_home' %}">{% trans 'Access Control' %}</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{% trans 'Assign Modules' %}</li>
+        </ol>
+    </nav>
 
-<div class="d-flex flex-column flex-md-row justify-content-between align-items-start gap-3 mb-4">
-    <div>
-        <h1 class="h3 mb-1">{% trans 'Assign Modules' %}</h1>
-        <p class="text-muted mb-0">{% trans 'Manage active module access for users in one place.' %}</p>
-    </div>
-    <a href="{% url 'access_control_home' %}" class="btn btn-outline-secondary">{% trans 'Back to Dashboard' %}</a>
-</div>
+    <header class="module-access-hero">
+        <div class="module-access-hero-icon" aria-hidden="true"><i class="fas fa-layer-group"></i></div>
+        <div>
+            <span class="module-access-eyebrow">{% trans 'ACCESS CONTROL' %}</span>
+            <h1>{% trans 'User module access' %}</h1>
+            <p>{% trans 'Choose which areas of the system each user can access.' %}</p>
+        </div>
+        <a href="{% url 'access_control_home' %}" class="btn btn-light module-access-back">
+            <i class="fas fa-arrow-left me-2" aria-hidden="true"></i>{% trans 'Access dashboard' %}
+        </a>
+    </header>
 
-<div class="row g-4 mb-4">
-    <div class="col-xl-7">
-        <div class="card shadow-sm h-100">
-            <div class="card-body">
-                <h5 class="card-title mb-3">{% trans 'Grant module access' %}</h5>
-                <p class="text-muted mb-4">{% trans 'Choose a user, select active modules, and save the assignment.' %}</p>
-                <form method="POST" novalidate>
-                    {% csrf_token %}
-                    <div class="mb-3">{{ form.user.label_tag }}{{ form.user }}</div>
-                    <div class="mb-3">{{ form.modules.label_tag }}{{ form.modules }}</div>
-                    <button type="submit" class="btn btn-primary">{% trans 'Save assignment' %}</button>
-                </form>
-            </div>
+    <div class="module-access-stats" aria-label="{% trans 'Access summary' %}">
+        <div class="module-access-stat">
+            <span class="module-access-stat-icon"><i class="fas fa-key" aria-hidden="true"></i></span>
+            <div><span class="module-access-stat-label">{% trans 'Direct grants' %}</span><strong>{{ permissions|length }}</strong></div>
+        </div>
+        <div class="module-access-stat">
+            <span class="module-access-stat-icon module-access-stat-icon-blue"><i class="fas fa-cubes" aria-hidden="true"></i></span>
+            <div><span class="module-access-stat-label">{% trans 'Available modules' %}</span><strong data-module-total>—</strong></div>
+        </div>
+        <div class="module-access-stat">
+            <span class="module-access-stat-icon module-access-stat-icon-green"><i class="fas fa-user-shield" aria-hidden="true"></i></span>
+            <div><span class="module-access-stat-label">{% trans 'Grant behavior' %}</span><strong class="module-access-stat-note">{% trans 'User-specific' %}</strong></div>
         </div>
     </div>
-    <div class="col-xl-5">
-        <div class="card shadow-sm h-100">
-            <div class="card-body">
-                <h5 class="card-title mb-3">{% trans 'Summary' %}</h5>
-                <p class="text-muted mb-4">{% trans 'Quick overview of module access assignments and status.' %}</p>
-                <div class="row g-3">
-                    <div class="col-6">
-                        <div class="border rounded-3 p-3 h-100">
-                            <small class="text-muted">{% trans 'Total assignments' %}</small>
-                            <div class="fw-bold fs-4">{{ permissions|length }}</div>
-                        </div>
-                    </div>
-                    <div class="col-6">
-                        <div class="border rounded-3 p-3 h-100">
-                            <small class="text-muted">{% trans 'Access type' %}</small>
-                            <div class="fw-bold fs-4">{% trans 'Module based' %}</div>
-                        </div>
-                    </div>
-                </div>
-                <div class="mt-4">
-                    <span class="badge bg-success">{% trans 'Active' %}</span>
-                    <p class="small text-muted mt-2 mb-0">{% trans 'Revoked access is removed immediately and users lose module access on save.' %}</p>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
 
-<div class="card shadow-sm">
-    <div class="card-body">
-        <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center mb-3">
+    <div class="module-access-layout">
+        <section class="module-access-card module-access-assignment">
+            <div class="module-access-card-heading">
+                <div>
+                    <span class="module-access-step">{% trans 'ACCESS SETTINGS' %}</span>
+                    <h2>{% trans 'Assign modules to a user' %}</h2>
+                    <p>{% trans 'Select the user first, then choose the modules they need.' %}</p>
+                </div>
+                <span class="module-access-heading-icon"><i class="fas fa-sliders-h" aria-hidden="true"></i></span>
+            </div>
+
+            <form method="post" novalidate>
+                {% csrf_token %}
+                <div class="module-access-user-field">
+                    {{ form.user.label_tag }}
+                    {{ form.user }}
+                    {% for error in form.user.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
+                </div>
+
+                <div class="module-access-catalog-header">
+                    <div>
+                        <label class="module-access-field-label" for="module-search">{% trans 'Choose system modules' %}</label>
+                        <p>{% trans 'Search or select multiple modules. Saving replaces this user’s direct module grants.' %}</p>
+                    </div>
+                    <span class="module-access-selected"><strong data-module-selected>0</strong> {% trans 'selected' %}</span>
+                </div>
+
+                <div class="module-access-tools">
+                    <div class="module-access-search">
+                        <i class="fas fa-search" aria-hidden="true"></i>
+                        <input id="module-search" type="search" class="form-control" placeholder="{% trans 'Find a module...' %}" aria-label="{% trans 'Find a module' %}" autocomplete="off">
+                    </div>
+                    <button class="btn btn-sm btn-outline-primary" type="button" data-module-select-visible>{% trans 'Select visible' %}</button>
+                    <button class="btn btn-sm btn-outline-secondary" type="button" data-module-clear-visible>{% trans 'Clear visible' %}</button>
+                </div>
+
+                {% for error in form.modules.errors %}<div class="text-danger small mb-2">{{ error }}</div>{% endfor %}
+                <div class="module-access-options" role="group" aria-label="{% trans 'Available modules' %}">
+                    {{ form.modules }}
+                </div>
+
+                <div class="module-access-form-footer">
+                    <p><i class="fas fa-info-circle" aria-hidden="true"></i> {% trans 'Role permissions and explicit user overrides are not changed here.' %}</p>
+                    <button type="submit" class="btn btn-primary module-access-save">
+                        <i class="fas fa-save me-2" aria-hidden="true"></i>{% trans 'Save access' %}
+                    </button>
+                </div>
+            </form>
+        </section>
+
+        <aside class="module-access-card module-access-guidance">
+            <span class="module-access-step">{% trans 'HOW IT WORKS' %}</span>
+            <h2>{% trans 'Access, clearly managed' %}</h2>
+            <p>{% trans 'Direct module grants are assigned to an individual account and take effect as soon as they are saved.' %}</p>
+            <div class="module-access-rule">
+                <span><i class="fas fa-check" aria-hidden="true"></i></span>
+                <div><strong>{% trans 'Selected modules' %}</strong><p>{% trans 'Give this user direct access to the selected areas.' %}</p></div>
+            </div>
+            <div class="module-access-rule">
+                <span class="module-access-rule-muted"><i class="fas fa-minus" aria-hidden="true"></i></span>
+                <div><strong>{% trans 'Unselected modules' %}</strong><p>{% trans 'Remove this user’s direct grants for the other modules.' %}</p></div>
+            </div>
+            <div class="module-access-notice">
+                <i class="fas fa-shield-alt" aria-hidden="true"></i>
+                <p>{% trans 'Role permissions and explicit user-level overrides remain unchanged. Explicit denies continue to take precedence.' %}</p>
+            </div>
+        </aside>
+    </div>
+
+    <section class="module-access-card module-access-grants">
+        <div class="module-access-card-heading module-access-grants-heading">
             <div>
-                <h5 class="card-title mb-1">{% trans 'Assigned modules' %}</h5>
-                <p class="text-muted small mb-0">{% trans 'See current user-module assignments and revoke access if needed.' %}</p>
+                <span class="module-access-step">{% trans 'CURRENT ACCESS' %}</span>
+                <h2>{% trans 'Direct module grants' %}</h2>
+                <p>{% trans 'Review and manage module access currently assigned to users.' %}</p>
             </div>
-            <span class="badge bg-secondary mt-2 mt-sm-0">{{ permissions|length }}</span>
+            <span class="module-access-count">{{ permissions|length }} {% trans 'grants' %}</span>
         </div>
-        <form method="get" class="mb-3">
-            <div class="input-group">
-                <input
-                    type="search"
-                    name="user_search"
-                    value="{{ search_query }}"
-                    class="form-control"
-                    placeholder="{% trans 'Search by username, name, or email' %}"
-                    aria-label="{% trans 'Search users' %}"
-                >
-                <button type="submit" class="btn btn-outline-primary">{% trans 'Search' %}</button>
-                {% if search_query %}
-                    <a href="{% url 'assign_modules' %}" class="btn btn-outline-secondary">{% trans 'Clear' %}</a>
-                {% endif %}
+
+        <form method="get" class="module-access-filter">
+            <label class="visually-hidden" for="user-search">{% trans 'Search assigned access' %}</label>
+            <div class="module-access-search">
+                <i class="fas fa-search" aria-hidden="true"></i>
+                <input id="user-search" type="search" name="user_search" value="{{ search_query }}" class="form-control" placeholder="{% trans 'Search by username, name, or email' %}">
             </div>
+            <button type="submit" class="btn btn-outline-primary">{% trans 'Search' %}</button>
+            {% if search_query %}<a href="{% url 'assign_modules' %}" class="btn btn-outline-secondary">{% trans 'Clear' %}</a>{% endif %}
         </form>
+
         <div class="table-responsive">
-            <table class="table table-hover table-borderless align-middle mb-0">
-                <thead class="table-light">
-                    <tr>
-                        <th>{% trans 'User' %}</th>
-                        <th>{% trans 'Module' %}</th>
-                        <th class="text-end">{% trans 'Action' %}</th>
-                    </tr>
+            <table class="table module-access-table align-middle mb-0">
+                <thead>
+                    <tr><th>{% trans 'User' %}</th><th>{% trans 'Module access' %}</th><th class="text-end">{% trans 'Actions' %}</th></tr>
                 </thead>
                 <tbody>
                     {% for perm in permissions %}
                     <tr>
-                        <td>{{ perm.user.get_full_name }}</td>
-                        <td>{{ perm.get_module_name_display }}</td>
-                        <td class="text-end">
-                            <a href="{% url 'delete_module_permission' perm.id %}" class="btn btn-sm btn-outline-danger">{% trans 'Revoke' %}</a>
+                        <td>
+                            <div class="module-access-user">
+                                <span class="module-access-avatar">{{ perm.user.first_name|first|default:perm.user.username|first|upper }}</span>
+                                <span><strong>{{ perm.user.get_full_name }}</strong><small>{{ perm.user.username }}{% if perm.user.email %} · {{ perm.user.email }}{% endif %}</small></span>
+                            </div>
+                        </td>
+                        <td><span class="module-access-module-badge"><i class="fas fa-cube" aria-hidden="true"></i>{{ perm.get_module_name_display }}</span></td>
+                        <td>
+                            <div class="module-access-actions">
+                            <a href="{% url 'assign_modules' %}?user_id={{ perm.user_id }}" class="btn btn-sm btn-outline-primary"><i class="fas fa-pen" aria-hidden="true"></i><span>{% trans 'Manage' %}</span></a>
+                            <form method="post" action="{% url 'delete_module_permission' perm.id %}" class="module-access-revoke-form">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-outline-danger"><i class="fas fa-ban" aria-hidden="true"></i><span>{% trans 'Revoke' %}</span></button>
+                            </form>
+                            </div>
                         </td>
                     </tr>
                     {% empty %}
-                    <tr>
-                        <td colspan="3" class="text-center text-muted py-4">{% trans 'No module access assigned yet.' %}</td>
-                    </tr>
+                    <tr><td colspan="3"><div class="module-access-empty"><span><i class="fas fa-folder-open" aria-hidden="true"></i></span><strong>{% trans 'No direct module grants found' %}</strong><p>{% trans 'Choose a user and assign modules above to get started.' %}</p></div></td></tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
-    </div>
+    </section>
 </div>
+{% endblock %}
 
+{% block js %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const options = document.getElementById("id_modules");
+    const search = document.getElementById("module-search");
+    const count = document.querySelector("[data-module-selected]");
+    const total = document.querySelector("[data-module-total]");
+    if (!options || !search || !count || !total) return;
+
+    const items = Array.from(options.children);
+    const categories = [
+        {
+            label: "Administration & Governance",
+            matches: function (value) {
+                return value === "admin_panel" || value.startsWith("audit") || value.startsWith("reports");
+            },
+        },
+        {
+            label: "Student Services",
+            matches: function (value) {
+                return value.startsWith("students") || value.startsWith("admissions") ||
+                    value.startsWith("clinical") || value === "course_registration" ||
+                    value === "drop_course";
+            },
+        },
+        {
+            label: "Academic Programs & Courses",
+            matches: function (value) {
+                return value.startsWith("program") || value.startsWith("course") ||
+                    value.startsWith("faculty") || ["lecturers", "faculties", "sessions",
+                    "semesters", "user_courses"].includes(value);
+            },
+        },
+        {
+            label: "Assessments & Results",
+            matches: function (value) {
+                return value.startsWith("assignments") || value.startsWith("quiz") ||
+                    value.startsWith("results") || ["view_sittings", "assessment_results",
+                    "add_results", "edit_results", "view_transcripts", "gpa_view",
+                    "cgpa_view"].includes(value);
+            },
+        },
+        {
+            label: "Finance",
+            matches: function (value) {
+                return value === "finance" || value.startsWith("finance_") ||
+                    ["manage_fee_categories", "create_invoice", "manage_invoices",
+                    "view_student_invoices", "staff_category_list", "staff_list",
+                    "payroll_list", "expense_category_list", "expense_list", "petty_cash_list",
+                    "accounts_payable_list", "accounts_receivable_list", "budget_list",
+                    "cash_book_list", "bank_reconciliation_list", "ledger_account_list",
+                    "general_ledger_list", "payment_voucher_list"].includes(value);
+            },
+        },
+        {
+            label: "Procurement",
+            matches: function (value) {
+                return value.startsWith("procurement");
+            },
+        },
+    ];
+    const categoryElements = new Map();
+
+    items.forEach(function (item) {
+        const label = item.querySelector("label");
+        const checkbox = item.querySelector('input[type="checkbox"]');
+        if (!label || !checkbox) return;
+        const category = categories.find(function (candidate) {
+            return candidate.matches(checkbox.value);
+        });
+        const categoryLabel = category ? category.label : "Other Modules";
+        let categoryElement = categoryElements.get(categoryLabel);
+        if (!categoryElement) {
+            categoryElement = document.createElement("section");
+            categoryElement.className = "module-access-category";
+            const heading = document.createElement("h3");
+            heading.className = "module-access-category-title";
+            heading.textContent = categoryLabel;
+            const categoryOptions = document.createElement("div");
+            categoryOptions.className = "module-access-category-options";
+            categoryElement.append(heading, categoryOptions);
+            options.appendChild(categoryElement);
+            categoryElements.set(categoryLabel, categoryElement);
+        }
+        const categoryOptions = categoryElement.querySelector(".module-access-category-options");
+        item.className = "module-access-option";
+        label.className = "module-access-option-label";
+        checkbox.className = "form-check-input";
+        item.dataset.moduleLabel = label.textContent.trim().toLowerCase();
+        categoryOptions.appendChild(item);
+    });
+    function updateCount() {
+        count.textContent = options.querySelectorAll('input[type="checkbox"]:checked').length;
+    }
+
+    search.addEventListener("input", function () {
+        const query = search.value.trim().toLowerCase();
+        items.forEach(function (item) {
+            item.hidden = !item.dataset.moduleLabel.includes(query);
+        });
+        categoryElements.forEach(function (categoryElement) {
+            categoryElement.hidden = !categoryElement.querySelector(".module-access-option:not([hidden])");
+        });
+    });
+    document.querySelector("[data-module-select-visible]").addEventListener("click", function () {
+        items.forEach(function (item) {
+            if (!item.hidden) item.querySelector('input[type="checkbox"]').checked = true;
+        });
+        updateCount();
+    });
+    document.querySelector("[data-module-clear-visible]").addEventListener("click", function () {
+        items.forEach(function (item) {
+            if (!item.hidden) item.querySelector('input[type="checkbox"]').checked = false;
+        });
+        updateCount();
+    });
+    options.addEventListener("change", updateCount);
+    total.textContent = options.querySelectorAll('input[type="checkbox"]').length;
+    updateCount();
+});
+</script>
 {% endblock %}

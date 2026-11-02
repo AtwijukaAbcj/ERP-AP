@@ -2,6 +2,8 @@ from django.shortcuts import redirect
 from django.core.exceptions import PermissionDenied
 from functools import wraps
 
+from .models import Student
+
 def admin_required(view_func):
     @wraps(view_func)
     def wrapper(request, *args, **kwargs):
@@ -42,12 +44,19 @@ def user_has_student_management_permission(user, permission_code):
         return False
     if override == "grant" or user.has_permission(permission_code):
         return True
+    if user.has_permission("students"):
+        return True
     return user.is_registrar
 
 def lecturer_required(view_func):
     @wraps(view_func)
     def wrapper(request, *args, **kwargs):
-        if request.user.is_authenticated and (request.user.is_lecturer or request.user.is_superuser):
+        if request.user.is_authenticated and (
+            request.user.is_lecturer
+            or request.user.is_superuser
+            or request.user.can_access_module("programs")
+            or request.user.can_access_module("courses")
+        ):
             return view_func(request, *args, **kwargs)
         return redirect("permission_denied")
     return wrapper
@@ -55,7 +64,12 @@ def lecturer_required(view_func):
 def student_required(view_func):
     @wraps(view_func)
     def wrapper(request, *args, **kwargs):
-        if request.user.is_authenticated and (request.user.is_student or request.user.is_superuser):
+        if (
+            request.user.is_authenticated
+            and request.user.is_active
+            and request.user.is_student
+            and Student.objects.filter(student_id=request.user.pk).exists()
+        ):
             return view_func(request, *args, **kwargs)
         return redirect("permission_denied")
     return wrapper
@@ -63,7 +77,10 @@ def student_required(view_func):
 def faculty_admin_required(view_func):
     @wraps(view_func)
     def wrapper(request, *args, **kwargs):
-        if request.user.is_authenticated and request.user.is_faculty_admin:
+        if request.user.is_authenticated and (
+            request.user.is_faculty_admin
+            or request.user.can_access_module("faculties")
+        ):
             return view_func(request, *args, **kwargs)
         return redirect("permission_denied")
     return wrapper
@@ -71,7 +88,14 @@ def faculty_admin_required(view_func):
 def lecturer_or_faculty_admin_required(view_func):
     @wraps(view_func)
     def wrapper(request, *args, **kwargs):
-        if request.user.is_authenticated and (request.user.is_lecturer or request.user.is_faculty_admin):
+        if request.user.is_authenticated and (
+            request.user.is_lecturer
+            or request.user.is_faculty_admin
+            or request.user.is_superuser
+            or request.user.can_access_module("programs")
+            or request.user.can_access_module("courses")
+            or request.user.can_access_module("faculties")
+        ):
             return view_func(request, *args, **kwargs)
         return redirect("permission_denied")
     return wrapper

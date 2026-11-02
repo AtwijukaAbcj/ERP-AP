@@ -27,8 +27,8 @@
                     <td>{{ voucher.amount }}</td>
                     <td>{{ voucher.status }}</td>
                     <td>{{ voucher.approved|yesno:"Yes,No" }}</td>
-                    <td>{{ voucher.requested_by.get_full_name if voucher.requested_by else '—' }}</td>
-                    <td>{{ voucher.approved_by.get_full_name if voucher.approved_by else '—' }}</td>
+                    <td>{{ voucher.requested_by.get_full_name|default:"—" }}</td>
+                    <td>{{ voucher.approved_by.get_full_name|default:"—" }}</td>
                 </tr>
                 {% empty %}
                 <tr><td colspan="8">No payment vouchers found.</td></tr>

@@ -23,6 +23,7 @@
             <div class="p-3"><br>
                 <form action="" method="POST">{% csrf_token %}
                     {{ form.title|as_crispy_field }}
+                    {{ form.code|as_crispy_field }}
                     {{ form.summary|as_crispy_field }}
 
                     {# Only show faculty dropdown to superusers #}

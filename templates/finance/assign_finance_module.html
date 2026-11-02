@@ -36,9 +36,10 @@
             <td>{{ perm.staff.get_full_name }}</td>
             <td>{{ perm.get_module_name_display }}</td>
             <td>
-                <a href="{% url 'finance:revoke_finance_module' perm.id %}" class="btn btn-danger btn-sm">
-                    Revoke
-                </a>
+                <form method="post" action="{% url 'finance:revoke_finance_module' perm.id %}" class="m-0">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger btn-sm">Revoke</button>
+                </form>
             </td>
         </tr>
         {% empty %}

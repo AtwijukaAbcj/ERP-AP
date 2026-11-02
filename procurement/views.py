@@ -7,7 +7,10 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 import csv
 import mimetypes
+from io import BytesIO
 from pathlib import Path
+
+from openpyxl import Workbook
 
 from .models import (
     SupplierCategory,
@@ -35,7 +38,7 @@ from .forms import (
     PurchaseQuotationForm,
     PurchaseQuotationItemFormSet,
 )
-from .permissions import procurement_permission_required
+from .permissions import has_procurement_access, procurement_permission_required
 
 
 @login_required
@@ -61,14 +64,14 @@ def supplier_category_list(request):
 
 
 @login_required
-@procurement_permission_required("procurement_plans")
+@procurement_permission_required("procurement_departments", "procurement_plans")
 def procurement_department_list(request):
     departments = ProcurementDepartment.objects.all()
     return render(request, "procurement/department_list.html", {"departments": departments})
 
 
 @login_required
-@procurement_permission_required("procurement_plans_add")
+@procurement_permission_required("procurement_departments_add", "procurement_plans_add")
 def procurement_department_add(request):
     if request.method == "POST":
         form = ProcurementDepartmentForm(request.POST)
@@ -82,10 +85,8 @@ def procurement_department_add(request):
 
 
 @login_required
+@procurement_permission_required("procurement_departments_edit", "procurement_plans_edit")
 def procurement_department_edit(request, department_id):
-    if not request.user.has_permission('procurement_plans_edit'):
-        return HttpResponseForbidden("You are not authorized to edit procurement departments.")
-
     department = get_object_or_404(ProcurementDepartment, id=department_id)
     if request.method == "POST":
         form = ProcurementDepartmentForm(request.POST, instance=department)
@@ -99,10 +100,8 @@ def procurement_department_edit(request, department_id):
 
 @login_required
 @require_POST
+@procurement_permission_required("procurement_departments_delete", "procurement_plans_delete")
 def procurement_department_delete(request, department_id):
-    if not request.user.has_permission('procurement_plans_delete'):
-        return HttpResponseForbidden("You are not authorized to delete procurement departments.")
-
     department = get_object_or_404(ProcurementDepartment, id=department_id)
     if department.workflow_rules.exists():
         messages.error(request, "A department with configured workflow rules cannot be deleted.")
@@ -113,14 +112,14 @@ def procurement_department_delete(request, department_id):
 
 
 @login_required
-@procurement_permission_required("procurement_plans")
+@procurement_permission_required("procurement_statuses", "procurement_plans")
 def procurement_status_list(request):
     statuses = ProcurementStatus.objects.all()
     return render(request, "procurement/status_list.html", {"statuses": statuses})
 
 
 @login_required
-@procurement_permission_required("procurement_requisitions_edit")
+@procurement_permission_required("procurement_statuses", "procurement_requisitions_edit")
 def procurement_status_add(request):
     if request.method == "POST":
         form = ProcurementStatusForm(request.POST)
@@ -134,7 +133,7 @@ def procurement_status_add(request):
 
 
 @login_required
-@procurement_permission_required("procurement_requisitions_edit")
+@procurement_permission_required("procurement_statuses", "procurement_requisitions_edit")
 def procurement_status_edit(request, status_id):
     status = get_object_or_404(ProcurementStatus, id=status_id)
     if request.method == "POST":
@@ -149,7 +148,7 @@ def procurement_status_edit(request, status_id):
 
 @login_required
 @require_POST
-@procurement_permission_required("procurement_requisitions_edit")
+@procurement_permission_required("procurement_statuses", "procurement_requisitions_edit")
 def procurement_status_delete(request, status_id):
     status = get_object_or_404(ProcurementStatus, id=status_id)
     if status.slug in {"draft", "submitted", "approved", "rejected", "returned"}:
@@ -164,7 +163,7 @@ def procurement_status_delete(request, status_id):
 
 
 @login_required
-@procurement_permission_required("procurement_requisitions_edit")
+@procurement_permission_required("procurement_workflows", "procurement_requisitions_edit")
 def procurement_workflow_rule_list(request):
     rules = ProcurementWorkflowRule.objects.select_related(
         "from_status",
@@ -181,7 +180,7 @@ def procurement_workflow_rule_list(request):
 
 
 @login_required
-@procurement_permission_required("procurement_requisitions_edit")
+@procurement_permission_required("procurement_workflows", "procurement_requisitions_edit")
 def procurement_workflow_rule_add(request):
     if request.method == "POST":
         form = ProcurementWorkflowRuleForm(request.POST)
@@ -199,7 +198,7 @@ def procurement_workflow_rule_add(request):
 
 
 @login_required
-@procurement_permission_required("procurement_requisitions_edit")
+@procurement_permission_required("procurement_workflows", "procurement_requisitions_edit")
 def procurement_workflow_rule_edit(request, rule_id):
     rule = get_object_or_404(ProcurementWorkflowRule, pk=rule_id)
     if request.method == "POST":
@@ -219,7 +218,7 @@ def procurement_workflow_rule_edit(request, rule_id):
 
 @login_required
 @require_POST
-@procurement_permission_required("procurement_requisitions_edit")
+@procurement_permission_required("procurement_workflows", "procurement_requisitions_edit")
 def procurement_workflow_rule_delete(request, rule_id):
     rule = get_object_or_404(ProcurementWorkflowRule, pk=rule_id)
     rule.delete()
@@ -273,17 +272,14 @@ def procurement_plan_list(request):
 
 @login_required
 @require_POST
+@procurement_permission_required("procurement_plans_approve")
 def procurement_plan_approve(request, plan_id):
     plan = get_object_or_404(
         ProcurementPlan,
         id=plan_id,
         deleted_at__isnull=True,
     )
-    if not (
-        request.user.is_superuser
-        or request.user.is_procurement_manager
-        or (request.user.role and request.user.role.slug == 'procurement_manager')
-    ):
+    if not has_procurement_access(request.user, "procurement_plans_approve"):
         return HttpResponseForbidden("You are not authorized to approve procurement plans.")
 
     plan.approved = True
@@ -294,10 +290,8 @@ def procurement_plan_approve(request, plan_id):
 
 
 @login_required
+@procurement_permission_required("procurement_plans_add")
 def procurement_plan_add(request):
-    if not request.user.has_permission('procurement_plans_add'):
-        return HttpResponseForbidden("You are not authorized to add procurement plans.")
-
     if request.method == "POST":
         form = ProcurementPlanForm(request.POST)
         if form.is_valid():
@@ -314,10 +308,8 @@ def procurement_plan_add(request):
 
 
 @login_required
+@procurement_permission_required("procurement_plans_edit")
 def procurement_plan_edit(request, plan_id):
-    if not request.user.has_permission('procurement_plans_edit'):
-        return HttpResponseForbidden("You are not authorized to edit procurement plans.")
-
     plan = get_object_or_404(
         ProcurementPlan,
         id=plan_id,
@@ -335,10 +327,8 @@ def procurement_plan_edit(request, plan_id):
 
 @login_required
 @require_POST
+@procurement_permission_required("procurement_plans_delete")
 def procurement_plan_delete(request, plan_id):
-    if not request.user.has_permission('procurement_plans_delete'):
-        return HttpResponseForbidden("You are not authorized to delete procurement plans.")
-
     plan = get_object_or_404(
         ProcurementPlan,
         id=plan_id,
@@ -401,7 +391,7 @@ def _is_procurement_manager(user):
     return (
         user.is_superuser
         or user.is_procurement_manager
-        or (user.role and user.role.slug == "procurement_manager")
+        or user.has_role("procurement_manager")
     )
 
 
@@ -588,10 +578,8 @@ def _transition_requisition(request, requisition_id, to_status=None, workflow_ru
 
 
 @login_required
+@procurement_permission_required("procurement_requisitions_add")
 def purchase_requisition_add(request):
-    if not request.user.has_permission('procurement_requisitions_add'):
-        return HttpResponseForbidden("You are not authorized to add purchase requisitions.")
-
     if request.method == "POST":
         form = PurchaseRequisitionForm(request.POST, request.FILES)
         if form.is_valid():
@@ -617,10 +605,8 @@ def purchase_requisition_add(request):
 
 
 @login_required
+@procurement_permission_required("procurement_requisitions_edit")
 def purchase_requisition_edit(request, requisition_id):
-    if not request.user.has_permission('procurement_requisitions_edit'):
-        return HttpResponseForbidden("You are not authorized to edit purchase requisitions.")
-
     requisition = get_object_or_404(
         PurchaseRequisition,
         id=requisition_id,
@@ -643,10 +629,8 @@ def purchase_requisition_edit(request, requisition_id):
 
 @login_required
 @require_POST
+@procurement_permission_required("procurement_requisitions_delete")
 def purchase_requisition_delete(request, requisition_id):
-    if not request.user.has_permission('procurement_requisitions_delete'):
-        return HttpResponseForbidden("You are not authorized to delete purchase requisitions.")
-
     requisition = get_object_or_404(
         PurchaseRequisition,
         id=requisition_id,
@@ -661,10 +645,8 @@ def purchase_requisition_delete(request, requisition_id):
 
 
 @login_required
+@procurement_permission_required("procurement_requisitions_export")
 def export_purchase_requisition_csv(request):
-    if not request.user.has_permission('procurement_requisitions_export'):
-        return HttpResponseForbidden("You are not authorized to export purchase requisitions.")
-
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = 'attachment; filename="purchase_requisitions.csv"'
     writer = csv.writer(response)
@@ -683,24 +665,37 @@ def export_purchase_requisition_csv(request):
 
 
 @login_required
+@procurement_permission_required("procurement_requisitions_export")
 def export_purchase_requisition_excel(request):
-    if not request.user.has_permission('procurement_requisitions_export'):
-        return HttpResponseForbidden("You are not authorized to export purchase requisitions.")
-
-    response = HttpResponse(content_type='application/vnd.ms-excel')
-    response['Content-Disposition'] = 'attachment; filename="purchase_requisitions.xls"'
-    writer = csv.writer(response)
-    writer.writerow(['Title', 'Department', 'Requested By', 'Status', 'Total Amount', 'Required By'])
-
-    for requisition in PurchaseRequisition.objects.filter(deleted_at__isnull=True).select_related('department', 'requested_by', 'status'):
-        writer.writerow([
-            requisition.title,
-            requisition.department.name if requisition.department else '',
-            requisition.requested_by.get_full_name if requisition.requested_by else '',
-            requisition.status.name if requisition.status else '',
-            requisition.total_amount,
-            requisition.required_by,
-        ])
+    workbook = Workbook()
+    worksheet = workbook.active
+    worksheet.title = "Purchase Requisitions"
+    worksheet.append(
+        ["Title", "Department", "Requested By", "Status", "Total Amount", "Required By"]
+    )
+    requisitions = PurchaseRequisition.objects.filter(
+        deleted_at__isnull=True,
+    ).select_related("department", "requested_by", "status")
+    for requisition in requisitions:
+        worksheet.append(
+            [
+                requisition.title,
+                requisition.department.name if requisition.department else "",
+                requisition.requested_by.get_full_name if requisition.requested_by else "",
+                requisition.status.name if requisition.status else "",
+                requisition.total_amount,
+                requisition.required_by,
+            ]
+        )
+    output = BytesIO()
+    workbook.save(output)
+    response = HttpResponse(
+        output.getvalue(),
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+    response["Content-Disposition"] = (
+        'attachment; filename="purchase_requisitions.xlsx"'
+    )
     return response
 
 
@@ -715,17 +710,14 @@ def purchase_order_list(request):
 
 @login_required
 @require_POST
+@procurement_permission_required("procurement_orders_approve")
 def purchase_order_approve(request, order_id):
     order = get_object_or_404(
         PurchaseOrder,
         id=order_id,
         deleted_at__isnull=True,
     )
-    if not (
-        request.user.is_superuser
-        or request.user.is_procurement_manager
-        or (request.user.role and request.user.role.slug == 'procurement_manager')
-    ):
+    if not has_procurement_access(request.user, "procurement_orders_approve"):
         return HttpResponseForbidden("You are not authorized to approve purchase orders.")
 
     if order.approved:
@@ -790,10 +782,8 @@ def purchase_order_approve(request, order_id):
 
 
 @login_required
+@procurement_permission_required("procurement_orders_edit")
 def purchase_order_edit(request, order_id):
-    if not request.user.has_permission('procurement_orders_edit'):
-        return HttpResponseForbidden("You are not authorized to edit purchase orders.")
-
     order = get_object_or_404(
         PurchaseOrder,
         id=order_id,
@@ -807,9 +797,14 @@ def purchase_order_edit(request, order_id):
         form = PurchaseOrderForm(request.POST, instance=order)
         formset = PurchaseOrderItemFormSet(request.POST, instance=order)
         if form.is_valid() and formset.is_valid():
-            items = formset.save(commit=False)
             order_total = sum(
-                (item.quantity * item.unit_price for item in items),
+                (
+                    item_form.cleaned_data["quantity"]
+                    * item_form.cleaned_data["unit_price"]
+                    for item_form in formset.forms
+                    if item_form.cleaned_data.get("description")
+                    and not item_form.cleaned_data.get("DELETE", False)
+                ),
                 start=0,
             )
             if (
@@ -829,8 +824,8 @@ def purchase_order_edit(request, order_id):
             with transaction.atomic():
                 form.save()
                 formset.save()
-                order.total_amount = order_total
-                order.save()
+                order.total_amount = order.items_total
+                order.save(update_fields=["total_amount", "updated_at"])
             return redirect("procurement:purchase_order_list")
     else:
         form = PurchaseOrderForm(instance=order)
@@ -840,10 +835,8 @@ def purchase_order_edit(request, order_id):
 
 @login_required
 @require_POST
+@procurement_permission_required("procurement_orders_delete")
 def purchase_order_delete(request, order_id):
-    if not request.user.has_permission('procurement_orders_delete'):
-        return HttpResponseForbidden("You are not authorized to delete purchase orders.")
-
     order = get_object_or_404(
         PurchaseOrder,
         id=order_id,
@@ -887,7 +880,7 @@ def purchase_order_print(request, order_id):
 
 
 @login_required
-@procurement_permission_required("procurement_requisitions")
+@procurement_permission_required("procurement_quotations", "procurement_requisitions")
 def purchase_quotation_list(request):
     quotations = PurchaseQuotation.objects.filter(
         deleted_at__isnull=True,
@@ -900,7 +893,7 @@ def purchase_quotation_list(request):
 
 
 @login_required
-@procurement_permission_required("procurement_requisitions_add")
+@procurement_permission_required("procurement_quotations_add", "procurement_requisitions_add")
 def purchase_quotation_add(request):
     quotation = PurchaseQuotation()
     if request.method == "POST":
@@ -928,7 +921,7 @@ def purchase_quotation_add(request):
 
 
 @login_required
-@procurement_permission_required("procurement_requisitions")
+@procurement_permission_required("procurement_quotations", "procurement_requisitions")
 def purchase_quotation_detail(request, quotation_id):
     quotation = get_object_or_404(
         PurchaseQuotation.objects.select_related(
@@ -950,7 +943,7 @@ def purchase_quotation_detail(request, quotation_id):
 
 
 @login_required
-@procurement_permission_required("procurement_requisitions")
+@procurement_permission_required("procurement_quotations", "procurement_requisitions")
 def purchase_quotation_print(request, quotation_id):
     quotation = get_object_or_404(
         PurchaseQuotation.objects.select_related(
@@ -975,7 +968,7 @@ def purchase_quotation_print(request, quotation_id):
 
 @login_required
 @require_POST
-@procurement_permission_required("procurement_requisitions_edit")
+@procurement_permission_required("procurement_quotations_edit", "procurement_requisitions_edit")
 def purchase_quotation_change_status(request, quotation_id):
     quotation = get_object_or_404(
         PurchaseQuotation,
@@ -1062,10 +1055,8 @@ def _quotation_transitions(quotation):
 
 
 @login_required
+@procurement_permission_required("procurement_orders_export")
 def export_purchase_order_csv(request):
-    if not request.user.has_permission('procurement_orders_export'):
-        return HttpResponseForbidden("You are not authorized to export purchase orders.")
-
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = 'attachment; filename="purchase_orders.csv"'
     writer = csv.writer(response)
@@ -1083,31 +1074,38 @@ def export_purchase_order_csv(request):
 
 
 @login_required
+@procurement_permission_required("procurement_orders_export")
 def export_purchase_order_excel(request):
-    if not request.user.has_permission('procurement_orders_export'):
-        return HttpResponseForbidden("You are not authorized to export purchase orders.")
-
-    response = HttpResponse(content_type='application/vnd.ms-excel')
-    response['Content-Disposition'] = 'attachment; filename="purchase_orders.xls"'
-    writer = csv.writer(response)
-    writer.writerow(['Supplier', 'Requisition', 'Order Date', 'Total Amount', 'Approved'])
-
-    for order in PurchaseOrder.objects.filter(deleted_at__isnull=True).select_related('supplier', 'requisition'):
-        writer.writerow([
-            order.supplier.name,
-            order.requisition.title if order.requisition else '',
-            order.order_date,
-            order.total_amount,
-            'Yes' if order.approved else 'No',
-        ])
+    workbook = Workbook()
+    worksheet = workbook.active
+    worksheet.title = "Purchase Orders"
+    worksheet.append(["Supplier", "Requisition", "Order Date", "Total Amount", "Approved"])
+    orders = PurchaseOrder.objects.filter(
+        deleted_at__isnull=True,
+    ).select_related("supplier", "requisition")
+    for order in orders:
+        worksheet.append(
+            [
+                order.supplier.name,
+                order.requisition.title if order.requisition else "",
+                order.order_date,
+                order.total_amount,
+                "Yes" if order.approved else "No",
+            ]
+        )
+    output = BytesIO()
+    workbook.save(output)
+    response = HttpResponse(
+        output.getvalue(),
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+    response["Content-Disposition"] = 'attachment; filename="purchase_orders.xlsx"'
     return response
 
 
 @login_required
+@procurement_permission_required("procurement_orders_add")
 def purchase_order_add(request):
-    if not request.user.has_permission('procurement_orders_add'):
-        return HttpResponseForbidden("You are not authorized to add purchase orders.")
-
     if request.method == "POST":
         form = PurchaseOrderForm(request.POST)
         if form.is_valid():

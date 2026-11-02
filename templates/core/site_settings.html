@@ -1,156 +1,73 @@
 {% extends 'base.html' %}
 {% load i18n %}
-{% load crispy_forms_tags %}
+
 {% block title %}{{ title }} | {% trans 'FalconLMS' %}{% endblock title %}
 
 {% block content %}
 <style>
     .settings-container {
-        max-width: 900px;
+        max-width: 1000px;
         margin: 0 auto;
     }
-    
-    .settings-card {
-        background: #fff;
-        border-radius: 16px;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-        overflow: hidden;
-        margin-bottom: 24px;
+
+    .settings-chooser {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 20px;
     }
-    
-    .settings-card-header {
-        background: linear-gradient(135deg, #914c77 0%, #7a3d64 100%);
-        color: #fff;
-        padding: 20px 24px;
+
+    .settings-chooser-card {
         display: flex;
-        align-items: center;
-        gap: 12px;
-    }
-    
-    .settings-card-header i {
-        font-size: 1.3rem;
-        background: none !important;
-    }
-    
-    .settings-card-header h3 {
-        margin: 0;
-        font-size: 1.1rem;
-        font-weight: 600;
-    }
-    
-    .settings-card-body {
+        align-items: flex-start;
+        gap: 16px;
+        min-height: 150px;
         padding: 24px;
-    }
-    
-    .form-section {
-        margin-bottom: 24px;
-        padding-bottom: 24px;
-        border-bottom: 1px solid #f1f5f9;
-    }
-    
-    .form-section:last-child {
-        margin-bottom: 0;
-        padding-bottom: 0;
-        border-bottom: none;
-    }
-    
-    .form-section-title {
-        font-size: 1rem;
-        font-weight: 600;
         color: #1f2937;
-        margin-bottom: 16px;
-        display: flex;
-        align-items: center;
-        gap: 8px;
+        text-decoration: none;
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+        transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
     }
-    
-    .form-section-title i {
-        color: #914c77;
-        background: none !important;
-    }
-    
-    .logo-preview {
-        display: flex;
-        gap: 24px;
-        flex-wrap: wrap;
-        margin-bottom: 20px;
-    }
-    
-    .preview-box {
-        text-align: center;
-    }
-    
-    .preview-box .preview-label {
-        font-size: 0.85rem;
-        color: #6b7280;
-        margin-bottom: 8px;
-    }
-    
-    .preview-box img {
-        max-width: 150px;
-        max-height: 80px;
-        border: 2px dashed #e5e7eb;
-        border-radius: 8px;
-        padding: 10px;
-        background: #f9fafb;
-    }
-    
-    .preview-box.dark-bg img {
-        background: linear-gradient(135deg, #914c77 0%, #7a3d64 100%);
-        border-color: transparent;
-    }
-    
-    .btn-save {
-        background: linear-gradient(135deg, #914c77 0%, #7a3d64 100%);
-        border: none;
-        padding: 14px 32px;
-        border-radius: 10px;
-        color: #fff;
-        font-weight: 600;
-        font-size: 1rem;
-        display: inline-flex;
-        align-items: center;
-        gap: 10px;
-        transition: all 0.3s ease;
-    }
-    
-    .btn-save:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 25px rgba(145, 76, 119, 0.35);
-        color: #fff;
-    }
-    
-    .btn-save i {
-        background: none !important;
-    }
-    
-    .form-label {
-        font-weight: 500;
-        color: #374151;
-        margin-bottom: 8px;
-    }
-    
-    .form-control, .form-select {
-        border: 2px solid #e5e7eb;
-        border-radius: 10px;
-        padding: 12px 16px;
-        transition: all 0.3s ease;
-    }
-    
-    .form-control:focus, .form-select:focus {
+
+    .settings-chooser-card:hover,
+    .settings-chooser-card:focus-visible {
+        color: #1f2937;
+        text-decoration: none;
         border-color: #914c77;
-        box-shadow: 0 0 0 3px rgba(145, 76, 119, 0.1);
+        box-shadow: 0 8px 24px rgba(145, 76, 119, 0.15);
+        transform: translateY(-2px);
     }
-    
-    input[type="color"] {
-        height: 50px;
-        cursor: pointer;
+
+    .settings-chooser-card:focus-visible {
+        outline: 3px solid rgba(145, 76, 119, 0.28);
+        outline-offset: 2px;
     }
-    
-    .help-text {
-        font-size: 0.85rem;
+
+    .settings-chooser-icon {
+        display: grid;
+        flex: 0 0 48px;
+        width: 48px;
+        height: 48px;
+        place-items: center;
+        color: #914c77;
+        background: #f8eef4;
+        border-radius: 14px;
+        font-size: 1.2rem;
+    }
+
+    .settings-chooser-copy strong {
+        display: block;
+        margin: 2px 0 8px;
+        font-size: 1.05rem;
+    }
+
+    .settings-chooser-copy span {
+        display: block;
         color: #6b7280;
-        margin-top: 6px;
+        font-size: 0.9rem;
+        line-height: 1.5;
     }
 </style>
 
@@ -164,122 +81,37 @@
 {% include 'snippets/messages.html' %}
 
 <div class="settings-container">
-    <form method="POST" enctype="multipart/form-data">
-        {% csrf_token %}
-        
-        <!-- Branding Section -->
-        <div class="settings-card">
-            <div class="settings-card-header">
-                <i class="fas fa-palette"></i>
-                <h3>{% trans 'Branding & Logo' %}</h3>
-            </div>
-            <div class="settings-card-body">
-                <!-- Logo Previews -->
-                {% if settings.logo or settings.logo_white %}
-                <div class="logo-preview">
-                    {% if settings.logo %}
-                    <div class="preview-box">
-                        <div class="preview-label">{% trans 'Current Logo' %}</div>
-                        <img src="{{ settings.logo.url }}" alt="Logo">
-                    </div>
-                    {% endif %}
-                    {% if settings.logo_white %}
-                    <div class="preview-box dark-bg">
-                        <div class="preview-label">{% trans 'Logo (White/Light)' %}</div>
-                        <img src="{{ settings.logo_white.url }}" alt="Logo White">
-                    </div>
-                    {% endif %}
-                    {% if settings.favicon %}
-                    <div class="preview-box">
-                        <div class="preview-label">{% trans 'Favicon' %}</div>
-                        <img src="{{ settings.favicon.url }}" alt="Favicon" style="max-width: 64px; max-height: 64px;">
-                    </div>
-                    {% endif %}
-                </div>
-                {% endif %}
-                
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label">{% trans 'Site Name' %}</label>
-                        {{ form.site_name }}
-                        <div class="help-text">{% trans 'The name displayed in the browser tab and system' %}</div>
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label">{% trans 'Site Tagline' %}</label>
-                        {{ form.site_tagline }}
-                    </div>
-                </div>
-                
-                <div class="row">
-                    <div class="col-md-4 mb-3">
-                        <label class="form-label">{% trans 'Logo' %}</label>
-                        {{ form.logo }}
-                        <div class="help-text">{% trans 'Main logo for light backgrounds' %}</div>
-                    </div>
-                    <div class="col-md-4 mb-3">
-                        <label class="form-label">{% trans 'Logo (White/Light version)' %}</label>
-                        {{ form.logo_white }}
-                        <div class="help-text">{% trans 'Logo for dark backgrounds (sidebar, login)' %}</div>
-                    </div>
-                    <div class="col-md-4 mb-3">
-                        <label class="form-label">{% trans 'Favicon' %}</label>
-                        {{ form.favicon }}
-                        <div class="help-text">{% trans 'Small icon for browser tab (32x32 recommended)' %}</div>
-                    </div>
-                </div>
-                
-                <div class="row">
-                    <div class="col-md-4 mb-3">
-                        <label class="form-label">{% trans 'Primary Color' %}</label>
-                        {{ form.primary_color }}
-                        <div class="help-text">{% trans 'Main theme color' %}</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- School Information Section -->
-        <div class="settings-card">
-            <div class="settings-card-header">
-                <i class="fas fa-school"></i>
-                <h3>{% trans 'School Information' %}</h3>
-            </div>
-            <div class="settings-card-body">
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label">{% trans 'School Name' %}</label>
-                        {{ form.school_name }}
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label">{% trans 'School Email' %}</label>
-                        {{ form.school_email }}
-                    </div>
-                </div>
-                
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label">{% trans 'School Phone' %}</label>
-                        {{ form.school_phone }}
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label">{% trans 'School Website' %}</label>
-                        {{ form.school_website }}
-                    </div>
-                </div>
-                
-                <div class="mb-3">
-                    <label class="form-label">{% trans 'School Address' %}</label>
-                    {{ form.school_address }}
-                </div>
-            </div>
-        </div>
-        
-        <div class="text-end">
-            <button type="submit" class="btn-save">
-                <i class="fas fa-save"></i> {% trans 'Save Settings' %}
-            </button>
-        </div>
-    </form>
+    <h2 class="h4 mb-2">{% trans 'Site Settings' %}</h2>
+    <p class="text-muted mb-4">{% trans 'Choose a section to manage.' %}</p>
+    <nav class="settings-chooser" aria-label="{% trans 'Settings sections' %}">
+        <a class="settings-chooser-card" href="{% url 'site_settings_email' %}">
+            <span class="settings-chooser-icon" aria-hidden="true"><i class="fas fa-envelope"></i></span>
+            <span class="settings-chooser-copy">
+                <strong>{% trans 'Email Server' %}</strong>
+                <span>{% trans 'Configure the SMTP host, credentials, and sender details.' %}</span>
+            </span>
+        </a>
+        <a class="settings-chooser-card" href="{% url 'site_settings_branding' %}">
+            <span class="settings-chooser-icon" aria-hidden="true"><i class="fas fa-palette"></i></span>
+            <span class="settings-chooser-copy">
+                <strong>{% trans 'Branding & Logo' %}</strong>
+                <span>{% trans 'Update the site name, logos, favicon, and theme color.' %}</span>
+            </span>
+        </a>
+        <a class="settings-chooser-card" href="{% url 'site_settings_school' %}">
+            <span class="settings-chooser-icon" aria-hidden="true"><i class="fas fa-school"></i></span>
+            <span class="settings-chooser-copy">
+                <strong>{% trans 'School Information' %}</strong>
+                <span>{% trans 'Manage the school contact details and address.' %}</span>
+            </span>
+        </a>
+        <a class="settings-chooser-card" href="{% url 'site_settings_student_ids' %}">
+            <span class="settings-chooser-icon" aria-hidden="true"><i class="fas fa-id-card"></i></span>
+            <span class="settings-chooser-copy">
+                <strong>{% trans 'Student Registration Numbers' %}</strong>
+                <span>{% trans 'Set the automatic format used for new student registration numbers.' %}</span>
+            </span>
+        </a>
+    </nav>
 </div>
-
 {% endblock content %}

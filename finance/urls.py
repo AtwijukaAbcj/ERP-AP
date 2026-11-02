@@ -36,6 +36,16 @@ urlpatterns = [
     ),
     path('fees/', views.fee_category_list, name='fee_category_list'),
     path('fees/add/', views.fee_category_add, name='fee_category_add'),
+    path(
+        'fees/<int:category_id>/edit/',
+        views.fee_category_edit,
+        name='fee_category_edit',
+    ),
+    path(
+        'fees/<int:category_id>/delete/',
+        views.fee_category_delete,
+        name='fee_category_delete',
+    ),
     path('staff/categories/', views.staff_category_list, name='staff_category_list'),
     path('staff/categories/add/', views.staff_category_add, name='staff_category_add'),
     path('staff/', views.staff_list, name='staff_list'),
@@ -52,6 +62,11 @@ urlpatterns = [
     path('payrolls/add/', views.payroll_add, name='payroll_add'),
     path('expense-categories/', views.expense_category_list, name='expense_category_list'),
     path('expense-categories/add/', views.expense_category_add, name='expense_category_add'),
+    path(
+        'expense-categories/<int:category_id>/edit/',
+        views.expense_category_edit,
+        name='expense_category_edit',
+    ),
     path('expenses/', views.expense_list, name='expense_list'),
     path('expenses/add/', views.expense_add, name='expense_add'),
     path('petty-cash/', views.petty_cash_list, name='petty_cash_list'),

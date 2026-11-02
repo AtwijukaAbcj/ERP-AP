@@ -3,24 +3,223 @@
 
 {% block title %}{{ title }} | {% trans 'Student Management' %}{% endblock %}
 
+{% block header %}
+{{ block.super }}
+<style>
+    .student-directory {
+        --student-table-border: #e7eaf0;
+        background: #fff;
+        border: 1px solid var(--student-table-border);
+        border-radius: 0.9rem;
+        box-shadow: 0 0.35rem 1.2rem rgba(25, 35, 55, 0.06);
+        overflow: hidden;
+    }
+
+    .student-directory-scroll {
+        overflow-x: auto;
+    }
+
+    .student-directory-table {
+        min-width: 1050px;
+        margin: 0;
+    }
+
+    .student-directory-table thead th {
+        padding: 0.85rem 1rem;
+        background: #f5f6fa;
+        color: #64708a;
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.045em;
+        text-transform: uppercase;
+        white-space: nowrap;
+    }
+
+    .student-directory-table tbody td {
+        padding: 0.85rem 1rem;
+        border-top: 1px solid var(--student-table-border);
+        vertical-align: middle;
+    }
+
+    .student-directory-table tbody tr:hover {
+        background: #faf9fc;
+    }
+
+    .student-registration-number {
+        display: inline-block;
+        max-width: 10.5rem;
+        color: #344054;
+        font-family: inherit;
+        font-size: 0.84rem;
+        font-weight: 600;
+        line-height: 1.35;
+        overflow-wrap: anywhere;
+    }
+
+    .student-name {
+        display: inline-block;
+        font-weight: 600;
+        line-height: 1.35;
+    }
+
+    .student-email,
+    .student-cohort {
+        margin-top: 0.25rem;
+        color: #8791a5;
+        font-size: 0.8rem;
+        overflow-wrap: anywhere;
+    }
+
+    .student-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        white-space: nowrap;
+    }
+
+    .student-actions .btn {
+        display: inline-flex;
+        width: 2.25rem;
+        height: 2.25rem;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        border-radius: 0.55rem;
+    }
+
+    .student-actions form {
+        display: inline-flex;
+        margin: 0;
+    }
+
+    .student-detail-link {
+        white-space: nowrap;
+    }
+
+    .student-management-header {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+    }
+
+    .student-management-actions {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.65rem;
+    }
+
+    .student-filter-form {
+        padding: 1.15rem 1.25rem;
+        border: 1px solid #e1e6ef;
+        border-radius: 0.9rem;
+        box-shadow: 0 0.25rem 1rem rgba(25, 35, 55, 0.045);
+    }
+
+    .student-filter-grid {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr)) auto;
+        align-items: end;
+        gap: 0.85rem;
+    }
+
+    .student-filter-field {
+        min-width: 0;
+    }
+
+    .student-filter-field .form-label {
+        display: block;
+        margin-bottom: 0.45rem;
+        color: #64708a;
+        font-size: 0.87rem;
+        font-weight: 600;
+    }
+
+    .student-filter-field .au-input,
+    .student-filter-field .form-select {
+        display: block;
+        width: 100%;
+        min-width: 0;
+        height: 2.85rem;
+        line-height: 1.4;
+    }
+
+    .student-filter-field .au-input {
+        max-width: none;
+    }
+
+    .student-filter-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+    }
+
+    .student-filter-actions .btn {
+        min-height: 2.85rem;
+        white-space: nowrap;
+    }
+
+    @media (max-width: 1199.98px) {
+        .student-filter-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        .student-filter-actions {
+            grid-column: 1 / -1;
+            justify-content: flex-end;
+        }
+    }
+
+    @media (max-width: 575.98px) {
+        .student-management-header {
+            align-items: flex-start;
+        }
+
+        .student-management-actions {
+            width: 100%;
+        }
+
+        .student-filter-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.75rem;
+        }
+
+        .student-filter-actions {
+            grid-column: 1 / -1;
+        }
+    }
+
+    @media (max-width: 575.98px) {
+        .student-directory-table {
+            min-width: 900px;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+<div class="student-management-header mb-4">
     <div>
-        <h1 class="h3 mb-1">{% trans 'Student Management' %}</h1>
-        <p class="text-muted mb-0">{% trans 'Student profiles, enrolment status, and records' %}</p>
+        <h1 class="h3 mb-1">{% if is_student_self_service %}{% trans 'My Student Record' %}{% else %}{% trans 'Student Management' %}{% endif %}</h1>
+        <p class="text-muted mb-0">{% if is_student_self_service %}{% trans 'View your profile and enrolment details' %}{% else %}{% trans 'Student profiles, enrolment status, and records' %}{% endif %}</p>
     </div>
+    <div class="student-management-actions">
     {% if can_manage %}
     <a class="btn btn-primary" href="{% url 'add_student' %}">
         <i class="fas fa-plus me-1"></i>{% trans 'Add Student' %}
     </a>
     {% endif %}
-    {% if can_export %}
+    {% if can_export and not is_student_self_service %}
     <a class="btn btn-outline-secondary" target="_blank" href="{% url 'student_list_pdf' %}">
         <i class="fas fa-download me-1"></i>{% trans 'Download PDF' %}
     </a>
     {% endif %}
+    </div>
 </div>
 
+{% if not is_student_self_service %}
 <div class="row g-3 mb-4">
     {% for status_count in student_counts %}
     <div class="col-sm-6 col-lg">
@@ -32,53 +231,68 @@
     {% endfor %}
 </div>
 
-<form method="get" class="card card-body mb-3">
-    <div class="row g-2 align-items-end">
+<form method="get" class="student-filter-form mb-3">
+    <div class="student-filter-grid">
         {% for field in filter.form %}
-        <div class="col-sm-6 col-lg">
-            <label class="form-label" for="{{ field.id_for_label }}">{{ field.label|default:field.name|title }}</label>
+        <div class="student-filter-field">
+            <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
             {{ field }}
         </div>
         {% endfor %}
-        <div class="col-sm-6 col-lg-auto"><button class="btn btn-outline-primary w-100" type="submit">{% trans 'Filter' %}</button></div>
-        <div class="col-sm-6 col-lg-auto"><a class="btn btn-outline-secondary w-100" href="{% url 'student_list' %}">{% trans 'Clear' %}</a></div>
+        <div class="student-filter-actions">
+            <button class="btn btn-outline-primary" type="submit"><i class="fas fa-filter me-1" aria-hidden="true"></i>{% trans 'Filter' %}</button>
+            <a class="btn btn-outline-secondary" href="{% url 'student_list' %}">{% trans 'Clear' %}</a>
+        </div>
     </div>
 </form>
+{% endif %}
 
-<div class="table-responsive">
-    <table class="table table-hover align-middle">
+<div class="student-directory">
+<div class="student-directory-scroll">
+    <table class="table table-hover align-middle student-directory-table">
         <thead>
             <tr>
-                <th>{% trans 'Registration No.' %}</th>
-                <th>{% trans 'Student' %}</th>
-                <th>{% trans 'Program / Cohort' %}</th>
-                <th>{% trans 'Year' %}</th>
-                <th>{% trans 'Status' %}</th>
-                <th>{% trans 'Details' %}</th>
-                {% if can_manage %}<th>{% trans 'Actions' %}</th>{% endif %}
+                <th scope="col">{% trans 'Registration No.' %}</th>
+                <th scope="col">{% trans 'Student' %}</th>
+                <th scope="col">{% trans 'Program / Cohort' %}</th>
+                <th scope="col">{% trans 'Year' %}</th>
+                <th scope="col">{% trans 'Status' %}</th>
+                <th scope="col">{% trans 'Details' %}</th>
+                {% if can_manage %}<th scope="col">{% trans 'Actions' %}</th>{% endif %}
             </tr>
         </thead>
         <tbody>
         {% for student in object_list %}
             <tr>
-                <td>{{ student.registration_number|default:"—" }}</td>
+                <td><span class="student-registration-number">{{ student.registration_number|default:"—" }}</span></td>
                 <td>
-                    <a href="{% url 'student_record_detail' student.pk %}">{{ student.student.get_full_name }}</a>
-                    <div class="small text-muted">{{ student.student.email }}</div>
+                    <a class="student-name" href="{% url 'student_record_detail' student.pk %}">{{ student.student.get_full_name }}</a>
+                    {% if student.student.email %}<div class="student-email">{{ student.student.email }}</div>{% endif %}
                 </td>
-                <td>{{ student.program|default:"—" }}{% if student.cohort %}<div class="small text-muted">{{ student.cohort }}</div>{% endif %}</td>
-                <td>{{ student.get_year_display|default:"—" }}</td>
-                <td><span class="badge {% if student.status == 'active' %}text-bg-success{% elif student.status == 'graduated' %}text-bg-primary{% elif student.status == 'withdrawn' %}text-bg-dark{% else %}text-bg-warning{% endif %}">{{ student.get_status_display }}</span></td>
-                <td><a class="btn btn-sm btn-outline-primary" href="{% url 'student_record_detail' student.pk %}">{% trans 'Open record' %}</a></td>
+                <td>{{ student.program|default:"—" }}{% if student.cohort %}<div class="student-cohort">{{ student.cohort }}</div>{% endif %}</td>
+                <td class="text-nowrap">{{ student.get_year_display|default:"—" }}</td>
+                <td class="text-nowrap"><span class="badge {% if student.status == 'active' %}text-bg-success{% elif student.status == 'graduated' %}text-bg-primary{% elif student.status == 'withdrawn' %}text-bg-dark{% else %}text-bg-warning{% endif %}">{{ student.get_status_display }}</span></td>
+                <td><a class="btn btn-sm btn-outline-primary student-detail-link" href="{% url 'student_record_detail' student.pk %}"><i class="fas fa-folder-open me-1" aria-hidden="true"></i>{% trans 'Open record' %}</a></td>
                 {% if can_manage %}
                 <td>
-                    <a class="btn btn-sm btn-outline-secondary" href="{% url 'student_edit' student.student_id %}">{% trans 'Edit' %}</a>
+                    <div class="student-actions">
+                    <a class="btn btn-sm btn-outline-secondary" href="{% url 'student_edit' student.student_id %}" title="{% trans 'Edit student' %}" aria-label="{% trans 'Edit student' %}">
+                        <i class="fas fa-pen" aria-hidden="true"></i>
+                    </a>
+                    {% if request.user.is_superuser %}
+                    <a class="btn btn-sm btn-outline-warning" href="{% url 'user_password_reset' student.student_id %}" title="{% trans 'Reset password' %}" aria-label="{% trans 'Reset password' %}">
+                        <i class="fas fa-key" aria-hidden="true"></i>
+                    </a>
+                    {% endif %}
                     {% if student.status != 'withdrawn' and student.status != 'graduated' %}
-                    <form method="post" action="{% url 'student_delete' student.pk %}" class="d-inline" onsubmit="return confirm('{% trans 'Archive this student as withdrawn?' %}')">
+                    <form method="post" action="{% url 'student_delete' student.pk %}" onsubmit="return confirm('{% trans 'Archive this student as withdrawn?' %}')">
                         {% csrf_token %}
-                        <button class="btn btn-sm btn-outline-danger" type="submit">{% trans 'Withdraw' %}</button>
+                        <button class="btn btn-sm btn-outline-danger" type="submit" title="{% trans 'Withdraw student' %}" aria-label="{% trans 'Withdraw student' %}">
+                            <i class="fas fa-user-minus" aria-hidden="true"></i>
+                        </button>
                     </form>
                     {% endif %}
+                    </div>
                 </td>
                 {% endif %}
             </tr>
@@ -87,6 +301,7 @@
         {% endfor %}
         </tbody>
     </table>
+</div>
 </div>
 
 {% if is_paginated %}

@@ -13,6 +13,11 @@
         <a href="{% url 'finance:generate_semester_invoices' %}" class="btn btn-outline-success">
             <i class="fas fa-users"></i> Generate Current Semester Invoices
         </a>
+        {% if can_add_fee_categories %}
+        <a href="{% url 'finance:fee_category_add' %}" class="btn btn-outline-primary">
+            <i class="fas fa-tags"></i> Add Category
+        </a>
+        {% endif %}
     
         <!-- Right: Export Buttons -->
         <div class="d-flex gap-2">

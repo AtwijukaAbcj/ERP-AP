@@ -15,7 +15,7 @@ class UserAdmin(admin.ModelAdmin):
         "get_full_name",
         "username",
         "email",
-        "role",
+        "get_user_role",
         "is_active",
         "is_student",
         "is_lecturer",

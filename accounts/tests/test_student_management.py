@@ -17,6 +17,7 @@ from accounts.models import (
     User,
 )
 from accounts.forms import StudentAddForm
+from core.models import Semester
 from audit.models import ActivityLog
 from course.models import Program
 from accounts.student_services import transition_student_status
@@ -31,6 +32,7 @@ class StudentManagementTests(TestCase):
         self.document_storage._location = self.temporary_document_storage.name
         self.document_storage.__dict__.pop("location", None)
         self.program = Program.objects.create(title="Psychiatric Nursing")
+        self.semester = Semester.objects.create(semester="First")
         self.registrar = User.objects.create_user(
             username="records-registrar",
             email="registrar@example.test",
@@ -48,6 +50,7 @@ class StudentManagementTests(TestCase):
             student=self.student_user,
             registration_number="BSN-2026-001",
             program=self.program,
+            semester=self.semester,
             cohort="2026 August",
         )
 
@@ -123,8 +126,15 @@ class StudentManagementTests(TestCase):
                 link = f'href="{student_list_url}"'
                 self.assertEqual(sidebar_menu.count(link), 1)
                 self.assertIn(
-                    f'{link} class="menu-link active"',
+                    f'{link} class="active"',
                     sidebar_menu,
+                )
+                self.assertContains(
+                    response,
+                    reverse(
+                        "user_password_reset",
+                        args=(self.student_user.pk,),
+                    ),
                 )
 
     def test_student_can_view_own_record_but_not_another_record(self):
@@ -150,6 +160,59 @@ class StudentManagementTests(TestCase):
         self.assertEqual(own_response.status_code, 200)
         self.assertEqual(other_response.status_code, 403)
 
+    def test_student_directory_is_scoped_to_the_signed_in_student(self):
+        self.student_user.is_student = True
+        self.student_user.save(update_fields=("is_student",))
+        other_user = User.objects.create_user(
+            username="private-other-student",
+            email="private-other@example.test",
+            password="student-test-password",
+            is_student=True,
+        )
+        Student.objects.create(
+            student=other_user,
+            registration_number="BSN-2026-002",
+            program=self.program,
+        )
+        self.client.force_login(self.student_user)
+
+        response = self.client.get(reverse("student_list"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, self.student.registration_number)
+        self.assertNotContains(response, "BSN-2026-002")
+        self.assertNotContains(response, "private-other@example.test")
+        self.assertContains(response, "My Student Record")
+        self.assertNotContains(response, reverse("add_student"))
+
+    def test_post_login_landing_routes_student_to_student_page(self):
+        self.student_user.is_student = True
+        self.student_user.save(update_fields=("is_student",))
+        self.client.force_login(self.student_user)
+
+        response = self.client.get(reverse("account_landing"))
+
+        self.assertRedirects(response, reverse("student_list"))
+
+    def test_student_management_sidebar_exposes_permission_gated_actions(self):
+        self.client.force_login(self.registrar)
+
+        response = self.client.get(reverse("student_list"))
+
+        self.assertEqual(response.status_code, 200)
+        html = response.content.decode()
+        sidebar_menu = html.split(
+            '<nav class="sidebar-menu">',
+            maxsplit=1,
+        )[1].split("</nav>", maxsplit=1)[0]
+        self.assertIn(reverse("student_list"), sidebar_menu)
+        self.assertIn(reverse("add_student"), sidebar_menu)
+        self.assertNotIn(reverse("student_list_pdf"), sidebar_menu)
+        self.assertContains(response, "student-directory-table")
+        self.assertContains(response, "student-actions")
+        self.assertContains(response, 'aria-label="Edit student"')
+        self.assertContains(response, 'aria-label="Withdraw student"')
+
     def test_student_record_permission_grants_list_access(self):
         user = User.objects.create_user(
             username="student-records-officer",
@@ -170,7 +233,7 @@ class StudentManagementTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
 
-    def test_student_registration_number_must_be_unique(self):
+    def test_student_registration_number_is_generated_automatically(self):
         form = StudentAddForm(
             data={
                 "first_name": "Musa",
@@ -182,12 +245,19 @@ class StudentManagementTests(TestCase):
                 "level": StudentAddForm.base_fields["level"].choices[0][0],
                 "year": StudentAddForm.base_fields["year"].choices[0][0],
                 "program": self.program.pk,
-                "registration_number": self.student.registration_number,
+                "semester": self.semester.pk,
+                "cohort": "August 2026",
             }
         )
 
-        self.assertFalse(form.is_valid())
-        self.assertIn("registration_number", form.errors)
+        self.assertNotIn("registration_number", form.fields)
+        self.assertTrue(form.is_valid(), form.errors)
+        user = form.save()
+        created_student = Student.objects.get(student=user)
+        self.assertRegex(
+            created_student.registration_number,
+            r"^PN-Aug-26-\d{6}$",
+        )
 
     def test_explicit_permission_deny_overrides_registrar_access(self):
         permission = Permission.objects.get(

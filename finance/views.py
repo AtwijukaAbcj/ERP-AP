@@ -62,11 +62,16 @@ from core.pdf_utils import pdf_link_callback
 import csv
 import io
 from decimal import Decimal
-from django.db.models import Sum
+from django.db.models import Exists, OuterRef, Sum
 from xhtml2pdf import pisa
 from django.template.loader import get_template
 from django.utils import timezone
-from .permissions import finance_permission_required, has_finance_permission
+from .permissions import (
+    finance_action_permission_required,
+    finance_permission_required,
+    has_finance_action_permission,
+    has_finance_permission,
+)
 from .services import create_semester_invoices, record_invoice_payment
 from .services import create_online_invoice_payment, finalize_online_invoice_payment
 from .payment_providers import (
@@ -187,7 +192,19 @@ def invoice_list(request):
         "student__student",
         "semester",
     ).prefetch_related("items__category").all()
-    return render(request, 'finance/manage_invoices.html', {'invoices': invoices})
+    return render(
+        request,
+        'finance/manage_invoices.html',
+        {
+            'invoices': invoices,
+            'can_add_fee_categories': has_finance_action_permission(
+                request.user,
+                "finance.fee_category.add",
+                "manage_fee_categories",
+                "fee_category_add",
+            ),
+        },
+    )
 
 
 @login_required
@@ -535,12 +552,40 @@ def paypal_payment_return(request):
 @login_required
 @finance_permission_required("manage_invoices")
 def fee_category_list(request):
-    categories = FeeCategory.objects.all()
-    return render(request, 'finance/manage_fee_categories.html', {'categories': categories})
+    categories = FeeCategory.objects.annotate(
+        has_invoice_items=Exists(
+            InvoiceItem.objects.filter(category_id=OuterRef("pk"))
+        )
+    )
+    return render(request, 'finance/manage_fee_categories.html', {
+        'categories': categories,
+        'can_add_categories': has_finance_action_permission(
+            request.user,
+            "finance.fee_category.add",
+            "manage_fee_categories",
+            "fee_category_add",
+        ),
+        'can_edit_categories': has_finance_action_permission(
+            request.user,
+            "finance.fee_category.edit",
+            "manage_fee_categories",
+            "fee_category_add",
+        ),
+        'can_delete_categories': has_finance_action_permission(
+            request.user,
+            "finance.fee_category.delete",
+            "manage_fee_categories",
+            "fee_category_add",
+        ),
+    })
 
 
 @login_required
-@finance_permission_required("manage_fee_categories", "fee_category_add")
+@finance_action_permission_required(
+    "finance.fee_category.add",
+    "manage_fee_categories",
+    "fee_category_add",
+)
 def fee_category_add(request):
     current_semester = Semester.objects.filter(is_current_semester=True).first()
     
@@ -553,6 +598,51 @@ def fee_category_add(request):
         form = FeeCategoryForm(initial={'semester': current_semester})
 
     return render(request, 'finance/fee_category_add.html', {'form': form})
+
+
+@login_required
+@finance_action_permission_required(
+    "finance.fee_category.edit",
+    "manage_fee_categories",
+    "fee_category_add",
+)
+def fee_category_edit(request, category_id):
+    category = get_object_or_404(FeeCategory, pk=category_id)
+
+    if request.method == 'POST':
+        form = FeeCategoryForm(request.POST, instance=category)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Fee category updated.")
+            return redirect('finance:fee_category_list')
+    else:
+        form = FeeCategoryForm(instance=category)
+
+    return render(request, 'finance/fee_category_add.html', {
+        'form': form,
+        'category': category,
+        'title': "Edit Fee Category",
+    })
+
+
+@login_required
+@finance_action_permission_required(
+    "finance.fee_category.delete",
+    "manage_fee_categories",
+    "fee_category_add",
+)
+@require_POST
+def fee_category_delete(request, category_id):
+    category = get_object_or_404(FeeCategory, pk=category_id)
+    if InvoiceItem.objects.filter(category=category).exists():
+        messages.warning(
+            request,
+            "This fee category cannot be deleted because it is used by existing invoices.",
+        )
+    else:
+        category.delete()
+        messages.success(request, "Fee category deleted.")
+    return redirect("finance:fee_category_list")
 
 
 @login_required
@@ -685,12 +775,14 @@ def payroll_add(request):
 
 
 @login_required
+@finance_permission_required("expense_category_list")
 def expense_category_list(request):
     categories = ExpenseCategory.objects.all()
     return render(request, 'finance/expense_category_list.html', {'categories': categories})
 
 
 @login_required
+@finance_permission_required("expense_category_list")
 def expense_category_add(request):
     if request.method == 'POST':
         form = ExpenseCategoryForm(request.POST)
@@ -700,16 +792,44 @@ def expense_category_add(request):
     else:
         form = ExpenseCategoryForm()
 
-    return render(request, 'finance/expense_category_add.html', {'form': form})
-
+    return render(
+        request,
+        'finance/expense_category_add.html',
+        {'form': form, 'title': "Add Expense Category"},
+    )
 
 @login_required
+@finance_permission_required("expense_category_list")
+def expense_category_edit(request, category_id):
+    category = get_object_or_404(ExpenseCategory, pk=category_id)
+    if request.method == 'POST':
+        form = ExpenseCategoryForm(request.POST, instance=category)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Expense category updated.")
+            return redirect('finance:expense_category_list')
+    else:
+        form = ExpenseCategoryForm(instance=category)
+
+    return render(
+        request,
+        'finance/expense_category_add.html',
+        {
+            'form': form,
+            'category': category,
+            'title': "Edit Expense Category",
+        },
+    )
+
+@login_required
+@finance_permission_required("expense_list")
 def expense_list(request):
     expenses = Expense.objects.select_related('category', 'paid_by').all()
     return render(request, 'finance/expense_list.html', {'expenses': expenses})
 
 
 @login_required
+@finance_permission_required("expense_list")
 def expense_add(request):
     if request.method == 'POST':
         form = ExpenseForm(request.POST)
@@ -723,12 +843,14 @@ def expense_add(request):
 
 
 @login_required
+@finance_permission_required("petty_cash_list")
 def petty_cash_list(request):
     entries = PettyCashEntry.objects.select_related('created_by').all()
     return render(request, 'finance/petty_cash_list.html', {'entries': entries})
 
 
 @login_required
+@finance_permission_required("petty_cash_list")
 def petty_cash_add(request):
     if request.method == 'POST':
         form = PettyCashEntryForm(request.POST)
@@ -742,12 +864,14 @@ def petty_cash_add(request):
 
 
 @login_required
+@finance_permission_required("accounts_payable_list")
 def accounts_payable_list(request):
     payables = AccountPayable.objects.all()
     return render(request, 'finance/accounts_payable_list.html', {'payables': payables})
 
 
 @login_required
+@finance_permission_required("accounts_payable_list")
 def accounts_payable_add(request):
     if request.method == 'POST':
         form = AccountPayableForm(request.POST)
@@ -761,12 +885,14 @@ def accounts_payable_add(request):
 
 
 @login_required
+@finance_permission_required("accounts_receivable_list")
 def accounts_receivable_list(request):
     receivables = AccountReceivable.objects.all()
     return render(request, 'finance/accounts_receivable_list.html', {'receivables': receivables})
 
 
 @login_required
+@finance_permission_required("accounts_receivable_list")
 def accounts_receivable_add(request):
     if request.method == 'POST':
         form = AccountReceivableForm(request.POST)
@@ -780,12 +906,14 @@ def accounts_receivable_add(request):
 
 
 @login_required
+@finance_permission_required("budget_list")
 def budget_list(request):
     budgets = Budget.objects.select_related('requested_by', 'approved_by').order_by('-created_at')
     return render(request, 'finance/budget_list.html', {'budgets': budgets})
 
 
 @login_required
+@finance_permission_required("budget_list")
 def budget_add(request):
     if request.method == 'POST':
         form = BudgetForm(request.POST)
@@ -803,12 +931,14 @@ def budget_add(request):
 
 
 @login_required
+@finance_permission_required("cash_book_list")
 def cash_book_list(request):
     entries = CashBookEntry.objects.select_related('created_by').order_by('-date')
     return render(request, 'finance/cash_book_list.html', {'entries': entries})
 
 
 @login_required
+@finance_permission_required("cash_book_list")
 def cash_book_add(request):
     if request.method == 'POST':
         form = CashBookEntryForm(request.POST)
@@ -823,12 +953,14 @@ def cash_book_add(request):
 
 
 @login_required
+@finance_permission_required("bank_reconciliation_list")
 def bank_reconciliation_list(request):
     reconciliations = BankReconciliation.objects.select_related('reconciled_by').order_by('-statement_date')
     return render(request, 'finance/bank_reconciliation_list.html', {'reconciliations': reconciliations})
 
 
 @login_required
+@finance_permission_required("bank_reconciliation_list")
 def bank_reconciliation_add(request):
     if request.method == 'POST':
         form = BankReconciliationForm(request.POST)
@@ -846,12 +978,14 @@ def bank_reconciliation_add(request):
 
 
 @login_required
+@finance_permission_required("ledger_account_list")
 def ledger_account_list(request):
     accounts = LedgerAccount.objects.all().order_by('code')
     return render(request, 'finance/ledger_account_list.html', {'accounts': accounts})
 
 
 @login_required
+@finance_permission_required("ledger_account_list")
 def ledger_account_add(request):
     if request.method == 'POST':
         form = LedgerAccountForm(request.POST)
@@ -866,12 +1000,14 @@ def ledger_account_add(request):
 
 
 @login_required
+@finance_permission_required("general_ledger_list")
 def general_ledger_list(request):
     entries = GeneralLedgerEntry.objects.select_related('account', 'created_by').order_by('-date')
     return render(request, 'finance/general_ledger_list.html', {'entries': entries})
 
 
 @login_required
+@finance_permission_required("general_ledger_list")
 def general_ledger_add(request):
     if request.method == 'POST':
         form = GeneralLedgerEntryForm(request.POST)
@@ -886,12 +1022,14 @@ def general_ledger_add(request):
 
 
 @login_required
+@finance_permission_required("payment_voucher_list")
 def payment_voucher_list(request):
     vouchers = PaymentVoucher.objects.select_related('requested_by', 'approved_by').order_by('-created_at')
     return render(request, 'finance/payment_voucher_list.html', {'vouchers': vouchers})
 
 
 @login_required
+@finance_permission_required("payment_voucher_list")
 def payment_voucher_add(request):
     if request.method == 'POST':
         form = PaymentVoucherForm(request.POST)
@@ -1165,6 +1303,7 @@ def export_invoice_table_pdf(request):
 
 @login_required
 @admin_required
+@require_POST
 def revoke_finance_module(request, permission_id):
     permission = get_object_or_404(FinanceModulePermission, id=permission_id)
     permission.delete()

@@ -1,9 +1,23 @@
 from django import forms
+from django.core.validators import RegexValidator
 from accounts.models import User
 from .models import Program, Course, CourseAllocation, Upload, UploadVideo
 from .models import Faculty
 
 class ProgramForm(forms.ModelForm):
+    code = forms.CharField(
+        max_length=20,
+        required=True,
+        label="Program Code",
+        help_text="A short unique code used in student registration numbers.",
+        validators=[
+            RegexValidator(
+                regex=r"^[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*$",
+                message="Use letters and numbers, with optional hyphens.",
+            )
+        ],
+    )
+
     class Meta:
         model = Program
         fields = "__all__"
@@ -11,8 +25,18 @@ class ProgramForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["title"].widget.attrs.update({"class": "form-control"})
+        self.fields["code"].widget.attrs.update({"class": "form-control", "autocapitalize": "characters"})
         self.fields["summary"].widget.attrs.update({"class": "form-control"})
         self.fields["faculty"].widget.attrs.update({"class": "form-select"})  # ← add this
+
+    def clean_code(self):
+        code = self.cleaned_data["code"].strip().upper()
+        programs = Program.objects.filter(code__iexact=code)
+        if self.instance.pk:
+            programs = programs.exclude(pk=self.instance.pk)
+        if programs.exists():
+            raise forms.ValidationError("A program with this code already exists.")
+        return code
 
 
 class CourseAddForm(forms.ModelForm):

@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+{% load i18n crispy_forms_tags %}
+{% block title %}{{ title }} | {% trans 'Learning management system' %}{% endblock title %}
+
+{% block content %}
+<nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/">{% trans 'Home' %}</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'user_list' %}">{% trans 'Users' %}</a></li>
+        <li class="breadcrumb-item active" aria-current="page">{{ title }}</li>
+    </ol>
+</nav>
+
+<h4 class="fw-bold mb-3"><i class="fas fa-user-tag me-2"></i>{{ title }}</h4>
+<p class="text-muted">{% blocktrans with name=target_user.get_full_name %}Select the permission roles for {{ name }}. This updates role-based permissions without changing the user account or account type.{% endblocktrans %}</p>
+{% include 'snippets/messages.html' %}
+
+<form method="post" novalidate>
+    {% csrf_token %}
+    {{ form|crispy }}
+    <button type="submit" class="btn btn-primary mt-3">{% trans 'Save Roles' %}</button>
+    <a href="{% url 'user_list' %}" class="btn btn-secondary mt-3">{% trans 'Cancel' %}</a>
+</form>
+{% endblock content %}

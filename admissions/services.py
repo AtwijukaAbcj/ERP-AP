@@ -55,9 +55,9 @@ def transition_application(application_id, to_status, actor, comment="", request
 def provision_accepted_student(
     application_id,
     *,
-    registration_number,
     level,
     year,
+    semester,
     actor,
     request=None,
 ):
@@ -92,11 +92,11 @@ def provision_accepted_student(
     student = Student.objects.create(
         student=user,
         program=application.program,
-        registration_number=registration_number,
         level=level,
         year=year,
+        semester=semester,
         date_of_birth=application.date_of_birth,
-        cohort=application.academic_year,
+        cohort=f"{application.intake} {application.academic_year}",
         admission_date=timezone.localdate(),
         next_of_kin_name=application.next_of_kin_name,
         next_of_kin_phone=application.next_of_kin_phone,

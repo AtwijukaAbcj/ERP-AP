@@ -6,6 +6,7 @@ from django.urls import reverse
 from django.utils import timezone
 from datetime import date
 from decimal import Decimal
+from unittest.mock import patch
 
 from accounts.models import (
     Permission,
@@ -15,6 +16,7 @@ from accounts.models import (
     User,
     UserPermission,
 )
+from django.core.mail import EmailMessage
 from admissions.models import Application, ApplicationStatus
 from audit.models import ActivityLog as AuditActivityLog
 from clinical.models import ClinicalLogEntry, ClinicalPlacement, Ward
@@ -40,7 +42,244 @@ from result.models import (
     TakenCourse,
 )
 
-from .models import NewsAndEvents, Room, Semester, Session, Timetable, TimetableEntry
+from .email_backend import DatabaseConfiguredEmailBackend
+from .models import (
+    EmailServerSettings,
+    NewsAndEvents,
+    Room,
+    Semester,
+    Session,
+    SiteSettings,
+    Timetable,
+    TimetableEntry,
+)
+
+
+@override_settings(LANGUAGE_CODE="en")
+class EmailServerSettingsTests(TestCase):
+    def setUp(self):
+        self.admin = User.objects.create_superuser(
+            username="email-settings-admin",
+            email="email-settings-admin@example.test",
+            password="test-password",
+        )
+        self.client.force_login(self.admin)
+
+    def test_dashboard_can_save_smtp_settings_and_keeps_password_encrypted(self):
+        response = self.client.get(reverse("site_settings_email"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Email Server (SMTP)")
+        self.assertContains(response, 'name="host"')
+        self.assertContains(response, 'name="password"')
+        self.assertContains(response, 'name="from_email"')
+
+        response = self.client.post(
+            reverse("site_settings_email"),
+            {
+                "host": "smtp.example.test",
+                "port": "465",
+                "username": "mailer@example.test",
+                "password": "Replacement-Only-Test-Password",
+                "use_tls": "",
+                "use_ssl": "on",
+                "from_email": "noreply@example.test",
+                "from_name": "FalconLMS",
+                "is_enabled": "on",
+            },
+        )
+
+        self.assertRedirects(response, reverse("site_settings_email"))
+        email_settings = EmailServerSettings.objects.get(pk=1)
+        self.assertEqual(email_settings.host, "smtp.example.test")
+        self.assertEqual(email_settings.port, 465)
+        self.assertFalse(email_settings.use_tls)
+        self.assertTrue(email_settings.use_ssl)
+        self.assertTrue(email_settings.is_enabled)
+        self.assertNotEqual(
+            email_settings.encrypted_password,
+            "Replacement-Only-Test-Password",
+        )
+        self.assertEqual(
+            email_settings.get_password(),
+            "Replacement-Only-Test-Password",
+        )
+
+        response = self.client.get(reverse("site_settings_email"))
+        self.assertNotContains(response, "Replacement-Only-Test-Password")
+        self.assertContains(response, "password is configured")
+
+    def test_settings_home_links_to_individual_settings_pages(self):
+        response = self.client.get(reverse("site_settings"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, reverse("site_settings_email"))
+        self.assertContains(response, reverse("site_settings_branding"))
+        self.assertContains(response, reverse("site_settings_school"))
+
+    def test_branding_page_updates_only_branding_fields(self):
+        response = self.client.get(reverse("site_settings_branding"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'name="site_name"')
+        self.assertNotContains(response, 'name="school_name"')
+
+        response = self.client.post(
+            reverse("site_settings_branding"),
+            {
+                "site_name": "Updated Falcon",
+                "site_tagline": "A learning platform",
+                "primary_color": "#123456",
+            },
+        )
+
+        self.assertRedirects(response, reverse("site_settings_branding"))
+        settings = SiteSettings.get_settings()
+        self.assertEqual(settings.site_name, "Updated Falcon")
+        self.assertEqual(settings.primary_color, "#123456")
+
+    def test_school_page_updates_only_school_information(self):
+        response = self.client.get(reverse("site_settings_school"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'name="school_name"')
+        self.assertNotContains(response, 'name="site_name"')
+
+        response = self.client.post(
+            reverse("site_settings_school"),
+            {
+                "school_name": "Updated School",
+                "school_email": "office@example.test",
+                "school_phone": "+1 555 0100",
+                "school_address": "100 Main Street",
+                "school_website": "https://school.example.test",
+            },
+        )
+
+        self.assertRedirects(response, reverse("site_settings_school"))
+        settings = SiteSettings.get_settings()
+        self.assertEqual(settings.school_name, "Updated School")
+        self.assertEqual(settings.school_email, "office@example.test")
+        self.assertEqual(settings.site_name, "FalconLMS")
+
+    def test_blank_password_keeps_existing_smtp_password(self):
+        email_settings = EmailServerSettings.get_settings()
+        email_settings.set_password("Existing-Test-Password")
+        email_settings.save()
+
+        response = self.client.post(
+            reverse("site_settings_email"),
+            {
+                "host": "smtp.example.test",
+                "port": "587",
+                "username": "mailer@example.test",
+                "password": "",
+                "use_tls": "on",
+                "use_ssl": "",
+                "from_email": "noreply@example.test",
+                "from_name": "",
+                "is_enabled": "on",
+            },
+        )
+
+        self.assertRedirects(response, reverse("site_settings_email"))
+        email_settings.refresh_from_db()
+        self.assertEqual(email_settings.get_password(), "Existing-Test-Password")
+
+    def test_tls_and_ssl_cannot_both_be_selected(self):
+        response = self.client.post(
+            reverse("site_settings_email"),
+            {
+                "host": "smtp.example.test",
+                "port": "465",
+                "username": "mailer@example.test",
+                "password": "",
+                "use_tls": "on",
+                "use_ssl": "on",
+                "from_email": "noreply@example.test",
+                "from_name": "",
+                "is_enabled": "on",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context["email_form"].non_field_errors())
+
+    def test_dashboard_email_settings_require_a_host_when_enabled(self):
+        response = self.client.post(
+            reverse("site_settings_email"),
+            {
+                "host": "",
+                "port": "587",
+                "username": "",
+                "password": "",
+                "use_tls": "on",
+                "use_ssl": "",
+                "from_email": "",
+                "from_name": "",
+                "is_enabled": "on",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("host", response.context["email_form"].errors)
+
+    @override_settings(
+        EMAIL_ENV_BACKEND="django.core.mail.backends.locmem.EmailBackend"
+    )
+    def test_disabled_dashboard_settings_preserve_environment_backend(self):
+        EmailServerSettings.objects.create(
+            host="smtp.example.test",
+            port=587,
+            is_enabled=False,
+        )
+        backend = DatabaseConfiguredEmailBackend()
+        message = EmailMessage(
+            "Test",
+            "Test body",
+            "env-sender@example.test",
+            ["recipient@example.test"],
+        )
+
+        self.assertEqual(backend.send_messages([message]), 1)
+        self.assertEqual(message.from_email, "env-sender@example.test")
+
+    @patch("core.email_backend.SMTPEmailBackend")
+    def test_database_backend_uses_saved_credentials_and_sender(self, smtp_backend):
+        smtp_backend.return_value.send_messages.return_value = 1
+        email_settings = EmailServerSettings.objects.create(
+            host="smtp.example.test",
+            port=465,
+            username="mailer@example.test",
+            use_tls=False,
+            use_ssl=True,
+            from_email="noreply@example.test",
+            from_name="FalconLMS",
+            is_enabled=True,
+        )
+        email_settings.set_password("SMTP-Test-Password")
+        email_settings.save()
+        message = EmailMessage(
+            "Test",
+            "Test body",
+            "old-sender@example.test",
+            ["recipient@example.test"],
+        )
+
+        backend = DatabaseConfiguredEmailBackend(
+            username=None,
+            password=None,
+            fail_silently=False,
+        )
+        sent = backend.send_messages([message])
+
+        self.assertEqual(sent, 1)
+        self.assertEqual(
+            message.from_email,
+            "FalconLMS <noreply@example.test>",
+        )
+        smtp_backend.assert_called_once()
+        self.assertEqual(
+            smtp_backend.call_args.kwargs["password"],
+            "SMTP-Test-Password",
+        )
 
 
 @override_settings(LANGUAGE_CODE="en")

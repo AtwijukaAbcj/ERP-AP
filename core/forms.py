@@ -194,7 +194,7 @@ class TimetableForm(forms.ModelForm):
 
 
 # Site Settings Form
-from .models import SiteSettings
+from .models import EmailServerSettings, SiteSettings
 
 class SiteSettingsForm(forms.ModelForm):
     class Meta:
@@ -214,3 +214,110 @@ class SiteSettingsForm(forms.ModelForm):
             'school_address': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'school_website': forms.URLInput(attrs={'class': 'form-control'}),
         }
+
+
+class BrandingSettingsForm(SiteSettingsForm):
+    class Meta(SiteSettingsForm.Meta):
+        fields = [
+            "site_name",
+            "site_tagline",
+            "logo",
+            "logo_white",
+            "favicon",
+            "primary_color",
+        ]
+
+
+class SchoolInformationSettingsForm(SiteSettingsForm):
+    class Meta(SiteSettingsForm.Meta):
+        fields = [
+            "school_name",
+            "school_email",
+            "school_phone",
+            "school_address",
+            "school_website",
+        ]
+
+
+class StudentIdentifierSettingsForm(forms.ModelForm):
+    class Meta:
+        model = SiteSettings
+        fields = ("student_registration_number_format",)
+        widgets = {
+            "student_registration_number_format": forms.TextInput(
+                attrs={"class": "form-control", "autocomplete": "off"}
+            ),
+        }
+
+    def clean_student_registration_number_format(self):
+        from accounts.identifiers import (
+            REGISTRATION_NUMBER_FORMAT_DEFAULT,
+            validate_registration_number_format,
+        )
+
+        value = self.cleaned_data["student_registration_number_format"].strip()
+        return validate_registration_number_format(
+            value or REGISTRATION_NUMBER_FORMAT_DEFAULT
+        )
+
+
+class EmailServerSettingsForm(forms.ModelForm):
+    password = forms.CharField(
+        required=False,
+        strip=False,
+        widget=forms.PasswordInput(
+            attrs={"class": "form-control", "autocomplete": "new-password"}
+        ),
+        help_text="Leave blank to keep the current password.",
+    )
+
+    class Meta:
+        model = EmailServerSettings
+        fields = [
+            "host",
+            "port",
+            "username",
+            "use_tls",
+            "use_ssl",
+            "from_email",
+            "from_name",
+            "is_enabled",
+        ]
+        widgets = {
+            "host": forms.TextInput(attrs={"class": "form-control"}),
+            "port": forms.NumberInput(
+                attrs={"class": "form-control", "min": 1, "max": 65535}
+            ),
+            "username": forms.TextInput(attrs={"class": "form-control", "autocomplete": "off"}),
+            "use_tls": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "use_ssl": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "from_email": forms.EmailInput(attrs={"class": "form-control"}),
+            "from_name": forms.TextInput(attrs={"class": "form-control"}),
+            "is_enabled": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["is_enabled"].label = "Use dashboard email settings"
+
+    def clean(self):
+        cleaned_data = super().clean()
+        if cleaned_data.get("is_enabled") and not cleaned_data.get("host"):
+            self.add_error(
+                "host",
+                "Enter an SMTP host before enabling dashboard email settings.",
+            )
+        if cleaned_data.get("use_tls") and cleaned_data.get("use_ssl"):
+            raise forms.ValidationError(
+                "Choose either TLS or SSL; they cannot both be enabled."
+            )
+        return cleaned_data
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        password = self.cleaned_data.get("password")
+        if password:
+            instance.set_password(password)
+        if commit:
+            instance.save()
+        return instance

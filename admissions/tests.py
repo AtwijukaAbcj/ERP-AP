@@ -6,7 +6,7 @@ from django.urls import reverse
 
 from accounts.models import Permission, Role, RolePermission, Student, User
 from course.models import Program
-from core.models import Session
+from core.models import Semester, Session
 from .forms import AdmissionApplicationForm
 from .models import (
     Application,
@@ -20,6 +20,7 @@ from .services import transition_application
 class AdmissionsWorkflowTests(TestCase):
     def setUp(self):
         self.program = Program.objects.create(title="Psychiatric Nursing")
+        self.semester = Semester.objects.create(semester="First")
         self.registrar = User.objects.create_user(
             username="registrar",
             email="registrar@example.test",
@@ -294,7 +295,7 @@ class AdmissionsWorkflowTests(TestCase):
             {"student": student.pk},
         )
 
-        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.status_code, 302, response.content.decode())
         self.application.refresh_from_db()
         self.assertEqual(self.application.linked_student, student)
 
@@ -310,19 +311,23 @@ class AdmissionsWorkflowTests(TestCase):
                 kwargs={"pk": self.application.pk},
             ),
             {
-                "registration_number": "BSN-2026-002",
                 "level": "Bachelor",
                 "year": 1,
+                "semester": self.semester.pk,
             },
         )
 
-        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.status_code, 302, response.content.decode())
         self.application.refresh_from_db()
         student = self.application.linked_student
-        self.assertEqual(student.registration_number, "BSN-2026-002")
+        self.assertRegex(
+            student.registration_number,
+            r"^PN-Aug-26-\d{6}$",
+        )
         self.assertEqual(student.program, self.program)
         self.assertEqual(student.level, "Bachelor")
         self.assertEqual(student.year, 1)
+        self.assertEqual(student.semester, self.semester)
         self.assertEqual(student.student.email, self.application.email)
         self.assertTrue(student.student.is_student)
         self.assertTrue(student.student.has_usable_password())
@@ -351,9 +356,9 @@ class AdmissionsWorkflowTests(TestCase):
                 kwargs={"pk": self.application.pk},
             ),
             {
-                "registration_number": "BSN-2026-003",
                 "level": "Bachelor",
                 "year": 1,
+                "semester": self.semester.pk,
             },
         )
 

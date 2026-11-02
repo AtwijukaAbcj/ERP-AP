@@ -8,16 +8,24 @@ from django.test import RequestFactory, TestCase, override_settings
 from django.urls import reverse
 from rest_framework.test import APIClient
 
-from accounts.models import Student, User
+from accounts.models import Permission, Student, User, UserPermission
 from core.models import Semester, Session
 from course.models import Program
 
 from .models import (
+    BankReconciliation,
+    Budget,
+    CashBookEntry,
+    ExpenseCategory,
     FeeCategory,
+    FinanceModulePermission,
+    GeneralLedgerEntry,
     Invoice,
     InvoiceItem,
     InvoicePayment,
+    LedgerAccount,
     OnlineInvoicePayment,
+    PaymentVoucher,
     Payroll,
     Staff,
     StaffDepartment,
@@ -127,11 +135,45 @@ class StudentBillingTests(TestCase):
         self.assertContains(response, "min-width: 148px")
         self.assertContains(response, 'id="invoiceActions')
         self.assertContains(response, "fa-ellipsis-v")
+        self.assertContains(response, "Add Category")
+        self.assertContains(response, 'menu-dropdown orange open')
+        self.assertContains(
+            response,
+            'href="/en/finance/invoices/" class="active" aria-current="page"',
+        )
         self.assertContains(response, "shown.bs.dropdown")
         self.assertContains(response, "hidden.bs.dropdown")
         self.assertContains(response, reverse("finance:view_invoice", args=(self.invoice.pk,)))
         self.assertContains(response, reverse("finance:edit_invoice", args=(self.invoice.pk,)))
         self.assertContains(response, reverse("finance:download_invoice_pdf", args=(self.invoice.pk,)))
+
+    def test_invoice_list_only_shows_add_category_with_fee_category_access(self):
+        finance_user = User.objects.create_user(
+            username="invoice-category-access",
+            email="invoice-category-access@example.test",
+            password="Test-password-123!",
+            is_finance=True,
+        )
+        FinanceModulePermission.objects.create(
+            staff=finance_user,
+            module_name="manage_invoices",
+        )
+        self.client.force_login(finance_user)
+
+        response = self.client.get(reverse("finance:invoice_list"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, "Add Category")
+
+        FinanceModulePermission.objects.create(
+            staff=finance_user,
+            module_name="fee_category_add",
+        )
+        response = self.client.get(reverse("finance:invoice_list"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, reverse("finance:fee_category_add"))
+        self.assertContains(response, "Add Category")
 
     def test_invoice_and_payment_receipt_pdfs_are_valid_and_private(self):
         payment = InvoicePayment.objects.create(
@@ -518,6 +560,452 @@ class StudentBillingTests(TestCase):
             self.client.get(reverse("finance:finance_reports")).status_code,
             403,
         )
+
+
+@override_settings(LANGUAGE_CODE="en")
+class AccountingListRenderingTests(TestCase):
+    def setUp(self):
+        admin = User.objects.create_superuser(
+            username="accounting-list-admin",
+            email="accounting-list-admin@example.test",
+            password="Test-password-123!",
+        )
+        self.client.force_login(admin)
+        session = Session.objects.create(
+            session="2026/2027",
+            is_current_session=True,
+        )
+        Semester.objects.create(
+            semester="First",
+            session=session,
+            is_current_semester=True,
+        )
+
+    def test_static_finance_pages_render_for_superuser(self):
+        from .urls import urlpatterns
+
+        student_only_pages = {
+            "student_invoices",
+            "stripe_payment_success",
+            "paypal_payment_return",
+        }
+        page_names = [
+            pattern.name
+            for pattern in urlpatterns
+            if pattern.name
+            and "<" not in str(pattern.pattern)
+            and pattern.name not in student_only_pages
+        ]
+
+        for page_name in page_names:
+            with self.subTest(page=page_name):
+                response = self.client.get(reverse(f"finance:{page_name}"))
+                self.assertEqual(response.status_code, 200)
+
+    def test_accounting_entry_forms_use_the_shared_styled_form_layout(self):
+        page_names = (
+            "cash_book_add",
+            "budget_add",
+            "bank_reconciliation_add",
+            "general_ledger_add",
+            "ledger_account_add",
+            "payment_voucher_add",
+        )
+        for page_name in page_names:
+            with self.subTest(page=page_name):
+                response = self.client.get(reverse(f"finance:{page_name}"))
+                self.assertEqual(response.status_code, 200)
+                self.assertContains(response, "finance-form-page")
+                self.assertContains(response, 'class="form-control')
+                self.assertNotContains(response, "form.as_p")
+
+    def test_accounting_pages_require_the_matching_finance_module_grant(self):
+        finance_user = User.objects.create_user(
+            username="accounting-module-user",
+            email="accounting-module-user@example.test",
+            password="Test-password-123!",
+            is_finance=True,
+        )
+        self.client.force_login(finance_user)
+        module_pages = {
+            "expense_category_list": (
+                "expense_category_list",
+                "expense_category_add",
+            ),
+            "expense_list": ("expense_list", "expense_add"),
+            "petty_cash_list": ("petty_cash_list", "petty_cash_add"),
+            "accounts_payable_list": (
+                "accounts_payable_list",
+                "accounts_payable_add",
+            ),
+            "accounts_receivable_list": (
+                "accounts_receivable_list",
+                "accounts_receivable_add",
+            ),
+            "budget_list": ("budget_list", "budget_add"),
+            "cash_book_list": ("cash_book_list", "cash_book_add"),
+            "bank_reconciliation_list": (
+                "bank_reconciliation_list",
+                "bank_reconciliation_add",
+            ),
+            "ledger_account_list": ("ledger_account_list", "ledger_account_add"),
+            "general_ledger_list": ("general_ledger_list", "general_ledger_add"),
+            "payment_voucher_list": (
+                "payment_voucher_list",
+                "payment_voucher_add",
+            ),
+        }
+
+        for module_name, page_names in module_pages.items():
+            with self.subTest(module=module_name):
+                for page_name in page_names:
+                    url = reverse(f"finance:{page_name}")
+                    self.assertEqual(self.client.get(url).status_code, 403)
+
+                FinanceModulePermission.objects.create(
+                    staff=finance_user,
+                    module_name=module_name,
+                )
+                for page_name in page_names:
+                    url = reverse(f"finance:{page_name}")
+                    self.assertEqual(self.client.get(url).status_code, 200)
+
+                FinanceModulePermission.objects.filter(
+                    staff=finance_user,
+                    module_name=module_name,
+                ).delete()
+
+    def test_accounting_lists_render_when_optional_users_are_missing(self):
+        Budget.objects.create(
+            title="Operating Budget",
+            department="Administration",
+            fiscal_year="2026/2027",
+        )
+        CashBookEntry.objects.create(date=date(2026, 11, 1))
+        BankReconciliation.objects.create(
+            bank_name="Example Bank",
+            statement_date=date(2026, 11, 1),
+            book_balance=Decimal("100.00"),
+            bank_balance=Decimal("100.00"),
+        )
+        account = LedgerAccount.objects.create(code="1000", name="Cash")
+        GeneralLedgerEntry.objects.create(
+            account=account,
+            date=date(2026, 11, 1),
+            description="Opening balance",
+        )
+        PaymentVoucher.objects.create(
+            voucher_number="PV-2026-001",
+            title="Office supplies",
+            vendor_name="Example Vendor",
+            amount=Decimal("50.00"),
+        )
+
+        pages = (
+            "finance:budget_list",
+            "finance:cash_book_list",
+            "finance:bank_reconciliation_list",
+            "finance:general_ledger_list",
+            "finance:payment_voucher_list",
+        )
+        for page in pages:
+            with self.subTest(page=page):
+                response = self.client.get(reverse(page))
+                self.assertEqual(response.status_code, 200)
+                self.assertContains(response, "—")
+
+
+@override_settings(LANGUAGE_CODE="en")
+class FeeCategoryManagementTests(TestCase):
+    def setUp(self):
+        self.admin = User.objects.create_superuser(
+            username="fee-category-admin",
+            email="fee-category-admin@example.test",
+            password="Fee-Category-Test-Password-123!",
+        )
+        self.session = Session.objects.create(
+            session="2026/2027",
+            is_current_session=True,
+        )
+        self.semester = Semester.objects.create(
+            semester="First",
+            session=self.session,
+            is_current_semester=True,
+        )
+        self.category = FeeCategory.objects.create(
+            name="Tuition",
+            description="Original description",
+            amount=Decimal("1000.00"),
+            semester=self.semester,
+        )
+        self.client.force_login(self.admin)
+
+    def test_fee_category_list_shows_edit_action(self):
+        response = self.client.get(reverse("finance:fee_category_list"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, self.category.name)
+        self.assertContains(response, "fa-ellipsis-v")
+        self.assertContains(
+            response,
+            reverse("finance:fee_category_edit", args=(self.category.pk,)),
+        )
+        self.assertContains(
+            response,
+            reverse("finance:fee_category_delete", args=(self.category.pk,)),
+        )
+        self.assertContains(response, reverse("finance:fee_category_add"))
+        self.assertContains(response, "Delete")
+
+    def test_fee_category_can_be_edited(self):
+        edit_url = reverse("finance:fee_category_edit", args=(self.category.pk,))
+
+        response = self.client.get(edit_url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Edit Fee Category")
+        self.assertContains(response, 'value="Tuition"')
+
+        response = self.client.post(
+            edit_url,
+            {
+                "name": "Updated Tuition",
+                "description": "Updated description",
+                "amount": "1250.00",
+                "semester": str(self.semester.pk),
+                "student": "",
+            },
+        )
+
+        self.assertRedirects(response, reverse("finance:fee_category_list"))
+        self.category.refresh_from_db()
+        self.assertEqual(self.category.name, "Updated Tuition")
+        self.assertEqual(self.category.description, "Updated description")
+        self.assertEqual(self.category.amount, Decimal("1250.00"))
+
+    def test_unused_fee_category_delete_is_post_only(self):
+        delete_url = reverse(
+            "finance:fee_category_delete",
+            args=(self.category.pk,),
+        )
+
+        response = self.client.get(delete_url)
+
+        self.assertEqual(response.status_code, 405)
+        self.assertTrue(FeeCategory.objects.filter(pk=self.category.pk).exists())
+
+        response = self.client.post(delete_url)
+
+        self.assertRedirects(response, reverse("finance:fee_category_list"))
+        self.assertFalse(FeeCategory.objects.filter(pk=self.category.pk).exists())
+
+    def test_fee_category_used_by_an_invoice_cannot_be_deleted(self):
+        student_user = User.objects.create_user(
+            username="fee-category-student",
+            password="test-pass",
+            is_student=True,
+        )
+        student = Student.objects.create(
+            student=student_user,
+            program=Program.objects.create(title="Fee Category Program"),
+            level="Bachelor",
+            year=1,
+        )
+        invoice = Invoice.objects.create(
+            student=student,
+            semester=self.semester,
+            due_date=date(2026, 11, 30),
+            total_amount=Decimal("1000.00"),
+        )
+        InvoiceItem.objects.create(
+            invoice=invoice,
+            category=self.category,
+            amount=Decimal("1000.00"),
+        )
+
+        response = self.client.get(reverse("finance:fee_category_list"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(
+            response,
+            reverse("finance:fee_category_delete", args=(self.category.pk,)),
+        )
+        self.assertContains(response, "Used by an invoice")
+
+        response = self.client.post(
+            reverse("finance:fee_category_delete", args=(self.category.pk,))
+        )
+
+        self.assertRedirects(response, reverse("finance:fee_category_list"))
+        self.assertTrue(FeeCategory.objects.filter(pk=self.category.pk).exists())
+
+    def test_fee_category_actions_are_hidden_and_protected_without_category_access(self):
+        finance_user = User.objects.create_user(
+            username="invoice-only-finance-user",
+            password="test-pass",
+            is_finance=True,
+        )
+        FinanceModulePermission.objects.create(
+            staff=finance_user,
+            module_name="manage_invoices",
+        )
+        self.client.force_login(finance_user)
+
+        response = self.client.get(reverse("finance:fee_category_list"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(
+            response,
+            reverse("finance:fee_category_edit", args=(self.category.pk,)),
+        )
+        self.assertNotContains(response, reverse("finance:fee_category_add"))
+        self.assertEqual(
+            self.client.get(reverse("finance:fee_category_add")).status_code,
+            403,
+        )
+        self.assertEqual(
+            self.client.get(
+                reverse("finance:fee_category_edit", args=(self.category.pk,))
+            ).status_code,
+            403,
+        )
+        self.assertEqual(
+            self.client.post(
+                reverse("finance:fee_category_delete", args=(self.category.pk,))
+            ).status_code,
+            403,
+        )
+
+        FinanceModulePermission.objects.create(
+            staff=finance_user,
+            module_name="fee_category_add",
+        )
+        response = self.client.get(reverse("finance:fee_category_list"))
+        self.assertContains(
+            response,
+            reverse("finance:fee_category_edit", args=(self.category.pk,)),
+        )
+
+    def test_action_permissions_can_be_granted_and_denied_per_user(self):
+        finance_user = User.objects.create_user(
+            username="fee-action-user",
+            password="Fee-Action-Test-Password-123!",
+            is_finance=True,
+        )
+        FinanceModulePermission.objects.create(
+            staff=finance_user,
+            module_name="manage_invoices",
+        )
+        edit_permission = Permission.objects.get(
+            code="finance.fee_category.edit",
+        )
+        UserPermission.objects.create(
+            user=finance_user,
+            permission=edit_permission,
+            effect=UserPermission.GRANT,
+        )
+        self.client.force_login(finance_user)
+
+        response = self.client.get(reverse("finance:fee_category_list"))
+
+        self.assertContains(
+            response,
+            reverse("finance:fee_category_edit", args=(self.category.pk,)),
+        )
+        self.assertNotContains(
+            response,
+            reverse("finance:fee_category_delete", args=(self.category.pk,)),
+        )
+        self.assertEqual(
+            self.client.get(
+                reverse("finance:fee_category_edit", args=(self.category.pk,))
+            ).status_code,
+            200,
+        )
+
+        UserPermission.objects.update_or_create(
+            user=finance_user,
+            permission=edit_permission,
+            defaults={"effect": UserPermission.DENY},
+        )
+        response = self.client.get(reverse("finance:fee_category_list"))
+        self.assertNotContains(
+            response,
+            reverse("finance:fee_category_edit", args=(self.category.pk,)),
+        )
+        self.assertEqual(
+            self.client.get(
+                reverse("finance:fee_category_edit", args=(self.category.pk,))
+            ).status_code,
+            403,
+        )
+
+
+@override_settings(LANGUAGE_CODE="en")
+class ExpenseCategoryManagementTests(TestCase):
+    def setUp(self):
+        self.admin = User.objects.create_superuser(
+            username="expense-category-admin",
+            email="expense-category-admin@example.test",
+            password="test-password",
+        )
+        self.category = ExpenseCategory.objects.create(name="Office Supplies")
+
+    def test_category_list_links_to_edit_form(self):
+        self.client.force_login(self.admin)
+
+        response = self.client.get(reverse("finance:expense_category_list"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, self.category.name)
+        self.assertContains(
+            response,
+            reverse("finance:expense_category_edit", args=(self.category.pk,)),
+        )
+        self.assertContains(response, 'class="table-action-cell"')
+        self.assertContains(response, 'class="table-actions"')
+        self.assertContains(response, 'class="btn btn-sm btn-outline-primary table-action-button"')
+        self.assertContains(response, "fa-pen-to-square")
+        self.assertNotContains(response, "category.description")
+
+    def test_category_can_be_edited(self):
+        self.client.force_login(self.admin)
+        edit_url = reverse(
+            "finance:expense_category_edit",
+            args=(self.category.pk,),
+        )
+
+        response = self.client.get(edit_url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Edit Expense Category")
+        self.assertContains(response, 'value="Office Supplies"')
+
+        response = self.client.post(edit_url, {"name": "Office Equipment"})
+
+        self.assertRedirects(
+            response,
+            reverse("finance:expense_category_list"),
+        )
+        self.category.refresh_from_db()
+        self.assertEqual(self.category.name, "Office Equipment")
+
+    def test_category_edit_rejects_duplicate_name(self):
+        ExpenseCategory.objects.create(name="Travel")
+        self.client.force_login(self.admin)
+
+        response = self.client.post(
+            reverse(
+                "finance:expense_category_edit",
+                args=(self.category.pk,),
+            ),
+            {"name": "Travel"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context["form"].errors)
+        self.category.refresh_from_db()
+        self.assertEqual(self.category.name, "Office Supplies")
 
 
 @override_settings(LANGUAGE_CODE="en")

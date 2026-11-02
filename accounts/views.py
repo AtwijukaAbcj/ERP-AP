@@ -1,8 +1,9 @@
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.forms import PasswordChangeForm
+from django.contrib.auth.forms import PasswordChangeForm, SetPasswordForm
 from django.core.exceptions import PermissionDenied, ValidationError
+from django.db import transaction
 from django.db.models import Q
 from django.http import FileResponse, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -26,6 +27,7 @@ from accounts.forms import (
     RolePermissionForm,
     UserPermissionForm,
     UserAddForm,
+    UserRolesForm,
     StaffAddForm,
     StudentAddForm,
     StudentDocumentForm,
@@ -184,6 +186,7 @@ def verify_code(request):
     return render(request, 'registration/verify_code.html')
 
 @login_required
+@admin_required
 def assign_modules_view(request):
     search_query = request.GET.get('user_search', '').strip()
 
@@ -191,15 +194,49 @@ def assign_modules_view(request):
         form = AssignModuleForm(request.POST)
         if form.is_valid():
             user = form.cleaned_data['user']
-            selected_modules = form.cleaned_data['modules']
-
-            for module in selected_modules:
-                ModulePermission.objects.get_or_create(user=user, module_name=module)
+            selected_modules = set(form.cleaned_data['modules'])
+            current_modules = set(
+                ModulePermission.objects.filter(user=user).values_list(
+                    "module_name", flat=True
+                )
+            )
+            with transaction.atomic():
+                ModulePermission.objects.filter(user=user).exclude(
+                    module_name__in=selected_modules
+                ).delete()
+                ModulePermission.objects.bulk_create(
+                    [
+                        ModulePermission(user=user, module_name=module)
+                        for module in selected_modules - current_modules
+                    ]
+                )
+            log_activity(
+                request.user,
+                "rbac.module_access.updated",
+                f"Updated module access for {user.username}.",
+                request=request,
+                instance=user,
+                before={"modules": sorted(current_modules)},
+                after={"modules": sorted(selected_modules)},
+            )
 
             messages.success(request, "Modules assigned successfully.")
             return redirect('assign_modules')
     else:
-        form = AssignModuleForm()
+        initial = {}
+        selected_user_id = request.GET.get("user_id")
+        if selected_user_id:
+            selected_user = get_object_or_404(
+                User.objects.filter(is_superuser=False),
+                pk=selected_user_id,
+            )
+            initial = {
+                "user": selected_user,
+                "modules": ModulePermission.objects.filter(
+                    user=selected_user
+                ).values_list("module_name", flat=True),
+            }
+        form = AssignModuleForm(initial=initial)
 
     permissions = ModulePermission.objects.select_related('user')
     if search_query:
@@ -220,9 +257,21 @@ def assign_modules_view(request):
 
 
 @login_required
+@admin_required
+@require_POST
 def revoke_module_permission(request, perm_id):
     perm = get_object_or_404(ModulePermission, id=perm_id)
+    user = perm.user
+    module_name = perm.module_name
     perm.delete()
+    log_activity(
+        request.user,
+        "rbac.module_access.revoked",
+        f"Revoked {module_name} access from {user.username}.",
+        request=request,
+        instance=user,
+        before={"module": module_name},
+    )
     messages.success(request, "Module access revoked.")
     return redirect('assign_modules')
 
@@ -310,6 +359,22 @@ def profile(request):
 
 
 @login_required
+def account_landing(request):
+    user = request.user
+    if user.is_superuser:
+        return redirect("dashboard")
+    if user.is_student:
+        return redirect("student_list")
+    if user.is_registrar:
+        return redirect("student_list")
+    if user.is_lecturer:
+        return redirect("assessment_hub")
+    if user.is_finance or user.is_finance_manager or user.is_accountant:
+        return redirect("finance:finance_dashboard")
+    return redirect("home")
+
+
+@login_required
 @admin_required
 def profile_single(request, user_id):
     """Show profile of any selected user."""
@@ -391,16 +456,94 @@ def user_list(request):
 
 @login_required
 @admin_required
+def user_password_reset(request, user_id):
+    target_user = get_object_or_404(User, pk=user_id)
+    if request.method == "POST":
+        form = SetPasswordForm(target_user, request.POST)
+        if form.is_valid():
+            form.save()
+            if target_user.pk == request.user.pk:
+                update_session_auth_hash(request, target_user)
+            log_activity(
+                request.user,
+                "user.password_reset",
+                f"Reset password for user {target_user.username}.",
+                request=request,
+                instance=target_user,
+            )
+            messages.success(
+                request,
+                f"Password for {target_user.get_full_name} has been updated.",
+            )
+            return redirect("user_list")
+    else:
+        form = SetPasswordForm(target_user)
+
+    return render(
+        request,
+        "accounts/user_password_reset.html",
+        {
+            "form": form,
+            "target_user": target_user,
+            "title": "Reset User Password",
+        },
+    )
+
+
+@login_required
+@admin_required
 def user_add_view(request):
     if request.method == "POST":
         form = UserAddForm(request.POST)
         if form.is_valid():
-            form.save()
+            user = form.save()
+            log_activity(
+                request.user,
+                "user.created",
+                f"Created user account {user.username}.",
+                request=request,
+                instance=user,
+                after={"username": user.username, "role": None},
+            )
             messages.success(request, "User created successfully.")
             return redirect("user_list")
     else:
         form = UserAddForm()
     return render(request, "accounts/user_form.html", {"form": form, "title": "Create User"})
+
+
+@login_required
+@admin_required
+def user_roles_view(request, user_id):
+    user = get_object_or_404(User, pk=user_id, is_superuser=False)
+    if request.method == "POST":
+        form = UserRolesForm(request.POST, instance=user)
+        if form.is_valid():
+            previous_roles = sorted(user.roles.values_list("name", flat=True))
+            if user.role_id and user.role.name not in previous_roles:
+                previous_roles.append(user.role.name)
+            with transaction.atomic():
+                form.save()
+            updated_roles = sorted(user.roles.values_list("name", flat=True))
+            log_activity(
+                request.user,
+                "rbac.user_roles.updated",
+                f"Updated permission roles for {user.username}.",
+                request=request,
+                instance=user,
+                before={"roles": previous_roles},
+                after={"roles": updated_roles},
+            )
+            messages.success(request, "User roles updated successfully.")
+            return redirect("user_list")
+    else:
+        form = UserRolesForm(instance=user)
+
+    return render(
+        request,
+        "accounts/user_roles_form.html",
+        {"form": form, "target_user": user, "title": "Assign User Roles"},
+    )
 
 
 @login_required
@@ -864,30 +1007,55 @@ def student_add_view(request):
 
 
 
-@method_decorator(
-    [login_required, student_management_required("students.view_students")],
-    name="dispatch",
-)
+@method_decorator(login_required, name="dispatch")
 class StudentListView(FilterView):
     queryset = Student.objects.select_related("student", "program", "semester").all()
     filterset_class = StudentFilter
     template_name = "accounts/student_list.html"
     paginate_by = 10
 
+    def is_student_self_service(self):
+        user = self.request.user
+        return user.is_student and not user.is_superuser and not user.is_registrar
+
+    def dispatch(self, request, *args, **kwargs):
+        if not self.is_student_self_service() and not user_has_student_management_permission(
+            request.user, "students.view_students"
+        ):
+            raise PermissionDenied
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        if self.is_student_self_service():
+            return queryset.filter(student=self.request.user)
+        return queryset
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["title"] = "Students"
+        context["is_student_self_service"] = self.is_student_self_service()
+        if context["is_student_self_service"]:
+            context["title"] = "My Student Record"
+            counts = self.get_queryset().values_list("status", flat=True)
+            student_statuses = set(counts)
+        else:
+            context["title"] = "Students"
+            student_statuses = None
         context["student_counts"] = [
             {
                 "label": label,
-                "count": Student.objects.filter(status=status).count(),
+                "count": (
+                    sum(1 for student_status in student_statuses if student_status == status)
+                    if student_statuses is not None
+                    else Student.objects.filter(status=status).count()
+                ),
             }
             for status, label in Student.Status.choices
         ]
-        context["can_manage"] = user_has_student_management_permission(
+        context["can_manage"] = not context["is_student_self_service"] and user_has_student_management_permission(
             self.request.user, "students.manage_students"
         )
-        context["can_export"] = user_has_student_management_permission(
+        context["can_export"] = not context["is_student_self_service"] and user_has_student_management_permission(
             self.request.user, "students.export_students"
         )
         return context
@@ -1386,6 +1554,8 @@ def export_registrars_pdf(request):
     p.save()
     return response
 
+@login_required
+@admin_required
 def assign_registrar_module_view(request):
     if request.method == 'POST':
         form = RegistrarModulePermissionForm(request.POST)
@@ -1398,6 +1568,8 @@ def assign_registrar_module_view(request):
     permissions = RegistrarModulePermission.objects.select_related('registrar')
     return render(request, 'accounts/assign_registrar_module.html', {'form': form, 'permissions': permissions})
 
+@login_required
+@admin_required
 def assign_registrar_module_view(request):
     if request.method == 'POST':
         form = RegistrarModulePermissionForm(request.POST)
@@ -1410,6 +1582,9 @@ def assign_registrar_module_view(request):
     permissions = RegistrarModulePermission.objects.select_related('registrar')
     return render(request, 'accounts/assign_registrar_module.html', {'form': form, 'permissions': permissions})
 
+@login_required
+@admin_required
+@require_POST
 def revoke_registrar_module_permission(request, pk):
     permission = get_object_or_404(RegistrarModulePermission, pk=pk)
     permission.delete()
@@ -1417,6 +1592,7 @@ def revoke_registrar_module_permission(request, pk):
 
 
 @login_required
+@admin_required
 def assign_finance_module_view(request):
     finance_users = User.objects.filter(is_finance=True)
     module_choices = FinanceModulePermission._meta.get_field('module_name').choices
@@ -1444,11 +1620,14 @@ def assign_finance_module_view(request):
         'existing_permissions': existing_permissions,
     })
 
-def revoke_finance_module_permission(request, permission_id):
-    permission = get_object_or_404(FinanceModulePermission, id=permission_id)
+@login_required
+@admin_required
+@require_POST
+def revoke_finance_module_permission(request, pk):
+    permission = get_object_or_404(FinanceModulePermission, id=pk)
     permission.delete()
     messages.success(request, "Module access has been revoked.")
-    return redirect('assign_finance_module') 
+    return redirect('list_finance_modules')
 
 
 @login_required

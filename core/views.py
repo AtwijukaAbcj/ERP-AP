@@ -662,26 +662,95 @@ def student_timetable_view(request):
 @login_required
 @admin_required
 def site_settings_view(request):
-    from .models import SiteSettings
-    from .forms import SiteSettingsForm
-    
-    # Get or create the singleton settings
-    settings = SiteSettings.get_settings()
-    
+    return render(request, "core/site_settings.html", {
+        "title": "Site Settings",
+    })
+
+
+@login_required
+@admin_required
+def email_settings_view(request):
+    from .models import EmailServerSettings
+    from .forms import EmailServerSettingsForm
+
+    email_settings = EmailServerSettings.get_settings()
     if request.method == 'POST':
-        form = SiteSettingsForm(request.POST, request.FILES, instance=settings)
+        email_form = EmailServerSettingsForm(request.POST, instance=email_settings)
+        if email_form.is_valid():
+            email_form.save()
+            messages.success(request, "Email server settings updated.")
+            return redirect('site_settings_email')
+    else:
+        email_form = EmailServerSettingsForm(instance=email_settings)
+
+    return render(request, 'core/site_settings_detail.html', {
+        'section': 'email',
+        'section_title': 'Email Server',
+        'email_form': email_form,
+        'email_password_configured': bool(email_settings.encrypted_password),
+        'title': 'Email Server Settings',
+    })
+
+
+def _site_settings_form_view(request, form_class, section, section_title):
+    from .models import SiteSettings
+
+    settings = SiteSettings.get_settings()
+    if request.method == "POST":
+        form = form_class(request.POST, request.FILES, instance=settings)
         if form.is_valid():
             form.save()
-            messages.success(request, 'Site settings updated successfully!')
-            return redirect('site_settings')
+            messages.success(request, f"{section_title} settings updated successfully.")
+            return redirect(section)
     else:
-        form = SiteSettingsForm(instance=settings)
-    
-    return render(request, 'core/site_settings.html', {
-        'form': form,
-        'settings': settings,
-        'title': 'Site Settings'
+        form = form_class(instance=settings)
+
+    return render(request, "core/site_settings_detail.html", {
+        "section": section.removeprefix("site_settings_"),
+        "section_title": section_title,
+        "form": form,
+        "settings": settings,
+        "title": section_title,
     })
+
+
+@login_required
+@admin_required
+def branding_settings_view(request):
+    from .forms import BrandingSettingsForm
+
+    return _site_settings_form_view(
+        request,
+        BrandingSettingsForm,
+        "site_settings_branding",
+        "Branding & Logo",
+    )
+
+
+@login_required
+@admin_required
+def school_settings_view(request):
+    from .forms import SchoolInformationSettingsForm
+
+    return _site_settings_form_view(
+        request,
+        SchoolInformationSettingsForm,
+        "site_settings_school",
+        "School Information",
+    )
+
+
+@login_required
+@admin_required
+def student_identifier_settings_view(request):
+    from .forms import StudentIdentifierSettingsForm
+
+    return _site_settings_form_view(
+        request,
+        StudentIdentifierSettingsForm,
+        "site_settings_student_ids",
+        "Student Registration Numbers",
+    )
 
 
 # ########################################################

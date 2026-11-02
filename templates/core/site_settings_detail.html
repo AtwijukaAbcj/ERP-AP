@@ -1,0 +1,207 @@
+{% extends 'base.html' %}
+{% load i18n %}
+{% load crispy_forms_tags %}
+{% block title %}{{ title }} | {% trans 'FalconLMS' %}{% endblock title %}
+
+{% block content %}
+<style>
+    .settings-container {
+        max-width: 900px;
+        margin: 0 auto;
+    }
+
+    .settings-card {
+        overflow: hidden;
+        margin-bottom: 24px;
+        background: #fff;
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    }
+
+    .settings-card-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 20px 24px;
+        color: #fff;
+        background: linear-gradient(135deg, #914c77 0%, #7a3d64 100%);
+    }
+
+    .settings-card-header i {
+        font-size: 1.3rem;
+    }
+
+    .settings-card-header h2 {
+        margin: 0;
+        font-size: 1.1rem;
+        font-weight: 600;
+    }
+
+    .settings-card-body {
+        padding: 24px;
+    }
+
+    .btn-save {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 14px 32px;
+        color: #fff;
+        font-size: 1rem;
+        font-weight: 600;
+        background: linear-gradient(135deg, #914c77 0%, #7a3d64 100%);
+        border: 0;
+        border-radius: 10px;
+    }
+
+    .help-text {
+        margin-top: 6px;
+        color: #6b7280;
+        font-size: 0.85rem;
+    }
+
+    .logo-preview {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 24px;
+        margin-bottom: 20px;
+    }
+
+    .preview-box {
+        text-align: center;
+    }
+
+    .preview-label {
+        margin-bottom: 8px;
+        color: #6b7280;
+        font-size: 0.85rem;
+    }
+
+    .preview-box img {
+        max-width: 150px;
+        max-height: 80px;
+        padding: 10px;
+        background: #f9fafb;
+        border: 2px dashed #e5e7eb;
+        border-radius: 8px;
+    }
+
+    .preview-box.dark-bg img {
+        background: linear-gradient(135deg, #914c77 0%, #7a3d64 100%);
+        border-color: transparent;
+    }
+</style>
+
+<nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/">{% trans 'Home' %}</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'site_settings' %}">{% trans 'Site Settings' %}</a></li>
+        <li class="breadcrumb-item active" aria-current="page">{{ section_title }}</li>
+    </ol>
+</nav>
+
+{% include 'snippets/messages.html' %}
+
+<div class="settings-container">
+    <div class="mb-3">
+        <a href="{% url 'site_settings' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="fas fa-arrow-left"></i> {% trans 'All Settings' %}
+        </a>
+    </div>
+
+    {% if section == 'email' %}
+    <form method="POST" autocomplete="off">
+        {% csrf_token %}
+        <div class="settings-card">
+            <div class="settings-card-header">
+                <i class="fas fa-envelope" aria-hidden="true"></i>
+                <h2>{% trans 'Email Server (SMTP)' %}</h2>
+            </div>
+            <div class="settings-card-body">
+                <p class="help-text">{% trans 'Configure the SMTP server used for system email. The SMTP password is encrypted before it is stored and is never displayed after saving.' %}</p>
+                {% if email_password_configured %}
+                    <p class="text-success">{% trans 'An SMTP password is configured. Leave the password field blank to keep it unchanged.' %}</p>
+                {% else %}
+                    <p class="text-warning">{% trans 'No SMTP password is currently configured.' %}</p>
+                {% endif %}
+                {{ email_form|crispy }}
+                <button type="submit" class="btn-save">
+                    <i class="fas fa-save" aria-hidden="true"></i> {% trans 'Save Email Settings' %}
+                </button>
+            </div>
+        </div>
+    </form>
+    {% elif section == 'branding' %}
+    <form method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="settings-card">
+            <div class="settings-card-header">
+                <i class="fas fa-palette" aria-hidden="true"></i>
+                <h2>{% trans 'Branding & Logo' %}</h2>
+            </div>
+            <div class="settings-card-body">
+                {% if settings.logo or settings.logo_white or settings.favicon %}
+                <div class="logo-preview">
+                    {% if settings.logo %}
+                    <div class="preview-box">
+                        <div class="preview-label">{% trans 'Current Logo' %}</div>
+                        <img src="{{ settings.logo.url }}" alt="{% trans 'Current logo' %}">
+                    </div>
+                    {% endif %}
+                    {% if settings.logo_white %}
+                    <div class="preview-box dark-bg">
+                        <div class="preview-label">{% trans 'Logo (White/Light)' %}</div>
+                        <img src="{{ settings.logo_white.url }}" alt="{% trans 'White logo' %}">
+                    </div>
+                    {% endif %}
+                    {% if settings.favicon %}
+                    <div class="preview-box">
+                        <div class="preview-label">{% trans 'Favicon' %}</div>
+                        <img src="{{ settings.favicon.url }}" alt="{% trans 'Favicon' %}" style="max-width: 64px; max-height: 64px;">
+                    </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+                {{ form|crispy }}
+                <button type="submit" class="btn-save">
+                    <i class="fas fa-save" aria-hidden="true"></i> {% trans 'Save Branding Settings' %}
+                </button>
+            </div>
+        </div>
+    </form>
+    {% elif section == 'school' %}
+    <form method="POST">
+        {% csrf_token %}
+        <div class="settings-card">
+            <div class="settings-card-header">
+                <i class="fas fa-school" aria-hidden="true"></i>
+                <h2>{% trans 'School Information' %}</h2>
+            </div>
+            <div class="settings-card-body">
+                {{ form|crispy }}
+                <button type="submit" class="btn-save">
+                    <i class="fas fa-save" aria-hidden="true"></i> {% trans 'Save School Information' %}
+                </button>
+            </div>
+        </div>
+    </form>
+    {% elif section == 'student_ids' %}
+    <form method="POST">
+        {% csrf_token %}
+        <div class="settings-card">
+            <div class="settings-card-header">
+                <i class="fas fa-id-card" aria-hidden="true"></i>
+                <h2>{% trans 'Student Registration Numbers' %}</h2>
+            </div>
+            <div class="settings-card-body">
+                <p class="help-text">{% trans 'Numbers are generated automatically. Use {program_code}, {intake_month_short}, {year_short}, and {sequence:06}. The sequence is required and unique.' %}</p>
+                {{ form|crispy }}
+                <button type="submit" class="btn-save">
+                    <i class="fas fa-save" aria-hidden="true"></i> {% trans 'Save Registration Number Format' %}
+                </button>
+            </div>
+        </div>
+    </form>
+    {% endif %}
+</div>
+{% endblock content %}

@@ -7,10 +7,12 @@ from django.db.models import Q
 from PIL import Image
 from django.core.validators import FileExtensionValidator
 from django.core.files.storage import FileSystemStorage
+from django.db import transaction
 import os
 
 from core.models import Semester
 from course.models import Program
+from .identifiers import generate_student_registration_number
 from .validators import ASCIIUsernameValidator
 from course.models import Faculty
 
@@ -219,6 +221,7 @@ class User(AbstractUser):
     is_internal_auditor = models.BooleanField(default=False)
     is_principal = models.BooleanField(default=False)
     role = models.ForeignKey(Role, null=True, blank=True, on_delete=models.SET_NULL)
+    roles = models.ManyToManyField(Role, related_name="users", blank=True)
     faculty = models.ForeignKey(Faculty, null=True, blank=True, on_delete=models.SET_NULL)
     gender = models.CharField(max_length=1, choices=GENDERS, blank=True, null=True)
     phone = models.CharField(max_length=60, blank=True, null=True)
@@ -247,41 +250,41 @@ class User(AbstractUser):
 
     @property
     def get_user_role(self):
-        if self.role:
-            return self.role.name
-        if self.is_superuser:
-            return _("Super Administrator")
-        if self.is_finance_manager:
-            return _("Finance Manager")
-        if self.is_accountant:
-            return _("Accountant")
-        if self.is_procurement_manager:
-            return _("Procurement Manager")
-        if self.is_procurement_officer:
-            return _("Procurement Officer")
-        if self.is_internal_auditor:
-            return _("Internal Auditor")
-        if self.is_principal:
-            return _("Principal / Executive Director")
-        if self.is_registrar:
-            return _("Academic Registrar")
-        if self.is_dep_head:
-            return _("Head of Department")
-        if self.is_faculty_admin:
-            return _("Faculty Admin")
-        if self.is_student:
-            return _("Student")
-        if self.is_lecturer:
-            return _("Lecturer")
-        if self.is_parent:
-            return _("Parent")
-        return _("User")
+        role_names = list(self.roles.order_by("name").values_list("name", flat=True))
+        if self.role_id and self.role.name not in role_names:
+            role_names.append(self.role.name)
+
+        account_types = (
+            (self.is_superuser, _("Super Administrator")),
+            (self.is_finance_manager, _("Finance Manager")),
+            (self.is_accountant, _("Accountant")),
+            (self.is_procurement_manager, _("Procurement Manager")),
+            (self.is_procurement_officer, _("Procurement Officer")),
+            (self.is_internal_auditor, _("Internal Auditor")),
+            (self.is_principal, _("Principal / Executive Director")),
+            (self.is_registrar, _("Academic Registrar")),
+            (self.is_dep_head, _("Head of Department")),
+            (self.is_faculty_admin, _("Faculty Admin")),
+            (self.is_finance, _("Finance")),
+            (self.is_student, _("Student")),
+            (self.is_lecturer, _("Lecturer")),
+            (self.is_parent, _("Parent")),
+        )
+        role_names.extend(str(label) for enabled, label in account_types if enabled)
+        return " / ".join(dict.fromkeys(role_names)) if role_names else _("User")
 
     @property
     def module_permissions(self):
         if self.is_superuser:
             return [choice[0] for choice in ACTIVE_MODULE_CHOICES]
         return list(self.get_effective_permissions())
+
+    def has_role(self, role_slug):
+        if not self.is_authenticated or not self.is_active:
+            return False
+        if self.role_id and self.role.slug == role_slug:
+            return True
+        return self.roles.filter(slug=role_slug).exists()
 
     def has_permission(self, permission_code):
         if not self.is_authenticated or not self.is_active:
@@ -316,6 +319,11 @@ class User(AbstractUser):
                 for code in self.role.permissions.values_list("code", flat=True)
                 if code
             )
+        effective.update(
+            code
+            for code in self.roles.values_list("permissions__code", flat=True)
+            if code
+        )
 
         module_permissions = set(self.general_module_permissions.values_list('module_name', flat=True))
         finance_permissions = set(self.finance_permissions.values_list('module_name', flat=True))
@@ -344,12 +352,46 @@ class User(AbstractUser):
         effective_permissions = self.get_effective_permissions()
         module_prefix = f"{module_name}."
         legacy_prefix = f"{module_name}_"
+        module_names = {module_name}
+        legacy_prefixes = {legacy_prefix}
+        if module_name.endswith("s"):
+            module_names.add(module_name[:-1])
+            legacy_prefixes.add(f"{module_name[:-1]}_")
+
+        if module_name == "finance":
+            finance_codes = {
+                "finance",
+                "finance.fee_category.add",
+                "finance.fee_category.edit",
+                "finance.fee_category.delete",
+                "manage_fee_categories",
+                "create_invoice",
+                "manage_invoices",
+                "view_student_invoices",
+                "staff_category_list",
+                "staff_list",
+                "payroll_list",
+                "expense_category_list",
+                "expense_list",
+                "petty_cash_list",
+                "accounts_payable_list",
+                "accounts_receivable_list",
+                "budget_list",
+                "cash_book_list",
+                "bank_reconciliation_list",
+                "ledger_account_list",
+                "general_ledger_list",
+                "payment_voucher_list",
+                "finance_reports",
+            }
+            return bool(effective_permissions.intersection(finance_codes))
+
         return any(
             isinstance(code, str)
             and (
-                code == module_name
+                code in module_names
                 or code.startswith(module_prefix)
-                or code.startswith(legacy_prefix)
+                or any(code.startswith(prefix) for prefix in legacy_prefixes)
             )
             for code in effective_permissions
         )
@@ -410,7 +452,7 @@ class Student(models.Model):
         WITHDRAWN = "withdrawn", _("Withdrawn")
 
     student = models.OneToOneField(User, on_delete=models.CASCADE)
-    registration_number = models.CharField(max_length=30, unique=True, null=True, blank=True)
+    registration_number = models.CharField(max_length=60, unique=True, null=True, blank=True)
     level = models.CharField(max_length=25, choices=LEVEL, null=True)
     program = models.ForeignKey(Program, on_delete=models.CASCADE, null=True)
     year = models.IntegerField(choices=settings.YEARS, null=True, blank=True)
@@ -432,6 +474,26 @@ class Student(models.Model):
 
     class Meta:
         ordering = ("-student__date_joined",)
+
+    def save(self, *args, **kwargs):
+        if self.registration_number:
+            return super().save(*args, **kwargs)
+
+        using = kwargs.get("using")
+        with transaction.atomic(using=using):
+            if self.pk is None:
+                super().save(*args, **kwargs)
+                self.registration_number = generate_student_registration_number(self)
+                return super().save(
+                    update_fields=("registration_number",),
+                    using=using,
+                )
+
+            self.registration_number = generate_student_registration_number(self)
+            update_fields = kwargs.get("update_fields")
+            if update_fields is not None:
+                kwargs["update_fields"] = set(update_fields) | {"registration_number"}
+            return super().save(*args, **kwargs)
 
     def __str__(self):
         return self.student.get_full_name
@@ -724,12 +786,76 @@ ACTIVE_MODULE_CHOICES = [
     ('program_add', 'Add Program'),
     ('program_edit', 'Edit Program'),
     ('program_delete', 'Delete Program'),
+    ('course', 'Courses'),
+    ('course_add', 'Add Course'),
+    ('course_edit', 'Edit Course'),
+    ('course_delete', 'Delete Course'),
+    ('course_detail', 'View Course'),
+    ('course_file_upload', 'Upload Course File'),
+    ('course_file_edit', 'Edit Course File'),
+    ('course_file_delete', 'Delete Course File'),
+    ('course_video_upload', 'Upload Course Video'),
+    ('course_video_edit', 'Edit Course Video'),
+    ('course_video_delete', 'Delete Course Video'),
+    ('course_allocation', 'Course Allocation'),
+    ('course_allocation_edit', 'Edit Course Allocation'),
+    ('course_allocation_deallocate', 'Deallocate Course'),
+    ('course_registration', 'Course Registration'),
+    ('drop_course', 'Drop Course'),
+    ('user_courses', 'My Courses'),
+    ('quiz_progress', 'Quiz Progress'),
+    ('quiz_marking', 'Quiz Marking'),
+    ('quiz_attempts', 'View Quiz Attempts'),
+    ('view_sittings', 'Completed Quizzes'),
+    ('results_grading', 'Results Grading'),
+    ('assessment_results', 'Assessment Results'),
+    ('add_results', 'Add Results'),
+    ('edit_results', 'Edit Results'),
+    ('view_transcripts', 'View Transcripts'),
+    ('gpa_view', 'GPA View'),
+    ('cgpa_view', 'CGPA View'),
     ('sessions', 'Sessions'),
     ('semesters', 'Semesters'),
     ('faculties', 'Manage Faculties'),
     ('faculty_add', 'Add Faculty'),
     ('faculty_edit', 'Edit Faculty'),
     ('faculty_delete', 'Delete Faculty'),
+    ('admissions', 'Admissions'),
+    ('admissions.view_applications', 'View Applications'),
+    ('admissions.manage_applications', 'Manage Applications'),
+    ('admissions.review_applications', 'Review Applications'),
+    ('students.view_students', 'View Student Records'),
+    ('students.manage_students', 'Manage Student Records'),
+    ('students.edit_students', 'Edit Student Records'),
+    ('students.delete_students', 'Delete Student Records'),
+    ('students.manage_documents', 'Manage Student Documents'),
+    ('students.view_documents', 'View Student Documents'),
+    ('students.export_students', 'Export Student Records'),
+    ('clinical', 'Clinical Placements'),
+    ('clinical.view_placements', 'View Clinical Placements'),
+    ('clinical.manage_placements', 'Manage Clinical Placements'),
+    ('clinical.verify_log_entries', 'Review Clinical Log Entries'),
+    ('clinical.approve_placements', 'Approve Clinical Placements'),
+    ('admissions.link_students', 'Link Admitted Students'),
+    ('assignments', 'Assignments'),
+    ('assignments.view', 'View Assignments'),
+    ('assignments.manage', 'Manage Assignments'),
+    ('quizzes', 'Quizzes'),
+    ('quizzes.view', 'View Quizzes'),
+    ('quizzes.manage', 'Manage Quizzes'),
+    ('quizzes.mark', 'Mark Quizzes'),
+    ('results', 'Results'),
+    ('results.view', 'View Results'),
+    ('results.manage', 'Manage Results'),
+    ('results.publish', 'Publish Results'),
+    ('voting', 'Voting'),
+    ('voting.view', 'View Elections'),
+    ('voting.manage', 'Manage Elections'),
+    ('audit', 'Audit Logs'),
+    ('audit.view', 'View Audit Logs'),
+    ('reports', 'Reports'),
+    ('reports.view', 'View Reports'),
+    ('finance', 'Finance'),
     
     # Finance
     ('manage_fee_categories', 'Manage Fee Categories'),
@@ -753,6 +879,7 @@ ACTIVE_MODULE_CHOICES = [
     ('finance_reports', 'Finance Reports'),
 
     # Procurement
+    ('procurement', 'Procurement'),
     ('procurement_dashboard', 'Procurement Dashboard'),
     ('procurement_suppliers', 'View Suppliers'),
     ('procurement_suppliers_add', 'Add Supplier'),
@@ -766,16 +893,28 @@ ACTIVE_MODULE_CHOICES = [
     ('procurement_plans_add', 'Add Procurement Plan'),
     ('procurement_plans_edit', 'Edit Procurement Plan'),
     ('procurement_plans_delete', 'Delete Procurement Plan'),
+    ('procurement_plans_approve', 'Approve Procurement Plan'),
+    ('procurement_departments', 'View Procurement Departments'),
+    ('procurement_departments_add', 'Manage Procurement Departments'),
+    ('procurement_departments_edit', 'Edit Procurement Departments'),
+    ('procurement_departments_delete', 'Delete Procurement Departments'),
+    ('procurement_statuses', 'Manage Procurement Statuses'),
+    ('procurement_workflows', 'Manage Procurement Workflows'),
     ('procurement_requisitions', 'View Purchase Requisitions'),
     ('procurement_requisitions_add', 'Add Purchase Requisition'),
     ('procurement_requisitions_edit', 'Edit Purchase Requisition'),
     ('procurement_requisitions_delete', 'Delete Purchase Requisition'),
     ('procurement_requisitions_export', 'Export Purchase Requisitions'),
+    ('procurement_requisitions_approve', 'Approve Purchase Requisitions'),
     ('procurement_orders', 'View Purchase Orders'),
     ('procurement_orders_add', 'Add Purchase Order'),
     ('procurement_orders_edit', 'Edit Purchase Order'),
     ('procurement_orders_delete', 'Delete Purchase Order'),
     ('procurement_orders_export', 'Export Purchase Orders'),
+    ('procurement_orders_approve', 'Approve Purchase Orders'),
+    ('procurement_quotations', 'View Supplier Quotations'),
+    ('procurement_quotations_add', 'Add Supplier Quotations'),
+    ('procurement_quotations_edit', 'Manage Supplier Quotations'),
 ]
 
 

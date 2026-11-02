@@ -2265,6 +2265,17 @@ h4.fw-bold i {
     padding-left: 16px;
 }
 
+.dropdown-content a.active {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark, #6d3d5b) 100%);
+    color: #fff;
+    box-shadow: 0 6px 14px rgba(145, 76, 119, 0.18);
+}
+
+.dropdown-content a.active i {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.2);
+}
+
 .dropdown-content a i {
     width: 24px;
     height: 24px;
@@ -2838,5 +2849,368 @@ h4.fw-bold i {
 
     #side-nav.toggle-active {
         left: 0;
+    }
+}
+
+/* Shared button sizing and table action layout */
+#main-content .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    min-height: 38px;
+    border-radius: 0.55rem;
+    font-weight: 600;
+    line-height: 1.2;
+    text-decoration: none;
+    transition: color 0.18s ease, background-color 0.18s ease,
+        border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+}
+
+#main-content .btn:focus-visible {
+    outline: 3px solid rgba(59, 130, 246, 0.35);
+    outline-offset: 2px;
+    box-shadow: none;
+}
+
+#main-content .btn:disabled,
+#main-content .btn.disabled {
+    cursor: not-allowed;
+    opacity: 0.58;
+    transform: none;
+    box-shadow: none;
+}
+
+#main-content .btn-outline-primary,
+#main-content .btn-outline-secondary,
+#main-content .btn-outline-success,
+#main-content .btn-outline-danger,
+#main-content .btn-outline-warning,
+#main-content .btn-outline-info {
+    border-width: 1px;
+}
+
+#main-content .btn:not(.btn-lg).btn-sm {
+    min-height: 32px;
+    padding: 0.35rem 0.7rem;
+    font-size: 0.8rem;
+}
+
+#main-content .table tbody > tr > td a.btn:not(.w-100) {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: auto !important;
+    max-width: 100%;
+    min-width: 0;
+    padding: 0.35rem 0.75rem;
+    color: var(--primary);
+    text-align: center;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+#main-content .table tbody > tr > td a.btn.btn-outline-primary:not(.w-100) {
+    color: var(--primary);
+    background: #fff;
+    border: 1px solid var(--primary);
+}
+
+#main-content .table tbody > tr > td a.btn.btn-outline-primary:not(.w-100):hover {
+    color: #fff;
+    background: var(--primary);
+}
+
+#main-content .table tbody > tr > td a.btn.btn-outline-secondary:not(.w-100) {
+    color: #475569;
+    background: #fff;
+    border: 1px solid #94a3b8;
+}
+
+#main-content .table tbody > tr > td a.btn.btn-outline-secondary:not(.w-100):hover {
+    color: #fff;
+    background: #475569;
+}
+
+#main-content .table tbody > tr > td a.btn.btn-outline-danger:not(.w-100) {
+    color: #b91c1c;
+    background: #fff;
+    border: 1px solid #ef4444;
+}
+
+#main-content .table tbody > tr > td a.btn.btn-outline-danger:not(.w-100):hover {
+    color: #fff;
+    background: #dc2626;
+}
+
+#main-content .table tbody > tr > td a.btn.btn-outline-info:not(.w-100) {
+    color: #1d4ed8;
+    background: #fff;
+    border: 1px solid #3b82f6;
+}
+
+#main-content .table tbody > tr > td a.btn.btn-outline-info:not(.w-100):hover {
+    color: #fff;
+    background: #2563eb;
+}
+
+#main-content .table tbody > tr > td a.btn:hover {
+    text-decoration: none;
+    transform: translateY(-1px);
+}
+
+#main-content .table-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+}
+
+#main-content .table-actions .table-action-button {
+    min-width: 5.25rem;
+}
+
+#main-content .table-action-cell {
+    min-width: 8rem;
+}
+
+/* Finance entry forms */
+#main-content .finance-form-page {
+    max-width: 920px;
+    margin-right: auto;
+    margin-left: auto;
+    padding-bottom: 2rem;
+}
+
+#main-content .finance-form-heading {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+}
+
+#main-content .finance-form-heading-icon {
+    display: inline-flex;
+    flex: 0 0 48px;
+    width: 48px;
+    height: 48px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 14px;
+    background: color-mix(in srgb, var(--primary) 12%, white);
+    color: var(--primary);
+    font-size: 1.15rem;
+}
+
+#main-content .finance-form-heading h2 {
+    margin: 0;
+    color: var(--text-primary);
+    font-size: clamp(1.35rem, 2.5vw, 1.8rem);
+    font-weight: 700;
+}
+
+#main-content .finance-form-heading p {
+    margin: 0.25rem 0 0;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+}
+
+#main-content .finance-form-card {
+    overflow: visible;
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    background: var(--bg-card);
+    box-shadow: 0 12px 32px rgba(15, 23, 42, 0.07);
+}
+
+#main-content .finance-form-card .card-body {
+    padding: clamp(1rem, 3vw, 2rem);
+}
+
+#main-content .finance-form-page textarea.form-control {
+    height: 6.5rem;
+    min-height: 6.5rem;
+    resize: vertical;
+}
+
+#main-content .finance-form-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+    margin-top: 1.25rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-color);
+}
+
+@media (max-width: 575.98px) {
+    #main-content .finance-form-heading {
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+
+    #main-content .finance-form-heading-icon {
+        flex-basis: 40px;
+        width: 40px;
+        height: 40px;
+        border-radius: 12px;
+    }
+
+    #main-content .finance-form-actions > .btn {
+        flex: 1 1 auto;
+    }
+}
+
+/* Sidebar navigation polish */
+.sidebar-container {
+    height: 100vh;
+    min-height: 100vh;
+}
+
+.sidebar-menu {
+    min-height: 0;
+    max-height: none;
+    padding: 12px 0;
+}
+
+.sidebar-menu ul {
+    padding: 0 0 12px;
+}
+
+.menu-section {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 14px 18px 6px;
+    padding: 10px 2px 6px;
+    border-bottom: 1px solid #e6e8ef;
+    color: #788196;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+}
+
+.menu-item,
+.menu-dropdown {
+    margin: 2px 10px;
+}
+
+.menu-link,
+.dropdown-toggle {
+    min-height: 44px;
+    border-radius: 11px;
+    font-size: 13px;
+}
+
+.menu-link {
+    padding: 6px 10px;
+    font-weight: 600;
+}
+
+.menu-link i,
+.dropdown-toggle span i {
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    margin-right: 10px;
+    border-radius: 9px;
+}
+
+.dropdown-toggle {
+    padding: 6px 10px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: #334155;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+}
+
+.dropdown-toggle:hover,
+.dropdown-toggle:focus-visible {
+    border-color: color-mix(in srgb, var(--primary) 16%, white);
+    background: color-mix(in srgb, var(--primary) 7%, white);
+    color: var(--primary);
+}
+
+.dropdown-toggle:focus-visible,
+.menu-link:focus-visible,
+.dropdown-content a:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--primary) 60%, white);
+    outline-offset: 2px;
+}
+
+.menu-dropdown.open > .dropdown-toggle {
+    background: transparent;
+    color: var(--primary);
+}
+
+.menu-dropdown.open > .dropdown-toggle span i {
+    background: color-mix(in srgb, var(--primary) 16%, white);
+    color: var(--primary);
+}
+
+.dropdown-content {
+    max-height: 0;
+    margin: 2px 0 4px 18px;
+    padding-left: 10px;
+    border-left-width: 1px;
+    overscroll-behavior: contain;
+}
+
+.menu-dropdown.open .dropdown-content {
+    max-height: min(72vh, 760px);
+    overflow-y: auto;
+    padding: 4px 0 4px 10px;
+}
+
+.dropdown-content a {
+    min-height: 38px;
+    padding: 5px 9px;
+    border-radius: 9px;
+    font-size: 12px;
+}
+
+.dropdown-content a i {
+    width: 25px;
+    height: 25px;
+    min-width: 25px;
+    margin-right: 8px;
+    border-radius: 7px;
+}
+
+.menu-link.active,
+.dropdown-content a.active {
+    position: relative;
+    background: color-mix(in srgb, var(--primary) 11%, white);
+    color: var(--primary);
+    box-shadow: inset 3px 0 0 var(--primary);
+}
+
+.menu-link.active {
+    font-weight: 700;
+}
+
+.menu-link.active i,
+.dropdown-content a.active i {
+    background: color-mix(in srgb, var(--primary) 17%, white);
+    color: var(--primary);
+}
+
+.sidebar-footer {
+    flex: 0 0 auto;
+    padding: 12px 16px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .sidebar-container *,
+    .sidebar-container *::before,
+    .sidebar-container *::after {
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
     }
 }

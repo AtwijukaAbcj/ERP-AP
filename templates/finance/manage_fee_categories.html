@@ -1,12 +1,43 @@
 {% extends 'base.html' %}
+{% load i18n %}
 {% block title %}Manage Fee Categories{% endblock %}
 {% block content %}
+<style>
+    .fee-category-toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-start;
+        gap: 8px;
+        margin-bottom: 16px;
+    }
+
+    .fee-category-toolbar > .btn {
+        margin-bottom: 0 !important;
+    }
+
+    .fee-category-toolbar > .table-responsive {
+        flex: 0 0 100%;
+        width: 100%;
+    }
+</style>
+
 <div class="container mt-4">
-    <h2>Fee Categories</h2>
-    <a href="{% url 'finance:fee_category_add' %}" class="btn btn-primary mb-3">+ Add Category</a>
+    <h2>{% trans 'Fee Categories' %}</h2>
+    <div class="fee-category-toolbar">
+    {% if can_add_categories %}
+    <a href="{% url 'finance:fee_category_add' %}" class="btn btn-primary">
+        <i class="fas fa-plus"></i> {% trans 'Add Category' %}
+    </a>
+    {% endif %}
+    <div class="table-responsive">
     <table class="table">
         <thead>
-            <tr><th>Name</th><th>Description</th><th>Amount</th></tr>
+            <tr>
+                <th>{% trans 'Name' %}</th>
+                <th>{% trans 'Description' %}</th>
+                <th>{% trans 'Amount' %}</th>
+                {% if can_edit_categories or can_delete_categories %}<th>{% trans 'Actions' %}</th>{% endif %}
+            </tr>
         </thead>
         <tbody>
             {% for category in categories %}
@@ -14,9 +45,56 @@
                 <td>{{ category.name }}</td>
                 <td>{{ category.description }}</td>
                 <td>{{ category.amount }}</td>
+                {% if can_edit_categories or can_delete_categories %}
+                <td>
+                    <div class="dropdown">
+                        <button class="btn btn-sm btn-outline-secondary" type="button"
+                                id="feeCategoryActions{{ category.pk }}" data-bs-toggle="dropdown"
+                                aria-expanded="false" aria-label="{% trans 'Fee category actions' %}">
+                            <i class="fas fa-ellipsis-v"></i>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="feeCategoryActions{{ category.pk }}">
+                            {% if can_edit_categories %}
+                            <li>
+                                <a href="{% url 'finance:fee_category_edit' category.pk %}" class="dropdown-item">
+                                    <i class="fas fa-edit me-2"></i>{% trans 'Edit' %}
+                                </a>
+                            </li>
+                            {% endif %}
+                            {% if can_delete_categories %}
+                            <li>
+                                {% if category.has_invoice_items %}
+                                <span class="dropdown-item text-muted" aria-disabled="true"
+                                      title="{% trans 'This category is used by existing invoices and cannot be deleted.' %}">
+                                    <i class="fas fa-lock me-2" aria-hidden="true"></i>{% trans 'Delete' %}
+                                    <small class="d-block ms-4">{% trans 'Used by an invoice' %}</small>
+                                </span>
+                                {% else %}
+                                <form method="post" action="{% url 'finance:fee_category_delete' category.pk %}">
+                                    {% csrf_token %}
+                                    <button type="submit" class="dropdown-item text-danger"
+                                            onclick="return confirm('{% trans 'Delete this fee category?' %}')">
+                                        <i class="fas fa-trash-alt me-2"></i>{% trans 'Delete' %}
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </div>
+                </td>
+                {% endif %}
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="{% if can_edit_categories or can_delete_categories %}4{% else %}3{% endif %}" class="text-center text-muted">
+                    {% trans 'No fee categories have been added yet.' %}
+                </td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
+    </div>
+    </div>
 </div>
 {% endblock %}

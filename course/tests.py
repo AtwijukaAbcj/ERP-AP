@@ -4,7 +4,7 @@ from datetime import date
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
-from accounts.models import DepartmentHead, Student, User
+from accounts.models import DepartmentHead, ModulePermission, Student, User
 from core.models import Semester
 from result.models import TakenCourse
 from .models import Course, CourseOffer, Program
@@ -84,6 +84,41 @@ class CourseRegistrationTests(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertFalse(TakenCourse.objects.exists())
 
+    def test_module_grant_does_not_make_a_nonstudent_a_student(self):
+        nonstudent = User.objects.create_user(
+            username="course-access-only",
+            password="test-password",
+        )
+        ModulePermission.objects.create(
+            user=nonstudent,
+            module_name="course_registration",
+        )
+        self.client.force_login(nonstudent)
+
+        response = self.client.get(reverse("course_registration"))
+
+        self.assertRedirects(
+            response,
+            reverse("permission_denied"),
+            fetch_redirect_response=False,
+        )
+
+    def test_student_account_without_student_profile_cannot_register(self):
+        incomplete_student = User.objects.create_user(
+            username="student-without-profile",
+            password="test-password",
+            is_student=True,
+        )
+        self.client.force_login(incomplete_student)
+
+        response = self.client.get(reverse("course_registration"))
+
+        self.assertRedirects(
+            response,
+            reverse("permission_denied"),
+            fetch_redirect_response=False,
+        )
+
     def test_student_cannot_register_for_a_future_year_or_other_semester_course(self):
         future_year_course = Course.objects.create(
             title="Advanced Mental Health",
@@ -139,7 +174,6 @@ class CourseRegistrationTests(TestCase):
         )
         enrollment.refresh_from_db()
         self.assertFalse(enrollment.is_dropped)
-
     def test_department_head_course_offerings_limit_registration(self):
         unoffered_course = Course.objects.create(
             title="Psychiatric Nursing Practice",
@@ -273,3 +307,119 @@ class CourseRegistrationTests(TestCase):
 
         enrollment.refresh_from_db()
         self.assertFalse(enrollment.is_dropped)
+
+
+@override_settings(LANGUAGE_CODE="en")
+class ProgramManagementTests(TestCase):
+    def setUp(self):
+        self.lecturer = User.objects.create_user(
+            username="program-lecturer",
+            password="program-test-password",
+            is_lecturer=True,
+        )
+        self.client.force_login(self.lecturer)
+
+    def test_lecturer_can_open_programs_and_see_them_in_sidebar(self):
+        response = self.client.get(reverse("programs"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, f'href="{reverse("programs")}"')
+        self.assertContains(response, "Programs & Courses")
+        self.assertContains(
+            response,
+            'aria-controls="programs-courses-submenu"',
+        )
+        self.assertContains(response, "Program Tree & Courses")
+        self.assertContains(response, "Course Allocation")
+        self.assertContains(response, f'href="{reverse("course_allocation_view")}"')
+        self.assertContains(response, "Allocate Courses")
+        self.assertContains(response, f'href="{reverse("course_allocation")}"')
+        self.assertContains(response, reverse("add_program"))
+        self.assertContains(response, "Add Program")
+
+    def test_lecturer_sees_teaching_sidebar_with_my_courses_link(self):
+        response = self.client.get(reverse("user_course_list"))
+
+        self.assertEqual(response.status_code, 200)
+        sidebar_menu = response.content.decode().split(
+            '<nav class="sidebar-menu">',
+            maxsplit=1,
+        )[1].split("</nav>", maxsplit=1)[0]
+        courses_url = reverse("user_course_list")
+
+        self.assertIn("Lecturers", sidebar_menu)
+        self.assertIn(f'href="{courses_url}" class="active"', sidebar_menu)
+        self.assertIn("My Courses", sidebar_menu)
+        self.assertNotIn(reverse("add_score"), sidebar_menu)
+        self.assertNotIn(reverse("quiz_marking"), sidebar_menu)
+
+        ModulePermission.objects.create(user=self.lecturer, module_name="results")
+        ModulePermission.objects.create(user=self.lecturer, module_name="quizzes")
+        response = self.client.get(reverse("user_course_list"))
+        sidebar_menu = response.content.decode().split(
+            '<nav class="sidebar-menu">',
+            maxsplit=1,
+        )[1].split("</nav>", maxsplit=1)[0]
+        for route_name, label in (
+            ("add_score", "Manage Scores"),
+            ("quiz_marking", "Mark Quiz Attempts"),
+            ("quiz_progress", "Quiz Progress"),
+        ):
+            with self.subTest(route_name=route_name):
+                self.assertIn(f'href="{reverse(route_name)}"', sidebar_menu)
+                self.assertIn(label, sidebar_menu)
+
+        marking_response = self.client.get(reverse("quiz_marking"))
+        self.assertEqual(marking_response.status_code, 200)
+
+    def test_lecturer_can_add_a_program(self):
+        response = self.client.post(
+            reverse("add_program"),
+            {
+                "title": "New Academic Program",
+                "code": "NAP",
+                "summary": "Program summary",
+            },
+        )
+
+        self.assertRedirects(response, reverse("programs"))
+        program = Program.objects.get(title="New Academic Program")
+        self.assertEqual(program.code, "NAP")
+
+    def test_program_code_is_required_and_displayed(self):
+        response = self.client.get(reverse("add_program"))
+        self.assertContains(response, "Program Code")
+
+        invalid_response = self.client.post(
+            reverse("add_program"),
+            {"title": "Program Without Code", "summary": "Program summary"},
+        )
+        self.assertEqual(invalid_response.status_code, 200)
+        self.assertContains(invalid_response, "This field is required.")
+
+    def test_program_without_explicit_code_gets_a_unique_short_code(self):
+        first_program = Program.objects.create(title="Psychiatric Nursing")
+        second_program = Program.objects.create(title="Psychology Nursing")
+
+        self.assertEqual(first_program.code, "PN")
+        self.assertEqual(second_program.code, "PN2")
+
+    def test_course_detail_links_to_assignments(self):
+        program = Program.objects.create(title="Assignment Test Program")
+        course = Course.objects.create(
+            title="Introduction to Artificial Intelligence",
+            code="AI101",
+            program=program,
+            level="Bachelor",
+            year=1,
+            semester="First",
+            credit=3,
+        )
+
+        response = self.client.get(reverse("course_detail", args=[course.slug]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response,
+            reverse("assignment:assignment_list", args=[course.slug]),
+        )

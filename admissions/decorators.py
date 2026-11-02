@@ -13,8 +13,14 @@ def admissions_permission(permission_code):
                 and user.is_active
                 and (
                     user.is_superuser
-                    or user.is_registrar
                     or user.has_permission(permission_code)
+                    or (
+                        not user.permission_overrides.filter(
+                            permission__code=permission_code,
+                            effect="deny",
+                        ).exists()
+                        and (user.is_registrar or user.has_permission("admissions"))
+                    )
                 )
             ):
                 raise PermissionDenied

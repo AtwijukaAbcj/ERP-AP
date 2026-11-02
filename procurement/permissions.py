@@ -13,7 +13,14 @@ def has_procurement_access(user, *permission_codes):
         effect="deny",
     ).exists():
         return False
-    return any(user.has_permission(code) for code in permission_codes)
+    if user.has_permission("procurement"):
+        return True
+    if any(user.has_permission(code) for code in permission_codes):
+        return True
+    return bool(
+        user.is_procurement_manager
+        or user.has_role("procurement_manager")
+    )
 
 
 def procurement_permission_required(*permission_codes):

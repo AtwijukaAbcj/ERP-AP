@@ -64,4 +64,12 @@ urlpatterns = [
     path("my-timetable/", views.student_timetable_view, name="student_timetable"),
     path('timetables/entry/<int:pk>/delete/', views.delete_timetable_entry, name='delete_timetable_entry'),
     path("settings/", views.site_settings_view, name="site_settings"),
+    path("settings/email/", views.email_settings_view, name="site_settings_email"),
+    path("settings/branding/", views.branding_settings_view, name="site_settings_branding"),
+    path("settings/school/", views.school_settings_view, name="site_settings_school"),
+    path(
+        "settings/student-identifiers/",
+        views.student_identifier_settings_view,
+        name="site_settings_student_ids",
+    ),
 ]

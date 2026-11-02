@@ -16,7 +16,19 @@ from .services import review_log_entry, transition_placement
 
 
 def _can_manage_clinical(user):
-    return user.has_permission("clinical.manage_placements")
+    return _has_clinical_permission(user, "clinical.manage_placements")
+
+
+def _has_clinical_permission(user, permission_code):
+    if user.has_permission(permission_code):
+        return True
+    return bool(
+        not user.permission_overrides.filter(
+            permission__code=permission_code,
+            effect="deny",
+        ).exists()
+        and user.has_permission("clinical")
+    )
 
 
 @login_required
@@ -24,8 +36,8 @@ def placement_list(request):
     manager_access = _can_manage_clinical(request.user)
     staff_access = (
         manager_access
-        or request.user.has_permission("clinical.view_placements")
-        or request.user.has_permission("clinical.verify_log_entries")
+        or _has_clinical_permission(request.user, "clinical.view_placements")
+        or _has_clinical_permission(request.user, "clinical.verify_log_entries")
     )
     if not staff_access and not request.user.is_student:
         raise PermissionDenied
@@ -52,7 +64,10 @@ def placement_list(request):
         {
             "placements": placements,
             "can_manage": manager_access,
-            "can_review": request.user.has_permission("clinical.verify_log_entries"),
+            "can_review": _has_clinical_permission(
+                request.user,
+                "clinical.verify_log_entries",
+            ),
             "show_students": staff_access,
             "title": "Clinical placements",
         },

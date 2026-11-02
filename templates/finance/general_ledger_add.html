@@ -1,15 +1,27 @@
 {% extends 'base.html' %}
+{% load crispy_forms_tags %}
 {% block title %}Add General Ledger Entry{% endblock %}
 {% block content %}
-<div class="container mt-4">
-    <h2>Add General Ledger Entry</h2>
-    <div class="card p-4">
-        <form method="post">
-            {% csrf_token %}
-            {{ form.as_p }}
-            <button type="submit" class="btn btn-primary">Save Entry</button>
-            <a href="{% url 'finance:general_ledger_list' %}" class="btn btn-secondary">Cancel</a>
-        </form>
+<div class="container mt-4 finance-form-page">
+    <div class="finance-form-heading">
+        <span class="finance-form-heading-icon"><i class="fas fa-balance-scale"></i></span>
+        <div>
+            <h2>Add General Ledger Entry</h2>
+            <p>Post a debit or credit entry to a ledger account.</p>
+        </div>
+    </div>
+    <div class="card finance-form-card">
+        <div class="card-body">
+            {% include 'snippets/messages.html' %}
+            <form method="post" novalidate>
+                {% csrf_token %}
+                {{ form|crispy }}
+                <div class="finance-form-actions">
+                    <button type="submit" class="btn btn-primary">Save Entry</button>
+                    <a href="{% url 'finance:general_ledger_list' %}" class="btn btn-secondary">Cancel</a>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 {% endblock %}
