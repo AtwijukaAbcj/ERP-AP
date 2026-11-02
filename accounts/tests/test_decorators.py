@@ -3,6 +3,7 @@ from django.http import HttpResponse
 from django.test import TestCase, RequestFactory
 from django.urls import reverse
 from accounts.decorators import admin_required, lecturer_required, student_required
+from accounts.models import Student
 
 User = get_user_model()
 
@@ -104,6 +105,7 @@ class StudentRequiredDecoratorTests(TestCase):
             password="password",
             is_student=True,
         )
+        Student.objects.create(student=self.student)
         self.user = User.objects.create_user(
             username="user", email="user@example.com", password="password"
         )
