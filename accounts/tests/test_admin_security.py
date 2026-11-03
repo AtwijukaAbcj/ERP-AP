@@ -3,6 +3,7 @@ from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from accounts.models import (
+    ACTIVE_MODULE_CHOICES,
     ModulePermission,
     Permission,
     Role,
@@ -398,7 +399,7 @@ class AccessControlAdministrationTests(TestCase):
         self.assertContains(response, "Explicit denies continue to take precedence.")
         self.assertContains(response, "module-access.css")
 
-    def test_lecturer_management_sidebar_is_visible_to_superusers_only(self):
+    def test_lecturer_module_grant_shows_read_only_directory_access(self):
         self.client.force_login(self.admin)
         response = self.client.get(reverse("lecturer_list"))
 
@@ -414,18 +415,100 @@ class AccessControlAdministrationTests(TestCase):
         self.assertIn(f'href="{reverse("user_list")}"', sidebar_menu)
         self.assertIn(f'href="{reverse("user_add")}"', sidebar_menu)
 
+        ModulePermission.objects.create(
+            user=self.user,
+            module_name="lecturers",
+        )
         self.client.force_login(self.user)
-        response = self.client.get(reverse("home"))
+        response = self.client.get(reverse("lecturer_list"))
         self.assertEqual(response.status_code, 200)
         sidebar_menu = response.content.decode().split(
             '<nav class="sidebar-menu">',
             maxsplit=1,
         )[1].split("</nav>", maxsplit=1)[0]
-        self.assertNotIn("Lecturer Directory", sidebar_menu)
-        self.assertNotIn(reverse("lecturer_list"), sidebar_menu)
+        self.assertIn("Lecturer Directory", sidebar_menu)
+        self.assertIn(f'href="{reverse("lecturer_list")}"', sidebar_menu)
+        self.assertNotIn("Add Lecturer", sidebar_menu)
         self.assertNotIn(reverse("add_lecturer"), sidebar_menu)
         self.assertNotIn("User Directory", sidebar_menu)
         self.assertNotIn(reverse("user_list"), sidebar_menu)
+
+    def test_assigned_module_catalog_is_visible_and_usable_from_sidebar(self):
+        ModulePermission.objects.bulk_create(
+            ModulePermission(user=self.user, module_name=module_name)
+            for module_name, _label in ACTIVE_MODULE_CHOICES
+        )
+        self.client.force_login(self.user)
+
+        response = self.client.get(reverse("home"))
+
+        self.assertEqual(response.status_code, 200)
+        sidebar_menu = response.content.decode().split(
+            '<nav class="sidebar-menu">',
+            maxsplit=1,
+        )[1].split("</nav>", maxsplit=1)[0]
+        visible_destinations = (
+            "lecturer_list",
+            "session_list",
+            "semester_list",
+            "manage_faculties",
+            "student_list",
+            "finance:invoice_list",
+            "procurement:dashboard",
+            "admissions:dashboard",
+            "clinical:placement_list",
+            "assessment_hub",
+            "quiz_marking",
+            "quiz_progress",
+            "voting_home",
+            "faculty_audit_logs",
+            "institutional_reports",
+        )
+        for destination in visible_destinations:
+            with self.subTest(destination=destination):
+                self.assertIn(reverse(destination), sidebar_menu)
+
+        self.assertNotIn(reverse("user_list"), sidebar_menu)
+        self.assertNotIn(reverse("assign_modules"), sidebar_menu)
+        self.assertNotIn(reverse("admin_panel"), sidebar_menu)
+        self.assertNotIn(reverse("add_lecturer"), sidebar_menu)
+
+        accessible_destinations = (
+            "lecturer_list",
+            "session_list",
+            "semester_list",
+            "manage_faculties",
+            "voting_home",
+            "quiz_marking",
+            "voting_home",
+            "faculty_audit_logs",
+            "institutional_reports",
+        )
+        for destination in accessible_destinations:
+            with self.subTest(destination=destination):
+                self.assertEqual(
+                    self.client.get(reverse(destination)).status_code,
+                    200,
+                )
+
+    def test_assignment_module_grant_opens_course_catalog_only(self):
+        ModulePermission.objects.create(
+            user=self.user,
+            module_name="assignments.view",
+        )
+        self.client.force_login(self.user)
+
+        response = self.client.get(reverse("home"))
+
+        self.assertEqual(response.status_code, 200)
+        sidebar_menu = response.content.decode().split(
+            '<nav class="sidebar-menu">',
+            maxsplit=1,
+        )[1].split("</nav>", maxsplit=1)[0]
+        self.assertIn(reverse("programs"), sidebar_menu)
+        self.assertNotIn(reverse("course_allocation_view"), sidebar_menu)
+        self.assertNotIn(reverse("course_allocation"), sidebar_menu)
+        self.assertEqual(self.client.get(reverse("programs")).status_code, 200)
 
     def test_role_granted_finance_and_procurement_modules_appear_in_sidebar(self):
         role = Role.objects.create(name="Finance and Procurement User", slug="finance-procurement-user")

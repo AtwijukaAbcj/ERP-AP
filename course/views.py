@@ -10,7 +10,11 @@ from django.utils.decorators import method_decorator
 from django.views.generic import CreateView
 from django_filters.views import FilterView
 
-from accounts.decorators import lecturer_required, student_required
+from accounts.decorators import (
+    course_catalog_access_required,
+    lecturer_required,
+    student_required,
+)
 from accounts.models import Student
 from core.models import Semester, SiteSettings
 from core.pdf_utils import pdf_link_callback
@@ -121,7 +125,7 @@ def faculty_delete_program(request, pk):
     return redirect("faculty_program_list")
 
 
-@method_decorator([login_required, lecturer_required], name="dispatch")
+@method_decorator([login_required, course_catalog_access_required], name="dispatch")
 class ProgramFilterView(FilterView):
     filterset_class = ProgramFilter
     template_name = "course/program_list.html"

@@ -1,10 +1,14 @@
 from django.views.generic import ListView
 from .models import ActivityLog
 from django.contrib.auth.mixins import LoginRequiredMixin
-from accounts.decorators import admin_required
+from django.contrib.auth.decorators import login_required
+from accounts.decorators import module_access_required
 from django.utils.decorators import method_decorator
 
-@method_decorator(admin_required, name='dispatch')
+@method_decorator(
+    [login_required, module_access_required("audit")],
+    name="dispatch",
+)
 class ActivityLogListView(LoginRequiredMixin, ListView):
     model = ActivityLog
     template_name = 'audit/activity_log_list.html'

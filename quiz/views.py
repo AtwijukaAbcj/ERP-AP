@@ -14,7 +14,10 @@ from django.views.generic import (
 )
 from django.http import JsonResponse, FileResponse
 
-from accounts.decorators import lecturer_required
+from accounts.decorators import (
+    lecturer_or_module_access_required,
+    lecturer_required,
+)
 from .forms import (
     EssayForm,
     MCQuestionForm,
@@ -184,7 +187,10 @@ class QuizUserProgressView(TemplateView):
         return context
 
 
-@method_decorator([login_required, lecturer_required], name="dispatch")
+@method_decorator(
+    [login_required, lecturer_or_module_access_required("quizzes")],
+    name="dispatch",
+)
 class QuizMarkingList(ListView):
     model = Sitting
     template_name = "quiz/quiz_marking_list.html"
@@ -204,7 +210,10 @@ class QuizMarkingList(ListView):
         return queryset
 
 
-@method_decorator([login_required, lecturer_required], name="dispatch")
+@method_decorator(
+    [login_required, lecturer_or_module_access_required("quizzes")],
+    name="dispatch",
+)
 class QuizMarkingDetail(DetailView):
     model = Sitting
     template_name = "quiz/quiz_marking_detail.html"

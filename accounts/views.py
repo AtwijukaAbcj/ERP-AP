@@ -14,6 +14,7 @@ from django_filters.views import FilterView
 
 from accounts.decorators import (
     admin_required,
+    lecturer_directory_required,
     student_management_required,
     user_has_student_management_permission,
 )
@@ -935,7 +936,7 @@ def edit_staff(request, pk):
     )
 
 
-@method_decorator([login_required, admin_required], name="dispatch")
+@method_decorator([login_required, lecturer_directory_required], name="dispatch")
 class LecturerFilterView(FilterView):
     filterset_class = LecturerFilter
     queryset = User.objects.filter(is_lecturer=True)

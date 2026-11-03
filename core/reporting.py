@@ -38,7 +38,7 @@ def user_can_view_reports(user):
         effect="deny",
     ).exists():
         return False
-    return user.has_permission(REPORT_PERMISSION)
+    return user.has_permission(REPORT_PERMISSION) or user.can_access_module("reports")
 
 
 def _report_data(semester):

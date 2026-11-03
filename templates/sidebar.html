@@ -10,8 +10,18 @@
 {% can_access_module 'students' as assigned_student_access %}
 {% can_access_module 'clinical' as assigned_clinical_access %}
 {% can_access_module 'course_registration' as assigned_course_registration_access %}
+{% can_access_module 'lecturers' as assigned_lecturer_access %}
+{% can_access_module 'sessions' as assigned_session_access %}
+{% can_access_module 'semesters' as assigned_semester_access %}
+{% can_access_module 'faculties' as assigned_faculty_access %}
+{% can_access_module 'assignments' as assigned_assignment_access %}
+{% can_access_module 'voting' as assigned_voting_access %}
+{% can_access_module 'audit' as assigned_audit_access %}
+{% can_access_module 'reports' as assigned_reports_access %}
+{% can_access_module 'quiz_marking' as assigned_quiz_marking_access %}
 {% has_permission "students.manage_students" as student_manage_access %}
 {% has_permission "students.export_students" as student_export_access %}
+{% has_permission "quizzes.mark" as assigned_quizzes_mark_access %}
 {% can_access_module 'quizzes' as assigned_quiz_access %}
 {% can_access_module 'results' as assigned_results_access %}
 
@@ -75,7 +85,7 @@
                     <i class="fas fa-user"></i> {% trans 'Profile' %}
                 </a>
             </li>
-            {% if request.user.is_superuser or request.user.is_lecturer or assigned_program_access or assigned_course_access or assigned_courses_access %}
+            {% if request.user.is_superuser or request.user.is_lecturer or assigned_program_access or assigned_course_access or assigned_courses_access or assigned_assignment_access or assigned_quiz_access %}
             <li class="menu-dropdown blue {% if request.resolver_match.url_name == 'programs' or request.resolver_match.url_name == 'program_detail' or request.resolver_match.url_name == 'add_program' or request.resolver_match.url_name == 'edit_program' or request.resolver_match.url_name == 'program_delete' or request.resolver_match.url_name == 'course_add' or request.resolver_match.url_name == 'course_detail' or request.resolver_match.url_name == 'edit_course' or request.resolver_match.url_name == 'delete_course' or request.resolver_match.url_name == 'course_allocation' or request.resolver_match.url_name == 'course_allocation_view' or request.resolver_match.url_name == 'edit_allocated_course' or request.resolver_match.url_name == 'course_deallocate' %}open{% endif %}" data-dropdown="programs-courses">
                 <button class="dropdown-toggle" type="button" aria-controls="programs-courses-submenu" aria-expanded="false" onclick="toggleDropdown(this)">
                     <span><i class="fas fa-book-open"></i> {% trans 'Programs & Courses' %}</span>
@@ -85,13 +95,22 @@
                     <a href="{% url 'programs' %}" class="{% if request.resolver_match.url_name == 'programs' or request.resolver_match.url_name == 'program_detail' or request.resolver_match.url_name == 'add_program' or request.resolver_match.url_name == 'edit_program' or request.resolver_match.url_name == 'program_delete' or request.resolver_match.url_name == 'course_add' or request.resolver_match.url_name == 'course_detail' or request.resolver_match.url_name == 'edit_course' or request.resolver_match.url_name == 'delete_course' %}active{% endif %}" {% if request.resolver_match.url_name == 'programs' or request.resolver_match.url_name == 'program_detail' or request.resolver_match.url_name == 'add_program' or request.resolver_match.url_name == 'edit_program' or request.resolver_match.url_name == 'program_delete' or request.resolver_match.url_name == 'course_add' or request.resolver_match.url_name == 'course_detail' or request.resolver_match.url_name == 'edit_course' or request.resolver_match.url_name == 'delete_course' %}aria-current="page"{% endif %}>
                         <i class="fas fa-sitemap"></i> {% trans 'Program Tree & Courses' %}
                     </a>
+                    {% if request.user.is_superuser or request.user.is_lecturer or assigned_program_access or assigned_course_access or assigned_courses_access %}
                     <a href="{% url 'course_allocation_view' %}" class="{% if request.resolver_match.url_name == 'course_allocation_view' or request.resolver_match.url_name == 'edit_allocated_course' or request.resolver_match.url_name == 'course_deallocate' %}active{% endif %}" {% if request.resolver_match.url_name == 'course_allocation_view' or request.resolver_match.url_name == 'edit_allocated_course' or request.resolver_match.url_name == 'course_deallocate' %}aria-current="page"{% endif %}>
                         <i class="fas fa-tasks"></i> {% trans 'Course Allocation' %}
                     </a>
                     <a href="{% url 'course_allocation' %}" class="{% if request.resolver_match.url_name == 'course_allocation' %}active{% endif %}" {% if request.resolver_match.url_name == 'course_allocation' %}aria-current="page"{% endif %}>
                         <i class="fas fa-user-plus"></i> {% trans 'Allocate Courses' %}
                     </a>
+                    {% endif %}
                 </div>
+            </li>
+            {% endif %}
+            {% if assigned_faculty_access or request.user.is_superuser %}
+            <li class="menu-item">
+                <a href="{% url 'manage_faculties' %}" class="menu-link {% if request.resolver_match.url_name == 'manage_faculties' %}active{% endif %}" {% if request.resolver_match.url_name == 'manage_faculties' %}aria-current="page"{% endif %}>
+                    <i class="fas fa-building"></i> {% trans 'Faculties' %}
+                </a>
             </li>
             {% endif %}
 
@@ -199,12 +218,14 @@
             </li>
             {% endif %}
 
-            {% if request.user.is_superuser %}
+            {% if request.user.is_superuser or assigned_session_access %}
             <li class="menu-item">
                 <a href="{{ sess }}" class="menu-link {% if request.path == sess %}active{% endif %}">
                     <i class="fas fa-calendar-week"></i> {% trans 'Manage Sessions' %}
                 </a>
             </li>
+            {% endif %}
+            {% if request.user.is_superuser or assigned_semester_access %}
             <li class="menu-item">
                 <a href="{{ sem }}" class="menu-link {% if request.path == sem %}active{% endif %}">
                     <i class="fas fa-calendar-alt"></i> {% trans 'Manage Semesters' %}
@@ -275,17 +296,19 @@
                 </div>
             </li>
             {% endif %}
-            {% if request.user.is_superuser or request.user.is_lecturer %}
+            {% if request.user.is_superuser or request.user.is_lecturer or assigned_lecturer_access %}
             <li class="menu-dropdown blue {% if request.resolver_match.url_name == 'lecturer_list' or request.resolver_match.url_name == 'lecturer_list_pdf' or request.resolver_match.url_name == 'add_lecturer' or request.resolver_match.url_name == 'staff_edit' or request.resolver_match.url_name == 'lecturer_delete' or request.resolver_match.url_name == 'user_course_list' or request.resolver_match.url_name == 'add_score' or request.resolver_match.url_name == 'add_score_for' or request.resolver_match.url_name == 'quiz_marking' or request.resolver_match.url_name == 'quiz_marking_detail' or request.resolver_match.url_name == 'quiz_progress' %}open{% endif %}" data-dropdown="lecturers">
                 <button class="dropdown-toggle" type="button" aria-controls="lecturers-submenu" aria-expanded="false" onclick="toggleDropdown(this)">
                     <span><i class="fas fa-chalkboard-teacher"></i> {% trans 'Lecturers' %}</span>
                     <i class="fas fa-chevron-down toggle-icon"></i>
                 </button>
                 <div class="dropdown-content" id="lecturers-submenu">
-                    {% if request.user.is_superuser %}
+                    {% if request.user.is_superuser or assigned_lecturer_access %}
                     <a href="{% url 'lecturer_list' %}" class="{% if request.resolver_match.url_name == 'lecturer_list' or request.resolver_match.url_name == 'staff_edit' or request.resolver_match.url_name == 'lecturer_delete' %}active{% endif %}" {% if request.resolver_match.url_name == 'lecturer_list' or request.resolver_match.url_name == 'staff_edit' or request.resolver_match.url_name == 'lecturer_delete' %}aria-current="page"{% endif %}>
                         <i class="fas fa-address-book"></i> {% trans 'Lecturer Directory' %}
                     </a>
+                    {% endif %}
+                    {% if request.user.is_superuser %}
                     <a href="{% url 'add_lecturer' %}" class="{% if request.resolver_match.url_name == 'add_lecturer' %}active{% endif %}" {% if request.resolver_match.url_name == 'add_lecturer' %}aria-current="page"{% endif %}>
                         <i class="fas fa-user-plus"></i> {% trans 'Add Lecturer' %}
                     </a>
@@ -298,14 +321,6 @@
             {% if assigned_results_access %}
                     <a href="{% url 'add_score' %}" class="{% if request.resolver_match.url_name == 'add_score' or request.resolver_match.url_name == 'add_score_for' %}active{% endif %}" {% if request.resolver_match.url_name == 'add_score' or request.resolver_match.url_name == 'add_score_for' %}aria-current="page"{% endif %}>
                         <i class="fas fa-table"></i> {% trans 'Manage Scores' %}
-                    </a>
-                    {% endif %}
-                    {% if assigned_quiz_access %}
-                    <a href="{% url 'quiz_marking' %}" class="{% if request.resolver_match.url_name == 'quiz_marking' or request.resolver_match.url_name == 'quiz_marking_detail' %}active{% endif %}" {% if request.resolver_match.url_name == 'quiz_marking' or request.resolver_match.url_name == 'quiz_marking_detail' %}aria-current="page"{% endif %}>
-                        <i class="fas fa-check-double"></i> {% trans 'Mark Quiz Attempts' %}
-                    </a>
-                    <a href="{% url 'quiz_progress' %}" class="{% if request.resolver_match.url_name == 'quiz_progress' %}active{% endif %}" {% if request.resolver_match.url_name == 'quiz_progress' %}aria-current="page"{% endif %}>
-                        <i class="fas fa-clipboard-list"></i> {% trans 'Quiz Progress' %}
                     </a>
                     {% endif %}
                 </div>
@@ -322,6 +337,45 @@
                 </a>
             </li>
             {% endif %}
+            {% endif %}
+            {% if assigned_quiz_access %}
+            <li class="menu-dropdown blue {% if request.resolver_match.url_name == 'quiz_marking' or request.resolver_match.url_name == 'quiz_marking_detail' or request.resolver_match.url_name == 'quiz_progress' %}open{% endif %}" data-dropdown="quizzes">
+                <button class="dropdown-toggle" type="button" aria-controls="quizzes-submenu" aria-expanded="false" onclick="toggleDropdown(this)">
+                    <span><i class="fas fa-list-check"></i> {% trans 'Quizzes' %}</span>
+                    <i class="fas fa-chevron-down toggle-icon"></i>
+                </button>
+                <div class="dropdown-content" id="quizzes-submenu">
+                    {% if assigned_quiz_marking_access or assigned_quizzes_mark_access %}
+                    <a href="{% url 'quiz_marking' %}" class="{% if request.resolver_match.url_name == 'quiz_marking' or request.resolver_match.url_name == 'quiz_marking_detail' %}active{% endif %}" {% if request.resolver_match.url_name == 'quiz_marking' or request.resolver_match.url_name == 'quiz_marking_detail' %}aria-current="page"{% endif %}>
+                        <i class="fas fa-check-double"></i> {% trans 'Mark Quiz Attempts' %}
+                    </a>
+                    {% endif %}
+                    <a href="{% url 'quiz_progress' %}" class="{% if request.resolver_match.url_name == 'quiz_progress' %}active{% endif %}" {% if request.resolver_match.url_name == 'quiz_progress' %}aria-current="page"{% endif %}>
+                        <i class="fas fa-clipboard-list"></i> {% trans 'Quiz Progress' %}
+                    </a>
+                </div>
+            </li>
+            {% endif %}
+            {% if assigned_voting_access %}
+            <li class="menu-item">
+                <a href="{% url 'voting_home' %}" class="menu-link {% if request.resolver_match.url_name == 'voting_home' %}active{% endif %}" {% if request.resolver_match.url_name == 'voting_home' %}aria-current="page"{% endif %}>
+                    <i class="fas fa-check-to-slot"></i> {% trans 'Voting' %}
+                </a>
+            </li>
+            {% endif %}
+            {% if assigned_audit_access %}
+            <li class="menu-item">
+                <a href="{% url 'faculty_audit_logs' %}" class="menu-link {% if request.resolver_match.url_name == 'faculty_audit_logs' %}active{% endif %}" {% if request.resolver_match.url_name == 'faculty_audit_logs' %}aria-current="page"{% endif %}>
+                    <i class="fas fa-clipboard-list"></i> {% trans 'Audit Logs' %}
+                </a>
+            </li>
+            {% endif %}
+            {% if assigned_reports_access %}
+            <li class="menu-item">
+                <a href="{% url 'institutional_reports' %}" class="menu-link {% if request.resolver_match.url_name == 'institutional_reports' %}active{% endif %}" {% if request.resolver_match.url_name == 'institutional_reports' %}aria-current="page"{% endif %}>
+                    <i class="fas fa-chart-line"></i> {% trans 'Reports' %}
+                </a>
+            </li>
             {% endif %}
 
             {% if not request.user.is_student %}

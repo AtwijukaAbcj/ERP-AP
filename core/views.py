@@ -16,6 +16,7 @@ from django.utils.translation import gettext as _
 from audit.models import ActivityLog as AuditActivityLog
 from accounts.decorators import (
     admin_required,
+    lecturer_or_module_access_required,
     lecturer_required,
     admin_or_faculty_admin_required,
     student_required,
@@ -411,7 +412,7 @@ def delete_post(request, pk):
 # Session
 # ########################################################
 @login_required
-@lecturer_required
+@lecturer_or_module_access_required("sessions")
 def session_list_view(request):
     """Show list of all sessions"""
     sessions = Session.objects.all().order_by("-is_current_session", "-session")
@@ -419,7 +420,7 @@ def session_list_view(request):
 
 
 @login_required
-@lecturer_required
+@lecturer_or_module_access_required("sessions")
 def session_add_view(request):
     """Add a new session"""
     if request.method == "POST":
@@ -436,7 +437,7 @@ def session_add_view(request):
 
 
 @login_required
-@lecturer_required
+@lecturer_or_module_access_required("sessions")
 def session_update_view(request, pk):
     session = get_object_or_404(Session, pk=pk)
     if request.method == "POST":
@@ -453,7 +454,7 @@ def session_update_view(request, pk):
 
 
 @login_required
-@lecturer_required
+@lecturer_or_module_access_required("sessions")
 def session_delete_view(request, pk):
     session = get_object_or_404(Session, pk=pk)
     if session.is_current_session:
@@ -483,14 +484,14 @@ def set_current_session(session):
 # Semester
 # ########################################################
 @login_required
-@lecturer_required
+@lecturer_or_module_access_required("semesters")
 def semester_list_view(request):
     semesters = Semester.objects.all().order_by("-is_current_semester", "-semester")
     return render(request, "core/semester_list.html", {"semesters": semesters})
 
 
 @login_required
-@lecturer_required
+@lecturer_or_module_access_required("semesters")
 def semester_add_view(request):
     if request.method == "POST":
         form = SemesterForm(request.POST)
@@ -510,7 +511,7 @@ def semester_add_view(request):
 
 
 @login_required
-@lecturer_required
+@lecturer_or_module_access_required("semesters")
 def semester_update_view(request, pk):
     semester = get_object_or_404(Semester, pk=pk)
     if request.method == "POST":
@@ -531,7 +532,7 @@ def semester_update_view(request, pk):
 
 
 @login_required
-@lecturer_required
+@lecturer_or_module_access_required("semesters")
 def semester_delete_view(request, pk):
     semester = get_object_or_404(Semester, pk=pk)
     if semester.is_current_semester:
