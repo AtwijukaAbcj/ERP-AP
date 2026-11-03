@@ -454,9 +454,9 @@ class Student(models.Model):
 
     student = models.OneToOneField(User, on_delete=models.CASCADE)
     registration_number = models.CharField(max_length=60, unique=True, null=True, blank=True)
-    level = models.CharField(max_length=25, choices=LEVEL, null=True)
+    level = models.CharField(max_length=50, null=True, blank=True)
     program = models.ForeignKey(Program, on_delete=models.CASCADE, null=True)
-    year = models.IntegerField(choices=settings.YEARS, null=True, blank=True)
+    year = models.PositiveSmallIntegerField(null=True, blank=True)
     semester = models.ForeignKey(Semester, null=True, blank=True, on_delete=models.SET_NULL)
     date_of_birth = models.DateField(null=True, blank=True)
     cohort = models.CharField(max_length=100, blank=True)

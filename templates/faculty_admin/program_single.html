@@ -39,7 +39,7 @@
                     <th>{% trans 'Course Name' %}</th>
                     <th>{% trans 'Course Code' %}</th>
                     <th>{% trans 'Cr.Hr' %}</th>
-                    <th>{% trans 'Level' %}</th>
+                    <th>{% trans 'Program Level' %}</th>
                     <th>{% trans 'Year' %}</th>
                     <th>{% trans 'Semester' %}</th>
                     <th>{% trans 'Current Semester' %}</th>
@@ -55,7 +55,7 @@
                     <td><a href="{{ course.get_absolute_url }}">{{ course.title }}</a></td>
                     <td>{{ course.code }}</td>
                     <td>{{ course.credit }}</td>
-                    <td>{{ course.level }}</td>
+                    <td>{{ program.level|default:"—" }}</td>
                     <td>{{ course.year }}</td>
                     <td>{{ course.semester }}</td>
                     <td>

@@ -5,7 +5,7 @@ from django.test import override_settings
 from django.urls import reverse
 
 from accounts.models import Permission, Role, RolePermission, Student, User
-from course.models import Program
+from course.models import Program, ProgramLevel
 from core.models import Semester, Session
 from .forms import AdmissionApplicationForm
 from .models import (
@@ -19,7 +19,10 @@ from .services import transition_application
 @override_settings(LANGUAGE_CODE="en")
 class AdmissionsWorkflowTests(TestCase):
     def setUp(self):
-        self.program = Program.objects.create(title="Psychiatric Nursing")
+        self.program = Program.objects.create(
+            title="Psychiatric Nursing",
+            level=ProgramLevel.objects.get(name="Bachelor"),
+        )
         self.semester = Semester.objects.create(semester="First")
         self.registrar = User.objects.create_user(
             username="registrar",
@@ -311,7 +314,6 @@ class AdmissionsWorkflowTests(TestCase):
                 kwargs={"pk": self.application.pk},
             ),
             {
-                "level": "Bachelor",
                 "year": 1,
                 "semester": self.semester.pk,
             },
@@ -356,7 +358,6 @@ class AdmissionsWorkflowTests(TestCase):
                 kwargs={"pk": self.application.pk},
             ),
             {
-                "level": "Bachelor",
                 "year": 1,
                 "semester": self.semester.pk,
             },

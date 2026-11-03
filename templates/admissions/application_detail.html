@@ -95,7 +95,7 @@
                     {% if application.program %}
                     <hr>
                     <h3 class="h6">Register a new student</h3>
-                    <p class="small text-muted">This creates the student account and profile using the application programme and intake. Choose the entry level, year, and starting semester; the registration number is generated automatically. A password setup link will be emailed to the applicant.</p>
+                    <p class="small text-muted">This creates the student account and profile using the application programme and intake. The student's level comes from the programme. Choose the year and starting semester; the registration number is generated automatically. A password setup link will be emailed to the applicant.</p>
                     <form method="post" action="{% url 'admissions:application_provision_student' application.pk %}">
                         {% csrf_token %}
                         {% for error in provision_form.non_field_errors %}<div class="alert alert-danger py-2">{{ error }}</div>{% endfor %}

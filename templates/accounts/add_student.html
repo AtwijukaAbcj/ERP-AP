@@ -41,7 +41,7 @@
                     <h5 class="card-title">{% trans 'Academic Info' %}</h5>
                     <p class="small text-muted">{% trans 'Registration number is assigned automatically from the program, intake month, and configured number format.' %}</p>
                     {{ form.program|as_crispy_field }}
-                    {{ form.level|as_crispy_field }}
+                    <p class="small text-muted">{% trans 'The student level is determined by the selected program.' %}</p>
                     {{ form.year|as_crispy_field }}
                     {{ form.semester|as_crispy_field }}
                     {{ form.cohort|as_crispy_field }}

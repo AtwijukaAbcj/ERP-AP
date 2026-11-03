@@ -7,14 +7,22 @@ from django.urls import reverse
 from accounts.models import DepartmentHead, ModulePermission, Student, User
 from core.models import Semester
 from result.models import TakenCourse
-from .models import Course, CourseOffer, Program
+from .forms import CourseAddForm
+from .models import AcademicYear, Course, CourseOffer, Program, ProgramLevel
 
 
 @override_settings(LANGUAGE_CODE="en")
 class CourseRegistrationTests(TestCase):
     def setUp(self):
-        self.program = Program.objects.create(title="Psychiatric Nursing")
-        self.other_program = Program.objects.create(title="General Nursing")
+        bachelor_level = ProgramLevel.objects.get(name="Bachelor")
+        self.program = Program.objects.create(
+            title="Psychiatric Nursing",
+            level=bachelor_level,
+        )
+        self.other_program = Program.objects.create(
+            title="General Nursing",
+            level=bachelor_level,
+        )
         self.semester = Semester.objects.create(
             semester="First",
             is_current_semester=True,
@@ -312,6 +320,7 @@ class CourseRegistrationTests(TestCase):
 @override_settings(LANGUAGE_CODE="en")
 class ProgramManagementTests(TestCase):
     def setUp(self):
+        self.level = ProgramLevel.objects.get(name="Bachelor")
         self.lecturer = User.objects.create_user(
             username="program-lecturer",
             password="program-test-password",
@@ -336,6 +345,111 @@ class ProgramManagementTests(TestCase):
         self.assertContains(response, f'href="{reverse("course_allocation")}"')
         self.assertContains(response, reverse("add_program"))
         self.assertContains(response, "Add Program")
+
+    def test_superuser_can_open_level_and_year_catalogs_from_sidebar(self):
+        admin = User.objects.create_superuser(
+            username="academic-catalog-admin",
+            email="catalog-admin@example.test",
+            password="test-password",
+        )
+        self.client.force_login(admin)
+
+        response = self.client.get(reverse("programs"))
+
+        self.assertContains(response, reverse("program_level_list"))
+        self.assertContains(response, "Manage Levels")
+        self.assertContains(response, reverse("academic_year_list"))
+        self.assertContains(response, "Manage Years")
+        self.assertEqual(
+            self.client.get(reverse("program_level_list")).status_code,
+            200,
+        )
+        self.assertEqual(
+            self.client.get(reverse("academic_year_list")).status_code,
+            200,
+        )
+
+    def test_superuser_can_edit_a_level_used_by_a_program(self):
+        program = Program.objects.create(
+            title="Level Edit Program",
+            level=self.level,
+        )
+        student_user = User.objects.create_user(
+            username="level-edit-student",
+            email="level-edit-student@example.test",
+            password="test-password",
+            is_student=True,
+        )
+        student = Student.objects.create(
+            student=student_user,
+            program=program,
+            level=self.level.name,
+            year=1,
+        )
+        admin = User.objects.create_superuser(
+            username="level-edit-admin",
+            email="level-edit-admin@example.test",
+            password="test-password",
+        )
+        self.client.force_login(admin)
+
+        response = self.client.post(
+            reverse("program_level_edit", args=(self.level.pk,)),
+            {"name": "Undergraduate"},
+        )
+
+        self.assertRedirects(response, reverse("program_level_list"))
+        program.refresh_from_db()
+        student.refresh_from_db()
+        self.assertEqual(program.level.name, "Undergraduate")
+        self.assertEqual(student.level, "Undergraduate")
+
+    def test_editing_a_year_updates_courses_and_students(self):
+        year = AcademicYear.objects.get(number=1)
+        program = Program.objects.create(
+            title="Year Edit Program",
+            level=self.level,
+        )
+        course = Course.objects.create(
+            title="Year Edit Course",
+            code="YEC101",
+            program=program,
+            level="Bachelor",
+            year=1,
+            semester="First",
+            credit=3,
+        )
+        student_user = User.objects.create_user(
+            username="year-edit-student",
+            email="year-edit-student@example.test",
+            password="test-password",
+            is_student=True,
+        )
+        student = Student.objects.create(
+            student=student_user,
+            program=program,
+            level="Bachelor",
+            year=1,
+        )
+        admin = User.objects.create_superuser(
+            username="year-edit-admin",
+            email="year-edit-admin@example.test",
+            password="test-password",
+        )
+        self.client.force_login(admin)
+
+        response = self.client.post(
+            reverse("academic_year_edit", args=(year.pk,)),
+            {"number": 7},
+        )
+
+        self.assertRedirects(response, reverse("academic_year_list"))
+        year.refresh_from_db()
+        course.refresh_from_db()
+        student.refresh_from_db()
+        self.assertEqual(year.number, 7)
+        self.assertEqual(course.year, 7)
+        self.assertEqual(student.year, 7)
 
     def test_lecturer_sees_teaching_sidebar_with_my_courses_link(self):
         response = self.client.get(reverse("user_course_list"))
@@ -379,6 +493,7 @@ class ProgramManagementTests(TestCase):
                 "title": "New Academic Program",
                 "code": "NAP",
                 "summary": "Program summary",
+                "level": self.level.pk,
             },
         )
 
@@ -403,6 +518,38 @@ class ProgramManagementTests(TestCase):
 
         self.assertEqual(first_program.code, "PN")
         self.assertEqual(second_program.code, "PN2")
+
+    def test_course_can_be_shared_by_programs_with_different_levels(self):
+        master_level, _ = ProgramLevel.objects.get_or_create(name="Master")
+        bachelor_program = Program.objects.create(
+            title="Bachelor Nursing",
+            level=self.level,
+        )
+        master_program = Program.objects.create(
+            title="Master Nursing",
+            level=master_level,
+        )
+        AcademicYear.objects.get_or_create(number=1)
+        form = CourseAddForm(
+            {
+                "title": "Shared Clinical Practice",
+                "code": "SCP101",
+                "credit": 3,
+                "summary": "",
+                "programs": [bachelor_program.pk, master_program.pk],
+                "year": 1,
+                "semester": "First",
+                "is_elective": False,
+            }
+        )
+
+        self.assertTrue(form.is_valid(), form.errors)
+        course = form.save()
+
+        self.assertSetEqual(
+            set(course.programs.values_list("pk", flat=True)),
+            {bachelor_program.pk, master_program.pk},
+        )
 
     def test_course_detail_links_to_assignments(self):
         program = Program.objects.create(title="Assignment Test Program")

@@ -55,7 +55,6 @@ def transition_application(application_id, to_status, actor, comment="", request
 def provision_accepted_student(
     application_id,
     *,
-    level,
     year,
     semester,
     actor,
@@ -68,6 +67,10 @@ def provision_accepted_student(
         raise ValidationError("This application is already linked to a student record.")
     if not application.program_id:
         raise ValidationError("Assign a programme before registering this student.")
+    if not application.program.level_id:
+        raise ValidationError(
+            "Assign an academic level to the programme before registering this student."
+        )
     if User.objects.filter(email__iexact=application.email).exists():
         raise ValidationError(
             "An account already uses this email. Link its student record instead."
@@ -92,7 +95,7 @@ def provision_accepted_student(
     student = Student.objects.create(
         student=user,
         program=application.program,
-        level=level,
+        level=application.program.level.name,
         year=year,
         semester=semester,
         date_of_birth=application.date_of_birth,

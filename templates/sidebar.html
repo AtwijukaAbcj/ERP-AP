@@ -86,7 +86,7 @@
                 </a>
             </li>
             {% if request.user.is_superuser or request.user.is_lecturer or assigned_program_access or assigned_course_access or assigned_courses_access or assigned_assignment_access or assigned_quiz_access %}
-            <li class="menu-dropdown blue {% if request.resolver_match.url_name == 'programs' or request.resolver_match.url_name == 'program_detail' or request.resolver_match.url_name == 'add_program' or request.resolver_match.url_name == 'edit_program' or request.resolver_match.url_name == 'program_delete' or request.resolver_match.url_name == 'course_add' or request.resolver_match.url_name == 'course_detail' or request.resolver_match.url_name == 'edit_course' or request.resolver_match.url_name == 'delete_course' or request.resolver_match.url_name == 'course_allocation' or request.resolver_match.url_name == 'course_allocation_view' or request.resolver_match.url_name == 'edit_allocated_course' or request.resolver_match.url_name == 'course_deallocate' %}open{% endif %}" data-dropdown="programs-courses">
+            <li class="menu-dropdown blue {% if request.resolver_match.url_name == 'programs' or request.resolver_match.url_name == 'program_detail' or request.resolver_match.url_name == 'add_program' or request.resolver_match.url_name == 'edit_program' or request.resolver_match.url_name == 'program_delete' or request.resolver_match.url_name == 'course_add' or request.resolver_match.url_name == 'course_detail' or request.resolver_match.url_name == 'edit_course' or request.resolver_match.url_name == 'delete_course' or request.resolver_match.url_name == 'course_allocation' or request.resolver_match.url_name == 'course_allocation_view' or request.resolver_match.url_name == 'edit_allocated_course' or request.resolver_match.url_name == 'course_deallocate' or request.resolver_match.url_name == 'program_level_list' or request.resolver_match.url_name == 'academic_year_list' %}open{% endif %}" data-dropdown="programs-courses">
                 <button class="dropdown-toggle" type="button" aria-controls="programs-courses-submenu" aria-expanded="false" onclick="toggleDropdown(this)">
                     <span><i class="fas fa-book-open"></i> {% trans 'Programs & Courses' %}</span>
                     <i class="fas fa-chevron-down toggle-icon"></i>
@@ -101,6 +101,14 @@
                     </a>
                     <a href="{% url 'course_allocation' %}" class="{% if request.resolver_match.url_name == 'course_allocation' %}active{% endif %}" {% if request.resolver_match.url_name == 'course_allocation' %}aria-current="page"{% endif %}>
                         <i class="fas fa-user-plus"></i> {% trans 'Allocate Courses' %}
+                    </a>
+                    {% endif %}
+                    {% if request.user.is_superuser %}
+                    <a href="{% url 'program_level_list' %}" class="{% if request.resolver_match.url_name == 'program_level_list' %}active{% endif %}" {% if request.resolver_match.url_name == 'program_level_list' %}aria-current="page"{% endif %}>
+                        <i class="fas fa-layer-group"></i> {% trans 'Manage Levels' %}
+                    </a>
+                    <a href="{% url 'academic_year_list' %}" class="{% if request.resolver_match.url_name == 'academic_year_list' %}active{% endif %}" {% if request.resolver_match.url_name == 'academic_year_list' %}aria-current="page"{% endif %}>
+                        <i class="fas fa-calendar"></i> {% trans 'Manage Years' %}
                     </a>
                     {% endif %}
                 </div>

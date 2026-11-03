@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags i18n %}
+
+{% block title %}{% trans 'Manage Years' %} | {% trans 'Learning management system' %}{% endblock %}
+
+{% block content %}
+<nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'home' %}">{% trans 'Home' %}</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'programs' %}">{% trans 'Programs' %}</a></li>
+        <li class="breadcrumb-item active" aria-current="page">{% trans 'Manage Years' %}</li>
+    </ol>
+</nav>
+
+<div class="title-1"><i class="fas fa-calendar"></i> {% trans 'Manage Academic Years' %}</div>
+{% include 'snippets/messages.html' %}
+
+<div class="row g-4">
+    <div class="col-lg-5">
+        <div class="card">
+            <div class="card-body">
+                <h2 class="h5">{% if editing_year %}{% trans 'Edit Year' %}{% else %}{% trans 'Add a Year' %}{% endif %}</h2>
+                <form method="post">
+                    {% csrf_token %}
+                    {% if editing_year %}<p class="small text-muted">{% trans 'Changing a year also updates courses and students assigned to it.' %}</p>{% endif %}
+                    {{ form|crispy }}
+                    <button class="btn btn-primary" type="submit">{% if editing_year %}{% trans 'Save Year' %}{% else %}{% trans 'Add Year' %}{% endif %}</button>
+                    {% if editing_year %}<a class="btn btn-outline-secondary" href="{% url 'academic_year_list' %}">{% trans 'Cancel' %}</a>{% endif %}
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-7">
+        <div class="table-responsive table-shadow">
+            <table class="table table-light table-striped mb-0">
+                <thead><tr><th>{% trans 'Year' %}</th><th>{% trans 'Courses' %}</th><th>{% trans 'Action' %}</th></tr></thead>
+                <tbody>
+                    {% for academic_year in academic_years %}
+                    <tr>
+                        <td>{{ academic_year.number }}</td>
+                        <td>{{ academic_year.course_count }}</td>
+                        <td class="d-flex gap-2">
+                            <a class="btn btn-sm btn-outline-primary" href="{% url 'academic_year_edit' academic_year.pk %}">{% trans 'Edit' %}</a>
+                            <form method="post" action="{% url 'academic_year_delete' academic_year.pk %}">
+                                {% csrf_token %}
+                                <button class="btn btn-sm btn-outline-danger" type="submit">{% trans 'Delete' %}</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="3">{% trans 'No years have been added.' %}</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

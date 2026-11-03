@@ -1,10 +1,10 @@
 from django import forms
-from django.conf import settings
 from django.db.models import Max
 from django.utils import timezone
 from django.utils.text import slugify
 
 from accounts.models import Student
+from course.models import AcademicYear
 from core.models import Semester, Session
 from course.models import Program
 from .models import (
@@ -208,10 +208,9 @@ class LinkStudentForm(forms.Form):
 
 
 class ProvisionAcceptedStudentForm(forms.Form):
-    level = forms.ChoiceField(choices=Student._meta.get_field("level").choices)
     year = forms.TypedChoiceField(
         coerce=int,
-        choices=settings.YEARS,
+        choices=(),
     )
     semester = forms.ModelChoiceField(
         queryset=Semester.objects.order_by("session__session", "semester"),
@@ -219,5 +218,9 @@ class ProvisionAcceptedStudentForm(forms.Form):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields["year"].choices = tuple(
+            (academic_year.number, str(academic_year.number))
+            for academic_year in AcademicYear.objects.all()
+        )
         for field in self.fields.values():
             field.widget.attrs["class"] = "form-control"

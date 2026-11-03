@@ -337,7 +337,6 @@ def application_provision_student(request, pk):
         try:
             user, student = provision_accepted_student(
                 application.pk,
-                level=form.cleaned_data["level"],
                 year=form.cleaned_data["year"],
                 semester=form.cleaned_data["semester"],
                 actor=request.user,

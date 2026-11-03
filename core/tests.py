@@ -24,6 +24,7 @@ from course.models import (
     Course,
     CourseAllocation,
     Program,
+    ProgramLevel,
     Upload,
     UploadVideo,
 )
@@ -343,7 +344,10 @@ class SemesterCurrentStateTests(TestCase):
 @override_settings(LANGUAGE_CODE="en")
 class CourseEnrollmentManagementTests(TestCase):
     def setUp(self):
-        self.program = Program.objects.create(title="Psychiatric Nursing")
+        self.program = Program.objects.create(
+            title="Psychiatric Nursing",
+            level=ProgramLevel.objects.get(name="Bachelor"),
+        )
         self.semester = Semester.objects.create(
             semester="First",
             is_current_semester=True,

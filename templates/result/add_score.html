@@ -164,10 +164,10 @@
                     </div>
                     <div>
                         <div class="course-title">{{ course.title }}</div>
-                        <div class="course-code">{{ course.code }} | {{ course.program }}</div>
+                        <div class="course-code">{{ course.code }} | {% for program in course.programs.all %}{{ program.title }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}</div>
                         <div class="course-meta">
                             <span class="course-meta-item">
-                                <i class="fas fa-layer-group"></i>{{ course.level }}
+                                <i class="fas fa-layer-group"></i>{% for program in course.programs.all %}{{ program.level }}{% if not forloop.last %}, {% endif %}{% endfor %}
                             </span>
                             <span class="course-meta-item">
                                 <i class="fas fa-clock"></i>{{ course.credit }} Credits

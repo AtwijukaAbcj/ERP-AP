@@ -95,7 +95,7 @@ class FacultyProgramDetailView(DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['courses'] = Course.objects.filter(program=self.object)
+        context['courses'] = Course.objects.filter(programs=self.object)
         return context
 
     def dispatch(self, request, *args, **kwargs):
@@ -120,12 +120,14 @@ class FacultyCourseAddView(CreateView):
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
         kwargs['program'] = self.program
+        kwargs['user'] = self.request.user
         return kwargs
 
     def form_valid(self, form):
-        form.instance.program = self.program
+        response = super().form_valid(form)
+        self.object.programs.add(self.program)
         messages.success(self.request, "Course added successfully.")
-        return super().form_valid(form)
+        return response
 
     def get_success_url(self):
         return reverse_lazy('faculty_program_detail', kwargs={'pk': self.program.pk})
@@ -145,7 +147,7 @@ class FacultyCourseListView(TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         faculty = self.request.user.faculty
-        programs = Program.objects.filter(faculty=faculty).prefetch_related('course_set')
+        programs = Program.objects.filter(faculty=faculty).prefetch_related('courses')
         context['programs'] = programs
         return context
 
@@ -186,12 +188,25 @@ class FacultyCourseEditView(UpdateView):
 
     def dispatch(self, request, *args, **kwargs):
         course = self.get_object()
-        if course.program.faculty != request.user.faculty:
+        if not course.programs.filter(faculty=request.user.faculty).exists():
             return redirect('permission_denied')
         return super().dispatch(request, *args, **kwargs)
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["user"] = self.request.user
+        return kwargs
+
     def get_success_url(self):
-        return reverse_lazy('faculty_program_detail', kwargs={'pk': self.object.program.pk})
+        program = self.object.programs.filter(
+            faculty=self.request.user.faculty
+        ).order_by("pk").first()
+        if program:
+            return reverse_lazy(
+                "faculty_program_detail",
+                kwargs={"pk": program.pk},
+            )
+        return reverse_lazy("faculty_course_list")
 
 
 # @method_decorator([login_required, faculty_admin_required], name='dispatch')
@@ -264,7 +279,9 @@ class FacultyUserCourseListView(TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['courses'] = Course.objects.filter(program__faculty=self.request.user.faculty)
+        context['courses'] = Course.objects.filter(
+            programs__faculty=self.request.user.faculty
+        ).distinct()
         return context
 
 
@@ -275,7 +292,9 @@ class CourseAllocationListView(ListView):
     context_object_name = 'filter'
 
     def get_queryset(self):
-        qs = CourseAllocation.objects.filter(courses__program__faculty=self.request.user.faculty).distinct()
+        qs = CourseAllocation.objects.filter(
+            courses__programs__faculty=self.request.user.faculty
+        ).distinct()
         print("User:", self.request.user)
         print("User Faculty:", self.request.user.faculty)
         print("Allocations Found:", qs.count())
@@ -307,7 +326,9 @@ class CourseAllocationForm(forms.ModelForm):
         if user and hasattr(user, 'is_faculty_admin') and user.is_faculty_admin:
             faculty = user.faculty
             self.fields["lecturer"].queryset = User.objects.filter(is_lecturer=True, faculty=faculty)
-            self.fields["courses"].queryset = Course.objects.filter(program__faculty=faculty)
+            self.fields["courses"].queryset = Course.objects.filter(
+                programs__faculty=faculty
+            ).distinct()
 
 
 @method_decorator([login_required, faculty_admin_required], name='dispatch')
@@ -319,7 +340,9 @@ class CourseAllocationEditView(UpdateView):
 
     def get_form(self, form_class=None):
         form = super().get_form(form_class)
-        form.fields['courses'].queryset = form.fields['courses'].queryset.filter(program__faculty=self.request.user.faculty)
+        form.fields['courses'].queryset = form.fields['courses'].queryset.filter(
+            programs__faculty=self.request.user.faculty
+        ).distinct()
         return form
 
 
@@ -363,7 +386,9 @@ class CourseAllocationDeleteView(DeleteView):
         # Ensure the user is only deleting within their faculty
         if allocation.courses.exists():
             first_course = allocation.courses.first()
-            if first_course.program.faculty != request.user.faculty:
+            if not first_course.programs.filter(
+                faculty=request.user.faculty
+            ).exists():
                 return redirect('permission_denied')
         return super().dispatch(request, *args, **kwargs)
 
@@ -381,7 +406,7 @@ class FacultyCourseDeleteView(DeleteView):
 
     def dispatch(self, request, *args, **kwargs):
         course = self.get_object()
-        if course.program.faculty != request.user.faculty:
+        if not course.programs.filter(faculty=request.user.faculty).exists():
             return redirect('permission_denied')
         return super().dispatch(request, *args, **kwargs)
 

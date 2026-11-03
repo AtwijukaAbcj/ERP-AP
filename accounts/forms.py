@@ -10,8 +10,8 @@ import random
 import string
 
 from core.models import Semester
-from course.models import Program, Faculty
-from .models import Role, Permission, RolePermission, UserPermission, User, Student, StudentDocument, Parent, RELATION_SHIP, LEVEL, GENDERS, RegistrarModulePermission, REGISTRAR_MODULES, ACTIVE_MODULE_CHOICES
+from course.models import AcademicYear, Program, Faculty
+from .models import Role, Permission, RolePermission, UserPermission, User, Student, StudentDocument, Parent, RELATION_SHIP, GENDERS, RegistrarModulePermission, REGISTRAR_MODULES, ACTIVE_MODULE_CHOICES
 
 
 class UserAddForm(UserCreationForm):
@@ -382,14 +382,8 @@ class StudentEditForm(forms.ModelForm):
         widget=forms.TextInput(attrs={"class": "form-control"})
     )
 
-    level = forms.ChoiceField(
-        choices=LEVEL,
-        required=False,
-        widget=forms.Select(attrs={"class": "form-control"})
-    )
-
     year = forms.ChoiceField(
-        choices=settings.YEARS,
+        choices=(),
         required=False,
         widget=forms.Select(attrs={"class": "form-control"})
     )
@@ -437,9 +431,15 @@ class StudentEditForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         self.student_instance = kwargs.pop("student_instance", None)
         super().__init__(*args, **kwargs)
+        self.fields["year"].choices = tuple(
+            (academic_year.number, str(academic_year.number))
+            for academic_year in AcademicYear.objects.all()
+        )
+        self.fields["program"].queryset = Program.objects.filter(
+            level__isnull=False
+        ).order_by("title")
         if self.student_instance:
             self.fields["registration_number"].initial = self.student_instance.registration_number
-            self.fields["level"].initial = self.student_instance.level
             self.fields["year"].initial = self.student_instance.year
             self.fields["semester"].initial = self.student_instance.semester
             self.fields["program"].initial = self.student_instance.program
@@ -458,8 +458,9 @@ class StudentEditForm(forms.ModelForm):
     def save(self, commit=True):
         user = super().save(commit=commit)
         if self.student_instance:
+            program = self.cleaned_data.get("program")
             self.student_instance.registration_number = self.cleaned_data.get("registration_number")
-            self.student_instance.level = self.cleaned_data.get("level")
+            self.student_instance.level = program.level.name if program else None
             self.student_instance.year = self.cleaned_data.get("year")
             self.student_instance.semester = self.cleaned_data.get("semester")
             self.student_instance.program = self.cleaned_data.get("program")
@@ -574,14 +575,16 @@ class StudentAddForm(forms.ModelForm):
     gender = forms.ChoiceField(choices=GENDERS, widget=forms.Select(attrs={"class": "form-control"}))
     address = forms.CharField(widget=forms.TextInput(attrs={"class": "form-control"}))
     phone = forms.CharField(widget=forms.TextInput(attrs={"class": "form-control"}))
-    level = forms.ChoiceField(choices=LEVEL, widget=forms.Select(attrs={"class": "form-control"}))
-    year = forms.ChoiceField(choices=settings.YEARS, widget=forms.Select(attrs={"class": "form-control"}))
+    year = forms.ChoiceField(choices=(), widget=forms.Select(attrs={"class": "form-control"}))
     semester = forms.ModelChoiceField(
         queryset=Semester.objects.all(),
         widget=forms.Select(attrs={"class": "form-control"}),
         required=True,
     )
-    program = forms.ModelChoiceField(queryset=Program.objects.all(), widget=forms.Select(attrs={"class": "form-control"}))
+    program = forms.ModelChoiceField(
+        queryset=Program.objects.filter(level__isnull=False).order_by("title"),
+        widget=forms.Select(attrs={"class": "form-control"}),
+    )
     date_of_birth = forms.DateField(
         required=False,
         widget=forms.DateInput(attrs={"type": "date", "class": "form-control"}),
@@ -613,6 +616,13 @@ class StudentAddForm(forms.ModelForm):
         model = User
         fields = ['first_name', 'last_name', 'email', 'gender', 'address', 'phone']
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["year"].choices = tuple(
+            (academic_year.number, str(academic_year.number))
+            for academic_year in AcademicYear.objects.all()
+        )
+
     @transaction.atomic
     def save(self, commit=True):
         user = super().save(commit=False)
@@ -622,12 +632,13 @@ class StudentAddForm(forms.ModelForm):
         user.is_student = True
         if commit:
             user.save()
+            program = self.cleaned_data.get("program")
             Student.objects.create(
                 student=user,
-                level=self.cleaned_data.get("level"),
+                level=program.level.name,
                 year=self.cleaned_data.get("year"),
                 semester=self.cleaned_data.get("semester"),
-                program=self.cleaned_data.get("program"),
+                program=program,
                 date_of_birth=self.cleaned_data.get("date_of_birth"),
                 cohort=self.cleaned_data.get("cohort", ""),
                 admission_date=self.cleaned_data.get("admission_date"),

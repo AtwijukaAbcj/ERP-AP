@@ -156,7 +156,7 @@
         <div class="col-md-8">
             <h1><i class="fas fa-cog me-3"></i>{% trans 'Assessment Configuration' %}</h1>
             <p class="mb-2 opacity-75">{{ course.title }} ({{ course.code }})</p>
-            <span class="badge bg-light text-dark">{{ course.program }} | {{ course.level }}</span>
+            <span class="badge bg-light text-dark">{% for program in course.programs.all %}{{ program.title }} ({{ program.level }}){% if not forloop.last %}, {% endif %}{% endfor %}</span>
         </div>
         <div class="col-md-4 text-end d-none d-md-block">
             <i class="fas fa-sliders-h" style="font-size: 5rem; opacity: 0.2;"></i>

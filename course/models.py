@@ -35,6 +35,13 @@ class Program(models.Model):
     code = models.CharField(max_length=20, unique=True, blank=True)
     summary = models.TextField(blank=True)
     faculty = models.ForeignKey('course.Faculty', on_delete=models.SET_NULL, null=True, blank=True)
+    level = models.ForeignKey(
+        "ProgramLevel",
+        on_delete=models.PROTECT,
+        related_name="programs",
+        null=True,
+        blank=True,
+    )
 
     objects = ProgramManager()
 
@@ -57,6 +64,30 @@ class Program(models.Model):
         return reverse("program_detail", kwargs={"pk": self.pk})
 
 
+class ProgramLevel(models.Model):
+    name = models.CharField(max_length=50, unique=True)
+
+    class Meta:
+        ordering = ("name",)
+
+    def __str__(self):
+        return self.name
+
+
+class AcademicYear(models.Model):
+    number = models.PositiveSmallIntegerField(unique=True)
+
+    class Meta:
+        ordering = ("number",)
+
+    def __str__(self):
+        return str(self.number)
+
+    @property
+    def course_count(self):
+        return Course.objects.filter(year=self.number).count()
+
+
 @receiver(post_save, sender=Program)
 def log_program_save(sender, instance, created, **kwargs):
     verb = "created" if created else "updated"
@@ -77,9 +108,18 @@ class CourseManager(models.Manager):
                 | Q(summary__icontains=query)
                 | Q(code__icontains=query)
                 | Q(slug__icontains=query)
+                | Q(programs__title__icontains=query)
             )
             queryset = queryset.filter(or_lookup).distinct()
         return queryset
+
+    def create(self, **kwargs):
+        program = kwargs.pop("program", None)
+        kwargs.pop("level", None)
+        course = super().create(**kwargs)
+        if program is not None:
+            course.programs.add(program)
+        return course
 
 
 class Course(models.Model):
@@ -88,13 +128,21 @@ class Course(models.Model):
     code = models.CharField(max_length=200, unique=True)
     credit = models.IntegerField(default=0)
     summary = models.TextField(max_length=200, blank=True)
-    program = models.ForeignKey(Program, on_delete=models.CASCADE)
-    level = models.CharField(max_length=25, choices=settings.LEVEL_CHOICES)
-    year = models.IntegerField(choices=settings.YEARS, default=1)
+    programs = models.ManyToManyField(Program, related_name="courses")
+    year = models.PositiveSmallIntegerField(default=1)
     semester = models.CharField(choices=settings.SEMESTER_CHOICES, max_length=200)
     is_elective = models.BooleanField(default=False)
 
     objects = CourseManager()
+
+    @property
+    def program(self):
+        return self.programs.order_by("pk").first()
+
+    @property
+    def program_id(self):
+        program = self.program
+        return program.pk if program else None
 
     def __str__(self):
         return f"{self.title} ({self.code})"

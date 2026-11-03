@@ -3,10 +3,12 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.db import IntegrityError, transaction
+from django.db.models import ProtectedError
 from django.db.models import Sum
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.utils.decorators import method_decorator
+from django.views.decorators.http import require_POST
 from django.views.generic import CreateView
 from django_filters.views import FilterView
 
@@ -20,18 +22,22 @@ from core.models import Semester, SiteSettings
 from core.pdf_utils import pdf_link_callback
 from course.filters import CourseAllocationFilter, ProgramFilter
 from course.forms import (
+    AcademicYearForm,
     CourseAddForm,
     CourseAllocationForm,
     EditCourseAllocationForm,
     ProgramForm,
+    ProgramLevelForm,
     UploadFormFile,
     UploadFormVideo,
 )
 from course.models import (
+    AcademicYear,
     Course,
     CourseAllocation,
     CourseOffer,
     Program,
+    ProgramLevel,
     Upload,
     UploadVideo,
 )
@@ -70,7 +76,7 @@ def faculty_program_list(request):
 @faculty_admin_required
 def faculty_program_detail(request, pk):
     program = get_object_or_404(Program, pk=pk, faculty=request.user.faculty)
-    courses = Course.objects.filter(program=program).order_by("-year")
+    courses = Course.objects.filter(programs=program).order_by("-year")
     credits = courses.aggregate(total_credits=Sum("credit"))
     return render(request, "faculty_admin/program_single.html", {
         "title": program.title,
@@ -156,7 +162,7 @@ def program_add(request):
 @login_required
 def program_detail(request, pk):
     program = get_object_or_404(Program, pk=pk)
-    courses = Course.objects.filter(program_id=pk).order_by("-year")
+    courses = Course.objects.filter(programs=program).order_by("-year")
     credits = courses.aggregate(total_credits=Sum("credit"))
     paginator = Paginator(courses, 10)
     page = request.GET.get("page")
@@ -201,6 +207,138 @@ def program_delete(request, pk):
     return redirect("programs")
 
 
+@login_required
+@admin_required
+def program_level_list(request):
+    if request.method == "POST":
+        form = ProgramLevelForm(request.POST)
+        if form.is_valid():
+            level = form.save()
+            messages.success(request, f"Level {level} was added.")
+            return redirect("program_level_list")
+    else:
+        form = ProgramLevelForm()
+    return render(
+        request,
+        "course/program_level_list.html",
+        {"form": form, "levels": ProgramLevel.objects.all()},
+    )
+
+
+@login_required
+@admin_required
+def program_level_edit(request, pk):
+    level = get_object_or_404(ProgramLevel, pk=pk)
+    if request.method == "POST":
+        program_ids = list(level.programs.values_list("pk", flat=True))
+        form = ProgramLevelForm(request.POST, instance=level)
+        if form.is_valid():
+            with transaction.atomic():
+                level = form.save()
+                Student.objects.filter(program_id__in=program_ids).update(
+                    level=level.name
+                )
+            messages.success(request, f"Level {level} was updated.")
+            return redirect("program_level_list")
+    else:
+        form = ProgramLevelForm(instance=level)
+    return render(
+        request,
+        "course/program_level_list.html",
+        {
+            "form": form,
+            "levels": ProgramLevel.objects.all(),
+            "editing_level": level,
+        },
+    )
+
+
+@login_required
+@admin_required
+@require_POST
+def program_level_delete(request, pk):
+    level = get_object_or_404(ProgramLevel, pk=pk)
+    try:
+        level.delete()
+    except ProtectedError:
+        messages.error(request, "This level is assigned to a program and cannot be deleted.")
+    else:
+        messages.success(request, f"Level {level} was deleted.")
+    return redirect("program_level_list")
+
+
+@login_required
+@admin_required
+def academic_year_list(request):
+    if request.method == "POST":
+        form = AcademicYearForm(request.POST)
+        if form.is_valid():
+            academic_year = form.save()
+            messages.success(request, f"Year {academic_year} was added.")
+            return redirect("academic_year_list")
+    else:
+        form = AcademicYearForm()
+    return render(
+        request,
+        "course/academic_year_list.html",
+        {"form": form, "academic_years": AcademicYear.objects.all()},
+    )
+
+
+@login_required
+@admin_required
+def academic_year_edit(request, pk):
+    academic_year = get_object_or_404(AcademicYear, pk=pk)
+    if request.method == "POST":
+        original_number = academic_year.number
+        form = AcademicYearForm(request.POST, instance=academic_year)
+        if form.is_valid():
+            with transaction.atomic():
+                updated_year = form.save()
+                if updated_year.number != original_number:
+                    Course.objects.filter(year=original_number).update(
+                        year=updated_year.number
+                    )
+                    Student.objects.filter(year=original_number).update(
+                        year=updated_year.number
+                    )
+            messages.success(
+                request,
+                f"Year {original_number} was updated to {updated_year.number}. "
+                "Associated courses and students were updated too.",
+            )
+            return redirect("academic_year_list")
+    else:
+        form = AcademicYearForm(instance=academic_year)
+    return render(
+        request,
+        "course/academic_year_list.html",
+        {
+            "form": form,
+            "academic_years": AcademicYear.objects.all(),
+            "editing_year": academic_year,
+        },
+    )
+
+
+@login_required
+@admin_required
+@require_POST
+def academic_year_delete(request, pk):
+    academic_year = get_object_or_404(AcademicYear, pk=pk)
+    if Course.objects.filter(year=academic_year.number).exists() or Student.objects.filter(
+        year=academic_year.number
+    ).exists():
+        messages.error(
+            request,
+            "This year is assigned to a course or student and cannot be deleted.",
+        )
+    else:
+        academic_year.delete()
+        messages.success(request, f"Year {academic_year} was deleted.")
+    return redirect("academic_year_list")
+
+
 # ########################################################
 # Course Views
 # ########################################################
@@ -240,7 +378,7 @@ def course_add(request, pk):
             return redirect("program_detail", pk=program.pk)
         messages.error(request, "Correct the error(s) below.")
     else:
-        form = CourseAddForm(initial={"program": program})
+        form = CourseAddForm(initial={"programs": [program.pk]})
     return render(
         request,
         "course/course_add.html",
@@ -527,7 +665,11 @@ def course_registration(request):
         if any(not course_id.isdecimal() for course_id in course_ids):
             messages.error(request, "The selected course list is invalid.")
             return redirect("course_registration")
-        if not student.program_id or not student.level or student.year is None:
+        if (
+            not student.program_id
+            or not student.program.level_id
+            or student.year is None
+        ):
             messages.error(
                 request,
                 "Your programme, level, and year must be set before course registration.",
@@ -536,11 +678,10 @@ def course_registration(request):
 
         eligible_courses = Course.objects.filter(
             id__in=course_ids,
-            program_id=student.program_id,
-            level=student.level,
+            programs=student.program,
             year__lte=student.year,
             semester=current_semester.semester,
-        )
+        ).distinct()
         if CourseOffer.objects.filter(semester=current_semester).exists():
             offered_course_ids = CourseOffer.objects.filter(
                 semester=current_semester,
@@ -573,7 +714,11 @@ def course_registration(request):
         messages.success(request, "Courses registered successfully!")
         return redirect("course_registration")
 
-    if not student.program_id or not student.level or student.year is None:
+    if (
+        not student.program_id
+        or not student.program.level_id
+        or student.year is None
+    ):
         messages.error(
             request,
             "Your programme, level, and year must be set before course registration.",
@@ -588,11 +733,10 @@ def course_registration(request):
             semester=current_semester,
         ).values_list("course_id", flat=True)
         available_courses = Course.objects.filter(
-            program_id=student.program_id,
-            level=student.level,
+            programs=student.program,
             year__lte=student.year,
             semester=current_semester.semester,
-        ).exclude(id__in=registered_course_ids).order_by("year", "code")
+        ).exclude(id__in=registered_course_ids).order_by("year", "code").distinct()
         if CourseOffer.objects.filter(semester=current_semester).exists():
             offered_course_ids = CourseOffer.objects.filter(
                 semester=current_semester,
@@ -604,8 +748,7 @@ def course_registration(request):
         TakenCourse.objects.filter(
             student=student,
             semester=current_semester,
-            course__program_id=student.program_id,
-            course__level=student.level,
+            course__programs=student.program,
             course__semester=current_semester.semester,
         )
         .select_related("course")
@@ -694,7 +837,10 @@ def user_course_list(request):
     if request.user.is_student:
         student = get_object_or_404(Student, student__pk=request.user.id)
         taken_courses = TakenCourse.objects.filter(student=student)
-        courses = Course.objects.filter(program=student.program, level=student.level).order_by("year")
+        courses = Course.objects.filter(
+            programs=student.program,
+            year__lte=student.year,
+        ).order_by("year", "code")
         return render(
             request,
             "course/user_course_list.html",

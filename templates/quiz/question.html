@@ -11,7 +11,9 @@
 	<ol class="breadcrumb">
 		<li class="breadcrumb-item"><a href="/">{% trans 'Home' %}</a></li>
 		<li class="breadcrumb-item"><a href="{% url 'programs' %}">Programs</a></li>
-		<li class="breadcrumb-item"><a href="{% url 'program_detail' course.program.id %}">{{ course.program }}</a></li>
+		{% for program in course.programs.all %}
+		<li class="breadcrumb-item"><a href="{% url 'program_detail' program.id %}">{{ program }}</a></li>
+		{% endfor %}
 		<li class="breadcrumb-item"><a href="{{ course.get_absolute_url }}">{{ course }}</a></li>
 		<li class="breadcrumb-item"><a href="{% url 'quiz_index' course.slug %}">{% trans 'Quizzes' %}</a></li>
 		<li class="breadcrumb-item active" aria-current="page">{{ quiz.title|title }}</li>

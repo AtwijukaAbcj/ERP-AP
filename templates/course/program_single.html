@@ -27,6 +27,9 @@
 {% if program %}
 <div class="title-1">{{ program.title }}</div>
 <p class="text-muted">{% trans 'Program Code' %}: {{ program.code }}</p>
+{% if program.level %}
+<p class="text-muted">{% trans 'Level' %}: {{ program.level }}</p>
+{% endif %}
 {% if program.summary %}
 <p>{{ program.summary }}</p>
 {% endif %}
@@ -44,7 +47,7 @@
                     <th> {% trans 'Course Name' %} </th>
                     <th> {% trans 'Course Code' %} </th>
                     <th> {% trans 'Cr.Hr' %} </th>
-                    <th> {% trans 'Level' %} </th>
+                    <th> {% trans 'Program Level' %} </th>
                     <th> {% trans 'Year' %} </th>
                     <th> {% trans 'Semester' %} </th>
                     <th> {% trans 'Current Semester' %} </th>
@@ -61,7 +64,7 @@
                             {{ course.title }}</a></td>
                     <td>{{ course.code }}</td>
                     <td>{{ course.credit }}</td>
-                    <td>{{ course.level }}</td>
+                    <td>{{ program.level|default:"—" }}</td>
                     <td>{{ course.year }}</td>
                     <td>{{ course.semester }}</td>
                     <th>

@@ -296,7 +296,7 @@
                     <div class="course-meta">
                         <span class="meta-badge">{{ cd.course.code }}</span>
                         <span class="meta-badge">{{ cd.course.credit }} {% trans 'Credits' %}</span>
-                        <span class="meta-badge">{{ cd.course.level }}</span>
+                        <span class="meta-badge">{% for program in cd.course.programs.all %}{{ program.level }}{% if not forloop.last %}, {% endif %}{% endfor %}</span>
                     </div>
                 </div>
                 <a href="{% url 'add_score_for' cd.course.id %}" class="btn btn-sm btn-outline-primary">

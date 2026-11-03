@@ -113,9 +113,9 @@ def dashboard_view(request):
         .values_list("status", "total")
     )
     enrollment_program_counts = list(
-        TakenCourse.objects.values("course__program__title")
+        TakenCourse.objects.values("course__programs__title")
         .annotate(total=Count("student_id", distinct=True))
-        .order_by("-total", "course__program__title")[:6]
+        .order_by("-total", "course__programs__title")[:6]
     )
     grade_counts = dict(
         TakenCourse.objects.values_list("grade")
@@ -232,7 +232,7 @@ def dashboard_view(request):
         ],
         "enrollments": [
             {
-                "label": item["course__program__title"] or _("Unassigned program"),
+                "label": item["course__programs__title"] or _("Unassigned program"),
                 "value": item["total"],
             }
             for item in enrollment_program_counts
@@ -1107,7 +1107,7 @@ def course_enrollment_view(request):
     from result.models import TakenCourse
     from course.models import Course
     
-    courses = Course.objects.select_related('program').order_by('title')
+    courses = Course.objects.prefetch_related("programs").order_by("title")
     students = Student.objects.filter(
         status=Student.Status.ACTIVE,
         student__is_active=True,
@@ -1132,8 +1132,8 @@ def course_enrollment_view(request):
         else:
             enrolled_student_ids = []
         available_students = students.filter(
-            program_id=selected_course.program_id,
-            level=selected_course.level,
+            program_id__in=selected_course.programs.values_list("pk", flat=True),
+            program__level__name=F("level"),
             year__gte=selected_course.year,
         ).exclude(id__in=enrolled_student_ids)
     
@@ -1155,8 +1155,8 @@ def course_enrollment_view(request):
                 for student_id in student_ids:
                     student = students.filter(
                         id=student_id,
-                        program_id=course.program_id,
-                        level=course.level,
+                        program_id__in=course.programs.values_list("pk", flat=True),
+                        program__level__name=F("level"),
                         year__gte=course.year,
                     ).first()
                     if student and not TakenCourse.all_objects.filter(

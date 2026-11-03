@@ -36,11 +36,10 @@
             <div class="card">
                 <p class="form-title">{% trans 'Other Info' %}</p>
                 <div class="p-3">
-                    {{ form.program|as_crispy_field }}
+                    {{ form.programs|as_crispy_field }}
                     {{ form.credit|as_crispy_field }}
                     {{ form.year|as_crispy_field }}
                     {{ form.semester|as_crispy_field }}
-                    {{ form.level|as_crispy_field }}
                     {{ form.is_elective|as_crispy_field }}
                 </div>
             </div>

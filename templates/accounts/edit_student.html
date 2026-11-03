@@ -33,7 +33,7 @@
                     {{ form.address|as_crispy_field }}
                     {{ form.registration_number|as_crispy_field }}  <!-- ✅ Just added this one -->
                     {{ form.program|as_crispy_field }}
-                    {{ form.level|as_crispy_field }}
+                    <p class="small text-muted">{% trans 'The student level is determined by the selected program.' %}</p>
                     {{ form.year|as_crispy_field }}
                     {{ form.semester|as_crispy_field }}
                     {{ form.date_of_birth|as_crispy_field }}

@@ -189,7 +189,7 @@ class TakenCourse(models.Model):
 
         taken_courses = TakenCourse.objects.filter(
             student=self.student,
-            course__level=self.student.level,
+            course__programs=self.student.program,
             course__semester=current_semester.semester,
         ).filter(Q(semester=current_semester) | Q(semester__isnull=True))
 
@@ -219,7 +219,7 @@ class Result(models.Model):
     cgpa = models.FloatField(null=True)
     semester = models.CharField(max_length=100, choices=settings.SEMESTER_CHOICES)
     session = models.CharField(max_length=100, blank=True, null=True)
-    level = models.CharField(max_length=25, choices=settings.LEVEL_CHOICES, null=True)
+    level = models.CharField(max_length=50, null=True, blank=True)
 
     def __str__(self):
         return f"Result for {self.student} - Semester: {self.semester}, Level: {self.level}"

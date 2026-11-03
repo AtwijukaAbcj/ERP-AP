@@ -15,7 +15,7 @@
                 </a>
             </div>
             <div class="card-body">
-                {% if program.course_set.all %}
+                {% if program.courses.all %}
                     <table class="table table-bordered">
                         <thead>
                             <tr>
@@ -29,14 +29,14 @@
                             </tr>
                         </thead>
                         <tbody>
-                            {% for course in program.course_set.all %}
+                            {% for course in program.courses.all %}
                                 <tr>
                                     <td>{{ course.title }}</td>
                                     <td>{{ course.code }}</td>
                                     <td>{{ course.credit }}</td>
                                     <td>{{ course.year }}</td>
                                     <td>{{ course.semester }}</td>
-                                    <td>{{ course.level }}</td>
+                                    <td>{{ program.level|default:"—" }}</td>
                                     <td>
                                         <a href="{% url 'faculty_edit_course' slug=course.slug %}" class="btn btn-sm btn-warning">{% trans 'Edit' %}</a>
                                         <a href="{% url 'faculty_delete_course' slug=course.slug %}" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure?')">{% trans 'Delete' %}</a>

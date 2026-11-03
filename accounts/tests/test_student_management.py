@@ -19,7 +19,7 @@ from accounts.models import (
 from accounts.forms import StudentAddForm
 from core.models import Semester
 from audit.models import ActivityLog
-from course.models import Program
+from course.models import AcademicYear, Program, ProgramLevel
 from accounts.student_services import transition_student_status
 
 
@@ -31,7 +31,12 @@ class StudentManagementTests(TestCase):
         self.temporary_document_storage = tempfile.TemporaryDirectory()
         self.document_storage._location = self.temporary_document_storage.name
         self.document_storage.__dict__.pop("location", None)
-        self.program = Program.objects.create(title="Psychiatric Nursing")
+        level, _ = ProgramLevel.objects.get_or_create(name="Bachelor")
+        AcademicYear.objects.get_or_create(number=1)
+        self.program = Program.objects.create(
+            title="Psychiatric Nursing",
+            level=level,
+        )
         self.semester = Semester.objects.create(semester="First")
         self.registrar = User.objects.create_user(
             username="records-registrar",
@@ -242,8 +247,7 @@ class StudentManagementTests(TestCase):
                 "gender": "M",
                 "address": "Kampala",
                 "phone": "0700000000",
-                "level": StudentAddForm.base_fields["level"].choices[0][0],
-                "year": StudentAddForm.base_fields["year"].choices[0][0],
+                "year": 1,
                 "program": self.program.pk,
                 "semester": self.semester.pk,
                 "cohort": "August 2026",

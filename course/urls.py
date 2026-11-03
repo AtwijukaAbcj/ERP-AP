@@ -8,6 +8,28 @@ urlpatterns = [
     path("", views.ProgramFilterView.as_view(), name="programs"),
     path("<int:pk>/detail/", views.program_detail, name="program_detail"),
     path("add/", views.program_add, name="add_program"),
+    path("levels/", views.program_level_list, name="program_level_list"),
+    path(
+        "levels/<int:pk>/edit/",
+        views.program_level_edit,
+        name="program_level_edit",
+    ),
+    path(
+        "levels/<int:pk>/delete/",
+        views.program_level_delete,
+        name="program_level_delete",
+    ),
+    path("years/", views.academic_year_list, name="academic_year_list"),
+    path(
+        "years/<int:pk>/edit/",
+        views.academic_year_edit,
+        name="academic_year_edit",
+    ),
+    path(
+        "years/<int:pk>/delete/",
+        views.academic_year_delete,
+        name="academic_year_delete",
+    ),
     path("<int:pk>/edit/", views.program_edit, name="edit_program"),
     path("<int:pk>/delete/", views.program_delete, name="program_delete"),
     # Course urls

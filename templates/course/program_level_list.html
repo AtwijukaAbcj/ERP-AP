@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags i18n %}
+
+{% block title %}{% trans 'Manage Levels' %} | {% trans 'Learning management system' %}{% endblock %}
+
+{% block content %}
+<nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'home' %}">{% trans 'Home' %}</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'programs' %}">{% trans 'Programs' %}</a></li>
+        <li class="breadcrumb-item active" aria-current="page">{% trans 'Manage Levels' %}</li>
+    </ol>
+</nav>
+
+<div class="title-1"><i class="fas fa-layer-group"></i> {% trans 'Manage Program Levels' %}</div>
+{% include 'snippets/messages.html' %}
+
+<div class="row g-4">
+    <div class="col-lg-5">
+        <div class="card">
+            <div class="card-body">
+                <h2 class="h5">{% if editing_level %}{% trans 'Edit Level' %}{% else %}{% trans 'Add a Level' %}{% endif %}</h2>
+                <form method="post">
+                    {% csrf_token %}
+                    {{ form|crispy }}
+                    <button class="btn btn-primary" type="submit">{% if editing_level %}{% trans 'Save Level' %}{% else %}{% trans 'Add Level' %}{% endif %}</button>
+                    {% if editing_level %}<a class="btn btn-outline-secondary" href="{% url 'program_level_list' %}">{% trans 'Cancel' %}</a>{% endif %}
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-7">
+        <div class="table-responsive table-shadow">
+            <table class="table table-light table-striped mb-0">
+                <thead><tr><th>{% trans 'Level' %}</th><th>{% trans 'Programs' %}</th><th>{% trans 'Action' %}</th></tr></thead>
+                <tbody>
+                    {% for level in levels %}
+                    <tr>
+                        <td>{{ level.name }}</td>
+                        <td>{{ level.programs.count }}</td>
+                        <td class="d-flex gap-2">
+                            <a class="btn btn-sm btn-outline-primary" href="{% url 'program_level_edit' level.pk %}">{% trans 'Edit' %}</a>
+                            <form method="post" action="{% url 'program_level_delete' level.pk %}">
+                                {% csrf_token %}
+                                <button class="btn btn-sm btn-outline-danger" type="submit">{% trans 'Delete' %}</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="3">{% trans 'No levels have been added.' %}</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
