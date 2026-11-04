@@ -10,10 +10,10 @@
   </ol>
 </nav>
 
-<div class="d-flex justify-content-between align-items-center mb-3">
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
   <h4 class="fw-bold mb-0"><i class="fas fa-building me-2"></i>{{ title }}</h4>
-  <div>
-    <a class="btn btn-sm btn-primary me-2" href="{% url 'add_faculty' %}">
+  <div class="d-flex flex-wrap align-items-center gap-2" id="faculty-table-actions">
+    <a class="btn btn-sm btn-primary" href="{% url 'add_faculty' %}">
       <i class="fas fa-plus me-1"></i> {% trans 'Add Faculty' %}
     </a>
     <a class="btn btn-sm btn-outline-secondary" href="{% url 'export_faculties_pdf' %}">
@@ -26,7 +26,7 @@
 
 <div class="card shadow-sm">
   <div class="table-responsive">
-    <table class="table table-hover table-bordered mb-0">
+    <table class="table table-hover table-bordered mb-0" data-csv-export-target="#faculty-table-actions">
       <thead class="table-light">
         <tr>
           <th style="width: 50px;">#</th>

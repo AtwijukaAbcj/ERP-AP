@@ -8,7 +8,7 @@ from accounts.models import DepartmentHead, ModulePermission, Student, User
 from core.models import Semester
 from result.models import TakenCourse
 from .forms import CourseAddForm
-from .models import AcademicYear, Course, CourseOffer, Program, ProgramLevel
+from .models import AcademicYear, Course, CourseOffer, Faculty, Program, ProgramLevel
 
 
 @override_settings(LANGUAGE_CODE="en")
@@ -315,6 +315,29 @@ class CourseRegistrationTests(TestCase):
 
         enrollment.refresh_from_db()
         self.assertFalse(enrollment.is_dropped)
+
+
+@override_settings(LANGUAGE_CODE="en")
+class FacultyManagementTests(TestCase):
+    def test_faculty_actions_and_csv_export_share_one_toolbar(self):
+        user = User.objects.create_user(
+            username="faculty-manager",
+            password="test-password-123",
+        )
+        Faculty.objects.create(name="Public Health")
+        self.client.force_login(user)
+
+        response = self.client.get(reverse("manage_faculties"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'id="faculty-table-actions"')
+        self.assertContains(
+            response,
+            'data-csv-export-target="#faculty-table-actions"',
+        )
+        self.assertContains(response, reverse("add_faculty"))
+        self.assertContains(response, reverse("export_faculties_pdf"))
+        self.assertContains(response, "Public Health")
 
 
 @override_settings(LANGUAGE_CODE="en")
