@@ -1,0 +1,40 @@
+{% load i18n %}
+<fieldset class="searchable-checkboxes mb-4" data-searchable-checkboxes>
+    <legend class="form-label fw-semibold mb-1">{{ field.label }}</legend>
+    {% if field.help_text %}<p class="form-text mt-0 mb-3">{{ field.help_text }}</p>{% endif %}
+    {% for error in field.errors %}<div class="invalid-feedback d-block mb-2">{{ error }}</div>{% endfor %}
+
+    <div class="searchable-checkbox-toolbar" data-checkbox-tools>
+        <div class="input-group">
+            <span class="input-group-text" aria-hidden="true"><i class="fas fa-search"></i></span>
+            <input class="form-control" type="search" data-checkbox-search
+                placeholder="{% trans 'Search roles...' %}"
+                aria-label="{% trans 'Search roles' %}">
+        </div>
+        <div class="searchable-checkbox-actions">
+            <button class="btn btn-sm btn-outline-primary" type="button" data-select-visible>
+                {% trans 'Select visible' %}
+            </button>
+            <button class="btn btn-sm btn-outline-secondary" type="button" data-clear-selection>
+                {% trans 'Clear' %}
+            </button>
+        </div>
+    </div>
+
+    <div class="searchable-checkbox-summary">
+        <span class="small text-muted" data-selection-count aria-live="polite">0 {% trans 'selected' %}</span>
+    </div>
+    <div class="searchable-checkbox-options" data-checkbox-options>
+        {% for option in field %}
+        <label class="searchable-checkbox-option" data-checkbox-option>
+            {{ option.tag }}
+            <span>{{ option.choice_label }}</span>
+        </label>
+        {% empty %}
+        <p class="text-muted small mb-0">{% trans 'No roles are available.' %}</p>
+        {% endfor %}
+    </div>
+    <p class="searchable-checkbox-empty small text-muted mt-2 mb-0" data-no-checkbox-results hidden>
+        {% trans 'No roles match your search.' %}
+    </p>
+</fieldset>

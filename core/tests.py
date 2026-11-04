@@ -586,6 +586,9 @@ class SchoolCalendarTests(TestCase):
         form_response = self.client.get(reverse("add_item"))
         self.assertContains(form_response, 'name="visible_to_roles"')
         self.assertContains(form_response, 'type="checkbox"')
+        self.assertContains(form_response, "Search roles...")
+        self.assertContains(form_response, "Select visible")
+        self.assertContains(form_response, "data-searchable-checkboxes")
 
         response = self.client.post(
             reverse("add_item"),

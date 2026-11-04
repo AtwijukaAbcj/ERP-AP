@@ -21,7 +21,9 @@
             {{ form.recipient_type|as_crispy_field }}
             <div id="recipient-users">{{ form.users|as_crispy_field }}</div>
             {% if can_send_group_messages %}
-            <div id="recipient-roles">{{ form.roles|as_crispy_field }}</div>
+            <div id="recipient-roles">
+                {% include 'snippets/searchable_role_checkboxes.html' with field=form.roles %}
+            </div>
             <div id="recipient-categories">{{ form.categories|as_crispy_field }}</div>
             <p class="small text-muted">{% trans 'Group messages are visible to all recipients, who can reply in the conversation.' %}</p>
             {% endif %}

@@ -21,7 +21,9 @@ class NewsAndEventsForm(forms.ModelForm):
     visible_to_roles = forms.ModelMultipleChoiceField(
         queryset=Role.objects.none(),
         required=False,
-        widget=forms.CheckboxSelectMultiple,
+        widget=forms.CheckboxSelectMultiple(
+            attrs={"class": "searchable-checkbox-input"}
+        ),
         label=_("Roles that can see this post"),
         help_text=_("Leave blank to make this post visible to everyone."),
     )

@@ -174,6 +174,8 @@ class MessagingWorkflowTests(TestCase):
         compose_response = self.client.get(reverse("messaging:compose"))
         self.assertContains(compose_response, 'name="roles"')
         self.assertContains(compose_response, 'type="checkbox"')
+        self.assertContains(compose_response, "Search roles...")
+        self.assertContains(compose_response, "Select visible")
 
         response = self.client.post(
             reverse("messaging:compose"),

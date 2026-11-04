@@ -30,7 +30,9 @@ class ComposeMessageForm(forms.Form):
     roles = forms.ModelMultipleChoiceField(
         queryset=Role.objects.none(),
         required=False,
-        widget=forms.CheckboxSelectMultiple,
+        widget=forms.CheckboxSelectMultiple(
+            attrs={"class": "searchable-checkbox-input"}
+        ),
         label=_("Roles"),
     )
     categories = forms.MultipleChoiceField(
