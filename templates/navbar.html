@@ -23,44 +23,67 @@
                 <span>{% trans "Voting" %}</span>
             </a>
 
-            <!-- Avatar Dropdown -->
-            <div class="dropdown avatar-dropdown">
-                <div class="avatar" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                    <img src="{{ request.user.picture.url }}" alt="Profile">
-                </div>
-                <div class="dropdown-menu dropdown-menu-end">
-                    <div class="dropdown-header">
-                        <div class="avatar avatar-lg">
-                            <img src="{{ request.user.picture.url }}" alt="Profile">
-                        </div>
-                        <div class="fw-semibold">{{ request.user.get_full_name }}</div>
-                        <small class="text-muted">{% trans 'Last login:' %} {{ request.user.last_login|date }}</small>
+            <div class="nav-user-actions">
+                {% if request.user.is_authenticated %}
+                <a href="{% url 'messaging:notifications' %}" class="btn btn-light position-relative nav-icon-link" aria-label="{% trans 'Notifications' %}{% if unread_notification_count %}, {{ unread_notification_count }} unread{% endif %}" title="{% trans 'Notifications' %}">
+                    <i class="fas fa-bell"></i>
+                    {% if unread_notification_count %}
+                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill text-bg-danger">
+                        {{ unread_notification_count }}
+                        <span class="visually-hidden">{% trans 'unread notifications' %}</span>
+                    </span>
+                    {% endif %}
+                </a>
+                <a href="{% url 'messaging:inbox' %}" class="btn btn-light position-relative nav-icon-link" aria-label="{% trans 'Messages' %}{% if unread_message_count %}, {{ unread_message_count }} unread{% endif %}" title="{% trans 'Messages' %}">
+                    <i class="fas fa-envelope"></i>
+                    {% if unread_message_count %}
+                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill text-bg-primary">
+                        {{ unread_message_count }}
+                        <span class="visually-hidden">{% trans 'unread messages' %}</span>
+                    </span>
+                    {% endif %}
+                </a>
+                {% endif %}
+
+                <!-- Avatar Dropdown -->
+                <div class="dropdown avatar-dropdown">
+                    <div class="avatar" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <img src="{{ request.user.picture.url }}" alt="Profile">
                     </div>
-                    <hr class="dropdown-divider">
+                    <div class="dropdown-menu dropdown-menu-end">
+                        <div class="dropdown-header">
+                            <div class="avatar avatar-lg">
+                                <img src="{{ request.user.picture.url }}" alt="Profile">
+                            </div>
+                            <div class="fw-semibold">{{ request.user.get_full_name }}</div>
+                            <small class="text-muted">{% trans 'Last login:' %} {{ request.user.last_login|date }}</small>
+                        </div>
+                        <hr class="dropdown-divider">
 
-                    {% if request.user.is_lecturer or request.user.is_student %}
-                    <a class="dropdown-item" href="{% url 'user_course_list' %}">
-                        <i class="fas fa-book"></i>{% trans 'My Courses' %}
-                    </a>
-                    {% endif %}
-
-                    {% if request.user.is_superuser %}
-                    <a class="dropdown-item" href="{% url 'admin_panel' %}">
-                        <i class="fas fa-shield-alt"></i>{% trans 'Admin Panel' %}
-                    </a>
-                    {% endif %}
-
-                    <a class="dropdown-item" href="{% url 'profile' %}">
-                        <i class="fas fa-user"></i>{% trans 'Profile' %}
-                    </a>
-                    <a class="dropdown-item" href="{% url 'edit_profile' %}">
-                        <i class="fas fa-cog"></i>{% trans 'Settings' %}
-                    </a>
-                    <hr class="dropdown-divider">
-                    <div class="px-2">
-                        <a class="btn-signout" href="{% url 'logout' %}">
-                            <i class="fas fa-sign-out-alt"></i> {% trans 'Sign Out' %}
+                        {% if request.user.is_lecturer or request.user.is_student %}
+                        <a class="dropdown-item" href="{% url 'user_course_list' %}">
+                            <i class="fas fa-book"></i>{% trans 'My Courses' %}
                         </a>
+                        {% endif %}
+
+                        {% if request.user.is_superuser %}
+                        <a class="dropdown-item" href="{% url 'admin_panel' %}">
+                            <i class="fas fa-shield-alt"></i>{% trans 'Admin Panel' %}
+                        </a>
+                        {% endif %}
+
+                        <a class="dropdown-item" href="{% url 'profile' %}">
+                            <i class="fas fa-user"></i>{% trans 'Profile' %}
+                        </a>
+                        <a class="dropdown-item" href="{% url 'edit_profile' %}">
+                            <i class="fas fa-cog"></i>{% trans 'Settings' %}
+                        </a>
+                        <hr class="dropdown-divider">
+                        <div class="px-2">
+                            <a class="btn-signout" href="{% url 'logout' %}">
+                                <i class="fas fa-sign-out-alt"></i> {% trans 'Sign Out' %}
+                            </a>
+                        </div>
                     </div>
                 </div>
             </div>

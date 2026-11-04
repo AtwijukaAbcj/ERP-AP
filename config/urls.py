@@ -20,6 +20,7 @@ urlpatterns += i18n_patterns(
     path("jsi18n/", JavaScriptCatalog.as_view(), name="javascript-catalog"),
     path("", include("core.urls")),
     path("accounts/", include("accounts.urls")),
+    path("messages/", include("messaging.urls")),
     path("course/", include("course.urls")),
     path("assignment/", include("assignment.urls")),
     path("finance/", include("finance.urls", namespace="finance")),

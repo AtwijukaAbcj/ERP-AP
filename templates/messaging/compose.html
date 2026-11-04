@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags i18n %}
+
+{% block title %}{% trans 'New message' %} | {{ site_name|default:'FalconLMS' }}{% endblock %}
+
+{% block content %}
+<nav style="--bs-breadcrumb-divider: '>';" aria-label="{% trans 'breadcrumb' %}">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'messaging:inbox' %}">{% trans 'Messages' %}</a></li>
+        <li class="breadcrumb-item active" aria-current="page">{% trans 'New message' %}</li>
+    </ol>
+</nav>
+
+<div class="card mx-auto" style="max-width: 860px;">
+    <div class="card-body p-4">
+        <h1 class="h4 mb-4"><i class="fas fa-pen me-2"></i>{% trans 'Compose a message' %}</h1>
+        {% include 'snippets/messages.html' %}
+        {% for error in form.non_field_errors %}<div class="alert alert-danger">{{ error }}</div>{% endfor %}
+        <form method="post">
+            {% csrf_token %}
+            {{ form.recipient_type|as_crispy_field }}
+            <div id="recipient-users">{{ form.users|as_crispy_field }}</div>
+            {% if can_send_group_messages %}
+            <div id="recipient-roles">{{ form.roles|as_crispy_field }}</div>
+            <div id="recipient-categories">{{ form.categories|as_crispy_field }}</div>
+            <p class="small text-muted">{% trans 'Group messages are visible to all recipients, who can reply in the conversation.' %}</p>
+            {% endif %}
+            {{ form.subject|as_crispy_field }}
+            {{ form.body|as_crispy_field }}
+            <div class="d-flex gap-2">
+                <button class="btn btn-primary" type="submit"><i class="fas fa-paper-plane me-2"></i>{% trans 'Send message' %}</button>
+                <a class="btn btn-outline-secondary" href="{% url 'messaging:inbox' %}">{% trans 'Cancel' %}</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block js %}
+{% if can_send_group_messages %}
+<script>
+    (function () {
+        const typeField = document.getElementById("id_recipient_type");
+        const groups = {
+            individual: document.getElementById("recipient-users"),
+            role: document.getElementById("recipient-roles"),
+            category: document.getElementById("recipient-categories")
+        };
+        function updateRecipientFields() {
+            Object.entries(groups).forEach(function ([key, element]) {
+                element.hidden = typeField.value !== key;
+            });
+        }
+        typeField.addEventListener("change", updateRecipientFields);
+        updateRecipientFields();
+    })();
+</script>
+{% endif %}
+{% endblock %}

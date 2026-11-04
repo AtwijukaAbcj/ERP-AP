@@ -536,6 +536,74 @@ class SchoolCalendarTests(TestCase):
         self.client.force_login(self.admin)
         self.assertEqual(self.client.get(reverse("add_item")).status_code, 200)
 
+    def test_news_and_events_can_be_limited_to_selected_roles(self):
+        role = Role.objects.create(name="Clinical Staff", slug="clinical-staff")
+        restricted_post = NewsAndEvents.objects.create(
+            title="Clinical staff briefing",
+            summary="Role-limited briefing",
+            posted_as="Event",
+            event_date=date(2099, 11, 1),
+        )
+        restricted_post.visible_to_roles.add(role)
+
+        self.client.force_login(self.student)
+        response = self.client.get(reverse("home"))
+        self.assertContains(response, "Clinical orientation")
+        self.assertNotContains(response, "Clinical staff briefing")
+        self.assertNotContains(response, "Role-limited briefing")
+
+        search_response = self.client.get(
+            reverse("query"),
+            {"q": "Clinical staff briefing"},
+        )
+        searched_news_ids = {
+            item.pk
+            for item in search_response.context["object_list"]
+            if isinstance(item, NewsAndEvents)
+        }
+        self.assertNotIn(restricted_post.pk, searched_news_ids)
+
+        self.student.roles.add(role)
+        response = self.client.get(reverse("home"))
+        self.assertContains(response, "Clinical staff briefing")
+        self.assertContains(response, "Role-limited briefing")
+        search_response = self.client.get(
+            reverse("query"),
+            {"q": "Clinical staff briefing"},
+        )
+        self.assertIn(
+            restricted_post.pk,
+            {
+                item.pk
+                for item in search_response.context["object_list"]
+                if isinstance(item, NewsAndEvents)
+            },
+        )
+
+    def test_news_post_form_saves_checked_visibility_roles(self):
+        role = Role.objects.create(name="Academic Advisers", slug="academic-advisers")
+        self.client.force_login(self.admin)
+        form_response = self.client.get(reverse("add_item"))
+        self.assertContains(form_response, 'name="visible_to_roles"')
+        self.assertContains(form_response, 'type="checkbox"')
+
+        response = self.client.post(
+            reverse("add_item"),
+            {
+                "title": "Adviser update",
+                "summary": "For advisers only",
+                "posted_as": "News",
+                "visible_to_roles": [role.pk],
+            },
+        )
+
+        self.assertRedirects(response, reverse("home"))
+        post = NewsAndEvents.objects.get(title="Adviser update")
+        self.assertQuerySetEqual(
+            post.visible_to_roles.all(),
+            [role],
+        )
+
 
 @override_settings(LANGUAGE_CODE="en")
 class InstitutionalReportingTests(TestCase):

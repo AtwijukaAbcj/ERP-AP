@@ -58,12 +58,13 @@ def add_room(request):
 # ########################################################
 @login_required
 def home_view(request):
-    items = NewsAndEvents.objects.all().order_by("-updated_date")
+    visible_items = NewsAndEvents.objects.visible_to(request.user)
+    items = visible_items.order_by("-updated_date")
     today = timezone.localdate()
     context = {
         "title": "News & Events",
         "items": items,
-        "upcoming_events": NewsAndEvents.objects.filter(
+        "upcoming_events": visible_items.filter(
             posted_as="Event",
             event_date__gte=today,
         ).select_related("semester").order_by("event_date", "title"),

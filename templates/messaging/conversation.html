@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block title %}{% if conversation.subject %}{{ conversation.subject }}{% else %}{% trans 'Conversation' %}{% endif %} | {{ site_name|default:'FalconLMS' }}{% endblock %}
+
+{% block content %}
+<nav style="--bs-breadcrumb-divider: '>';" aria-label="{% trans 'breadcrumb' %}">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'messaging:inbox' %}">{% trans 'Messages' %}</a></li>
+        <li class="breadcrumb-item active" aria-current="page">{% if conversation.subject %}{{ conversation.subject }}{% else %}{% trans 'Conversation' %}{% endif %}</li>
+    </ol>
+</nav>
+
+<div class="card mx-auto" style="max-width: 900px;">
+    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div>
+            <h1 class="h5 mb-1">{% if conversation.subject %}{{ conversation.subject }}{% else %}{% trans 'Conversation' %}{% endif %}</h1>
+            <div class="small text-muted">
+                {% for participant in conversation.participants.all %}{{ participant.get_full_name }}{% if not forloop.last %}, {% endif %}{% endfor %}
+            </div>
+        </div>
+        <a class="btn btn-sm btn-outline-secondary" href="{% url 'messaging:inbox' %}"><i class="fas fa-arrow-left me-1"></i>{% trans 'Inbox' %}</a>
+    </div>
+    <div class="card-body">
+        {% include 'snippets/messages.html' %}
+        <div class="d-flex flex-column gap-3 mb-4">
+            {% for message in messages_list %}
+            <article class="border rounded p-3 {% if message.sender_id == request.user.pk %}align-self-end bg-light{% else %}align-self-start{% endif %}" style="max-width: 85%; min-width: min(320px, 100%);">
+                <div class="d-flex justify-content-between gap-3 mb-2">
+                    <strong>{% if message.sender %}{{ message.sender.get_full_name }}{% else %}{% trans 'Former user' %}{% endif %}</strong>
+                    <small class="text-muted text-nowrap">{{ message.sent_at|date:"M j, Y H:i" }}</small>
+                </div>
+                <div class="text-break" style="white-space: pre-wrap;">{{ message.body }}</div>
+            </article>
+            {% empty %}
+            <p class="text-muted text-center">{% trans 'No messages in this conversation yet.' %}</p>
+            {% endfor %}
+        </div>
+        <form method="post">
+            {% csrf_token %}
+            <label class="form-label" for="id_body">{% trans 'Reply' %}</label>
+            <textarea class="form-control mb-3" id="id_body" name="body" rows="4" maxlength="10000" required></textarea>
+            <button class="btn btn-primary" type="submit"><i class="fas fa-paper-plane me-2"></i>{% trans 'Send reply' %}</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -21,7 +21,9 @@ class SearchView(ListView):
         query = request.GET.get("q", None)
 
         if query is not None:
-            news_events_results = NewsAndEvents.objects.search(query)
+            news_events_results = NewsAndEvents.objects.visible_to(
+                request.user
+            ).search(query)
             program_results = Program.objects.search(query)
             course_results = Course.objects.search(query)
             quiz_results = Quiz.objects.search(query)

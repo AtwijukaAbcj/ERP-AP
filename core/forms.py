@@ -1,23 +1,38 @@
-from django import forms
-from .models import NewsAndEvents, Session, Semester, SEMESTER
-from django import forms
-from .models import Timetable, TimetableEntry
-from .models import Room
-from django import forms
-from .models import TimetableEntry
 import datetime
+from django import forms
+from django.utils.translation import gettext_lazy as _
+
+from accounts.models import Role
 from .constants import TIME_CHOICES  # ✅ No circular import
+from .models import (
+    NewsAndEvents,
+    Room,
+    SEMESTER,
+    Semester,
+    Session,
+    Timetable,
+    TimetableEntry,
+)
 
 # from .views import TIME_CHOICES  
 
 # news and events
 class NewsAndEventsForm(forms.ModelForm):
+    visible_to_roles = forms.ModelMultipleChoiceField(
+        queryset=Role.objects.none(),
+        required=False,
+        widget=forms.CheckboxSelectMultiple,
+        label=_("Roles that can see this post"),
+        help_text=_("Leave blank to make this post visible to everyone."),
+    )
+
     class Meta:
         model = NewsAndEvents
         fields = (
             "title",
             "summary",
             "posted_as",
+            "visible_to_roles",
             "event_date",
             "semester",
         )
@@ -30,6 +45,7 @@ class NewsAndEventsForm(forms.ModelForm):
         self.fields["title"].widget.attrs.update({"class": "form-control"})
         self.fields["summary"].widget.attrs.update({"class": "form-control"})
         self.fields["posted_as"].widget.attrs.update({"class": "form-control"})
+        self.fields["visible_to_roles"].queryset = Role.objects.order_by("name")
 
 
 class SessionForm(forms.ModelForm):

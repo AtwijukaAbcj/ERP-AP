@@ -37,6 +37,20 @@ class NewsAndEventsQuerySet(models.query.QuerySet):
         )
         return self.filter(lookups).distinct()
 
+    def visible_to(self, user):
+        if not getattr(user, "is_authenticated", False):
+            return self.filter(visible_to_roles__isnull=True).distinct()
+        if user.is_superuser:
+            return self
+
+        role_ids = list(user.roles.values_list("pk", flat=True))
+        if user.role_id:
+            role_ids.append(user.role_id)
+        return self.filter(
+            Q(visible_to_roles__isnull=True)
+            | Q(visible_to_roles__in=role_ids)
+        ).distinct()
+
 
 class NewsAndEventsManager(models.Manager):
     def get_queryset(self):
@@ -56,11 +70,19 @@ class NewsAndEventsManager(models.Manager):
     def search(self, query):
         return self.get_queryset().search(query)
 
+    def visible_to(self, user):
+        return self.get_queryset().visible_to(user)
+
 
 class NewsAndEvents(models.Model):
     title = models.CharField(max_length=200, null=True)
     summary = models.TextField(max_length=200, blank=True, null=True)
     posted_as = models.CharField(choices=POST, max_length=10)
+    visible_to_roles = models.ManyToManyField(
+        "accounts.Role",
+        related_name="visible_news_and_events",
+        blank=True,
+    )
     event_date = models.DateField(null=True, blank=True)
     semester = models.ForeignKey(
         "Semester",

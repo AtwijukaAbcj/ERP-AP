@@ -64,6 +64,7 @@ PROJECT_APPS = [
     "voting.apps.VotingConfig",
     "admissions.apps.AdmissionsConfig",
     "clinical.apps.ClinicalConfig",
+    "messaging.apps.MessagingConfig",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + PROJECT_APPS
@@ -97,6 +98,7 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "core.utils.site_settings",
+                "messaging.context_processors.unread_message_count",
             ],
         },
     },
