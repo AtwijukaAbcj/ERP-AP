@@ -741,6 +741,12 @@ class InstitutionalReportingTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "css/institutional-reports.css")
+        self.assertContains(response, 'class="report-page"')
+        self.assertContains(response, "Students by programme")
+        self.assertContains(response, "report-resource-row")
+        self.assertContains(response, "Download PDF")
+        self.assertContains(response, "Download CSV")
         self.assertEqual(response.context["student_count"], 1)
         self.assertEqual(response.context["active_enrollment_count"], 1)
         self.assertEqual(response.context["average_score"], Decimal("100"))
