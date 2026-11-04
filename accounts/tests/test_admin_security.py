@@ -1,8 +1,12 @@
+from io import BytesIO
+import tempfile
 from unittest.mock import patch
 
 from django import forms
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
 from django.urls import reverse
+from PIL import Image
 
 from accounts.models import (
     ACTIVE_MODULE_CHOICES,
@@ -123,6 +127,95 @@ class AccessControlAdministrationTests(TestCase):
         self.assertFalse(user.is_finance)
         self.assertFalse(user.is_registrar)
         self.assertFalse(Student.objects.filter(student=user).exists())
+
+    @patch("accounts.forms.send_new_account_email")
+    def test_admin_can_upload_profile_picture_when_creating_user(self, send_email):
+        image_buffer = BytesIO()
+        Image.new("RGB", (2, 2), color="purple").save(image_buffer, format="PNG")
+        image_buffer.seek(0)
+        uploaded_image = SimpleUploadedFile(
+            "profile.png",
+            image_buffer.read(),
+            content_type="image/png",
+        )
+
+        self.client.force_login(self.admin)
+        with tempfile.TemporaryDirectory() as media_root:
+            with self.settings(MEDIA_ROOT=media_root):
+                response = self.client.post(
+                    reverse("user_add"),
+                    {
+                        "username": "picture-account",
+                        "first_name": "Picture",
+                        "last_name": "Account",
+                        "email": "picture-account@example.test",
+                        "gender": "M",
+                        "address": "Campus",
+                        "phone": "123456789",
+                        "roles": [],
+                        "picture": uploaded_image,
+                    },
+                )
+
+                self.assertRedirects(response, reverse("user_list"))
+                user = User.objects.get(username="picture-account")
+                self.assertTrue(user.picture.name.startswith("profile_pictures/"))
+                self.assertTrue(user.picture.storage.exists(user.picture.name))
+        send_email.assert_called_once()
+
+    def test_account_settings_can_save_without_replacing_picture_then_upload_one(self):
+        self.client.force_login(self.user)
+        profile_data = {
+            "email": "override-user@example.test",
+            "first_name": "Override",
+            "last_name": "User",
+            "gender": "M",
+            "phone": "123456789",
+            "address": "Campus",
+        }
+
+        with tempfile.TemporaryDirectory() as media_root:
+            with self.settings(MEDIA_ROOT=media_root):
+                original_picture = self.user.picture.name
+                response = self.client.post(
+                    reverse("edit_profile"),
+                    profile_data,
+                )
+                self.assertEqual(
+                    response.status_code,
+                    302,
+                    response.content.decode(),
+                )
+                self.assertEqual(response.url, reverse("profile"))
+                self.user.refresh_from_db()
+                self.assertEqual(self.user.picture.name, original_picture)
+
+                image_buffer = BytesIO()
+                Image.new("RGB", (2, 2), color="purple").save(
+                    image_buffer,
+                    format="PNG",
+                )
+                image_buffer.seek(0)
+                response = self.client.post(
+                    reverse("edit_profile"),
+                    {
+                        **profile_data,
+                        "picture": SimpleUploadedFile(
+                            "account-photo.png",
+                            image_buffer.read(),
+                            content_type="image/png",
+                        ),
+                    },
+                )
+
+                self.assertRedirects(response, reverse("profile"))
+                self.user.refresh_from_db()
+                self.assertTrue(
+                    self.user.picture.name.startswith("profile_pictures/")
+                )
+                self.assertTrue(
+                    self.user.picture.storage.exists(self.user.picture.name)
+                )
 
     def test_admin_can_assign_multiple_roles_to_an_existing_user(self):
         second_permission = Permission.objects.create(

@@ -544,7 +544,7 @@ def user_password_reset(request, user_id):
 @admin_required
 def user_add_view(request):
     if request.method == "POST":
-        form = UserAddForm(request.POST)
+        form = UserAddForm(request.POST, request.FILES)
         if form.is_valid():
             user = form.save()
             log_activity(

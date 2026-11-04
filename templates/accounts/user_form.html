@@ -17,7 +17,7 @@
 
 {% include 'snippets/messages.html' %}
 
-<form method="post" novalidate>
+<form method="post" enctype="multipart/form-data" novalidate>
     {% csrf_token %}
     {{ form|crispy }}
     <button type="submit" class="btn btn-primary mt-3">{% trans 'Save' %}</button>

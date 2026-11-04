@@ -103,6 +103,7 @@ class UserAddForm(forms.ModelForm):
             "gender",
             "address",
             "phone",
+            "picture",
             "roles",
         )
 
@@ -640,6 +641,8 @@ class StudentStatusForm(forms.Form):
 
 
 class ProfileUpdateForm(UserChangeForm):
+    picture = forms.ImageField(required=False)
+
     email = forms.EmailField(
         widget=forms.TextInput(
             attrs={
@@ -687,12 +690,6 @@ class ProfileUpdateForm(UserChangeForm):
             }
         ),
         label="Phone No.",
-    )
-    faculty = forms.ModelChoiceField(
-    queryset=Faculty.objects.all(),
-    required=True,
-    widget=forms.Select(attrs={"class": "form-control"}),
-    label="Faculty",
     )
     address = forms.CharField(
         widget=forms.TextInput(
