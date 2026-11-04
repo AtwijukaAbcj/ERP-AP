@@ -24,13 +24,7 @@
             <div class="card">
                 <p class="form-title">{% trans 'Personal Info' %}</p>
                 <div class="p-2">
-                    {{ form.first_name|as_crispy_field }}
-                    {{ form.last_name|as_crispy_field }}
-                    {{ form.email|as_crispy_field }}
-                    {{ form.address|as_crispy_field }}
-                    {{ form.phone|as_crispy_field }}
-                    {{ form.gender|as_crispy_field }}
-                    <!-- Faculty field is excluded from form and assigned in backend -->
+                    {{ form.user|as_crispy_field }}
                     <div class="mb-3">
                         <label class="form-label fw-bold">{% trans 'Faculty' %}</label>
                         <input type="text" class="form-control" value="{{ request.user.faculty }}" readonly>

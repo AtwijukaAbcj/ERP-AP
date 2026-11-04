@@ -1,0 +1,429 @@
+.assessment-hub-page {
+    --hub-accent: #5943a5;
+    --hub-accent-soft: #f1edfc;
+    --hub-text: #1f2937;
+    --hub-muted: #64748b;
+    --hub-border: #e5eaf2;
+    --hub-surface: #fff;
+    --hub-radius: 10px;
+}
+
+.assessment-hub-page .hub-hero {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    margin-bottom: 24px;
+    padding: clamp(24px, 4vw, 40px);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: var(--hub-radius) !important;
+    background: linear-gradient(120deg, #363478 0%, #5943a5 58%, #7654ae 100%);
+    box-shadow: 0 14px 32px rgba(48, 41, 100, 0.18);
+}
+
+.assessment-hub-page .hub-hero::before,
+.assessment-hub-page .hub-hero::after {
+    z-index: -1;
+    pointer-events: none;
+}
+
+.assessment-hub-page .hub-hero h1 {
+    max-width: 760px;
+    font-size: clamp(1.65rem, 3vw, 2.15rem);
+    line-height: 1.2;
+    letter-spacing: -0.035em;
+}
+
+.assessment-hub-page .hub-hero > .row > [class*="col-"] > p {
+    max-width: 680px;
+    color: rgba(255, 255, 255, 0.82);
+    line-height: 1.6;
+}
+
+.assessment-hub-page .quick-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+    gap: 12px;
+    max-width: 760px;
+}
+
+.assessment-hub-page .quick-stat {
+    min-width: 0;
+    padding: 16px 18px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: var(--hub-radius) !important;
+    background: rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(8px);
+    text-align: left;
+}
+
+.assessment-hub-page .quick-stat h3 {
+    font-size: clamp(1.5rem, 2vw, 1.9rem);
+    line-height: 1.15;
+    font-variant-numeric: tabular-nums;
+}
+
+.assessment-hub-page .quick-stat p {
+    margin-top: 6px;
+    margin-bottom: 0;
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.8rem;
+    line-height: 1.35;
+}
+
+.assessment-hub-page .section-card,
+.assessment-hub-page .stat-card,
+.assessment-hub-page .big-stat,
+.assessment-hub-page .course-card,
+.assessment-hub-page .course-progress-card,
+.assessment-hub-page .course-row,
+.assessment-hub-page .action-item,
+.assessment-hub-page .pass-fail-card,
+.assessment-hub-page .grade-showcase {
+    border-radius: var(--hub-radius) !important;
+}
+
+.assessment-hub-page .section-card {
+    margin-bottom: 20px;
+    padding: clamp(18px, 2.4vw, 26px);
+    border: 1px solid var(--hub-border);
+    background: var(--hub-surface);
+    box-shadow: 0 4px 16px rgba(31, 41, 55, 0.045);
+}
+
+.assessment-hub-page .section-card h4 {
+    gap: 12px;
+    margin-bottom: 18px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--hub-border);
+    color: var(--hub-text);
+    font-size: 1.05rem;
+    line-height: 1.35;
+}
+
+.assessment-hub-page .section-card h4 {
+    min-width: 0;
+}
+
+.assessment-hub-page .section-card h4 i {
+    color: var(--hub-accent);
+}
+
+.assessment-hub-page .big-stat,
+.assessment-hub-page .stat-card {
+    height: calc(100% - 12px);
+    margin-bottom: 12px;
+    padding: 22px 16px;
+    border: 1px solid var(--hub-border);
+    background: linear-gradient(145deg, #fff, #f7f8fc);
+    box-shadow: 0 3px 12px rgba(31, 41, 55, 0.04);
+    text-align: left;
+}
+
+.assessment-hub-page .big-stat h2,
+.assessment-hub-page .stat-card h3 {
+    background: none;
+    color: var(--hub-accent);
+    font-size: clamp(1.8rem, 3vw, 2.5rem);
+    font-variant-numeric: tabular-nums;
+    -webkit-text-fill-color: currentColor;
+}
+
+.assessment-hub-page .big-stat p,
+.assessment-hub-page .stat-card p {
+    color: var(--hub-muted);
+    font-size: 0.86rem;
+}
+
+.assessment-hub-page .grade-showcase {
+    margin-bottom: 20px;
+    padding: 24px;
+    background: linear-gradient(135deg, #363478, #5943a5);
+    box-shadow: 0 10px 24px rgba(48, 41, 100, 0.14);
+    text-align: left;
+}
+
+.assessment-hub-page .grade-showcase h2 {
+    font-size: clamp(2.5rem, 5vw, 3.5rem);
+    line-height: 1.05;
+    font-variant-numeric: tabular-nums;
+}
+
+.assessment-hub-page .grade-dist-bar {
+    height: 24px;
+    border-radius: var(--hub-radius) !important;
+    background: #edf0f5;
+}
+
+.assessment-hub-page .grade-dist-bar .segment {
+    min-width: 0;
+    font-size: 0.68rem;
+}
+
+.assessment-hub-page .course-row {
+    flex-wrap: wrap;
+    gap: 12px 0;
+    padding: 14px 16px;
+    border: 1px solid var(--hub-border);
+    border-left: 3px solid #c9c4e6;
+    background: #f8f9fc;
+}
+
+.assessment-hub-page .course-row:hover,
+.assessment-hub-page .action-item:hover,
+.assessment-hub-page .course-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 18px rgba(31, 41, 55, 0.08);
+}
+
+.assessment-hub-page .course-row.warning {
+    border-left-color: #e3a23b;
+    background: #fffaf1;
+}
+
+.assessment-hub-page .course-row.danger {
+    border-left-color: #d85d67;
+    background: #fff6f6;
+}
+
+.assessment-hub-page .course-row .stat {
+    padding: 0 14px;
+}
+
+.assessment-hub-page .course-row .stat h5 {
+    font-size: 1.15rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.assessment-hub-page .course-card,
+.assessment-hub-page .course-progress-card {
+    margin-bottom: 14px;
+    padding: 18px;
+    border: 1px solid var(--hub-border);
+    border-left: 3px solid #c9c4e6;
+    background: #fff;
+    box-shadow: 0 3px 12px rgba(31, 41, 55, 0.04);
+}
+
+.assessment-hub-page .course-card h5,
+.assessment-hub-page .course-progress-card h6 {
+    color: var(--hub-text);
+    font-size: 1rem;
+    line-height: 1.4;
+}
+
+.assessment-hub-page .course-card .meta,
+.assessment-hub-page .course-progress-card .meta {
+    color: var(--hub-muted);
+    line-height: 1.5;
+}
+
+.assessment-hub-page .progress-bar-custom {
+    height: 7px;
+    border-radius: var(--hub-radius) !important;
+}
+
+.assessment-hub-page .progress-bar-custom .fill {
+    border-radius: var(--hub-radius) !important;
+}
+
+.assessment-hub-page .action-item {
+    gap: 12px;
+    margin-bottom: 10px;
+    padding: 13px 15px;
+    border: 1px solid var(--hub-border);
+    border-left: 3px solid #c9c4e6;
+    background: #fff;
+}
+
+.assessment-hub-page .action-item:hover {
+    border-left-color: var(--hub-accent);
+    color: inherit;
+}
+
+.assessment-hub-page .action-item.warning {
+    border-left-color: #e3a23b;
+    background: #fffaf1;
+}
+
+.assessment-hub-page .action-item.urgent {
+    border-left-color: #d85d67;
+    background: #fff6f6;
+}
+
+.assessment-hub-page .action-item.success {
+    border-left-color: #3a9b71;
+    background: #f3fbf7;
+}
+
+.assessment-hub-page .action-icon {
+    width: 42px;
+    height: 42px;
+    min-width: 42px;
+    margin-right: 0;
+    border-radius: var(--hub-radius) !important;
+    background: var(--hub-accent-soft);
+    color: var(--hub-accent);
+    font-size: 1rem;
+}
+
+.assessment-hub-page .action-icon.students,
+.assessment-hub-page .action-icon.courses,
+.assessment-hub-page .action-icon.results,
+.assessment-hub-page .action-icon.reports,
+.assessment-hub-page .action-icon.quiz,
+.assessment-hub-page .action-icon.assignment,
+.assessment-hub-page .action-icon.attendance,
+.assessment-hub-page .action-icon.grade,
+.assessment-hub-page .action-icon.course,
+.assessment-hub-page .action-icon.grading {
+    background: var(--hub-accent-soft);
+    color: var(--hub-accent);
+}
+
+.assessment-hub-page .action-content h6 {
+    color: var(--hub-text);
+    font-size: 0.92rem;
+    line-height: 1.35;
+}
+
+.assessment-hub-page .action-content p {
+    color: var(--hub-muted);
+    font-size: 0.8rem;
+    line-height: 1.45;
+}
+
+.assessment-hub-page .action-arrow {
+    flex: 0 0 auto;
+    color: #94a3b8;
+    font-size: 0.9rem;
+}
+
+.assessment-hub-page .action-buttons {
+    gap: 8px;
+}
+
+.assessment-hub-page .action-btn,
+.assessment-hub-page .view-all-btn {
+    min-height: 38px;
+    padding: 8px 12px;
+    border: 1px solid transparent;
+    border-radius: var(--hub-radius) !important;
+    background: var(--hub-accent);
+    font-size: 0.82rem;
+}
+
+.assessment-hub-page .action-btn.success,
+.assessment-hub-page .action-btn.warning,
+.assessment-hub-page .action-btn.info {
+    background: #f1edfc;
+    color: var(--hub-accent);
+}
+
+.assessment-hub-page .action-btn:hover,
+.assessment-hub-page .view-all-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 5px 12px rgba(48, 41, 100, 0.14);
+    color: #fff;
+}
+
+.assessment-hub-page .status-badge {
+    max-width: 100%;
+    padding: 6px 10px;
+    border: 1px solid transparent;
+    border-radius: var(--hub-radius) !important;
+    font-size: 0.75rem;
+    line-height: 1.3;
+}
+
+.assessment-hub-page .status-badge.needs-grading {
+    border-color: #f2c8cb;
+    background: #fff1f2;
+    color: #a53d47;
+}
+
+.assessment-hub-page .status-badge.complete {
+    border-color: #c5e7d5;
+    background: #effaf4;
+    color: #28714e;
+}
+
+.assessment-hub-page .status-badge.partial {
+    border-color: #f0dfb8;
+    background: #fff9eb;
+    color: #8a641c;
+}
+
+.assessment-hub-page .pass-fail-display {
+    gap: 12px;
+}
+
+.assessment-hub-page .pass-fail-card {
+    padding: 20px;
+}
+
+.assessment-hub-page .pass-fail-card.pass {
+    background: #368b68;
+}
+
+.assessment-hub-page .pass-fail-card.fail {
+    background: #bd5660;
+}
+
+.assessment-hub-page .empty-state {
+    padding: 32px 18px;
+    border: 1px dashed #d8deea;
+    border-radius: var(--hub-radius) !important;
+    background: #fafbfe;
+}
+
+.assessment-hub-page .empty-state i {
+    color: var(--hub-accent);
+}
+
+@media (max-width: 767.98px) {
+    .assessment-hub-page .hub-hero {
+        padding: 22px 18px;
+    }
+
+    .assessment-hub-page .quick-stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 9px;
+    }
+
+    .assessment-hub-page .quick-stat {
+        padding: 13px;
+    }
+
+    .assessment-hub-page .course-row .info {
+        flex-basis: 100%;
+    }
+
+    .assessment-hub-page .course-row .stat {
+        flex: 1;
+        min-width: 72px;
+        padding: 0 8px;
+    }
+
+    .assessment-hub-page .pass-fail-display {
+        flex-direction: column;
+    }
+
+    .assessment-hub-page .course-progress-card .d-flex.justify-content-between {
+        gap: 12px;
+    }
+
+    .assessment-hub-page .course-progress-card .d-flex.justify-content-between:last-child {
+        flex-wrap: wrap;
+        row-gap: 6px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .assessment-hub-page *,
+    .assessment-hub-page *::before,
+    .assessment-hub-page *::after {
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+    }
+}

@@ -1,3 +1,8 @@
+import logging
+import os
+from pathlib import Path
+import tempfile
+
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
@@ -5,7 +10,7 @@ from django.contrib.auth.forms import PasswordChangeForm, SetPasswordForm
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
 from django.db.models import Q
-from django.http import FileResponse, HttpResponse, JsonResponse
+from django.http import FileResponse, Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import get_template, render_to_string
 from django.utils.decorators import method_decorator
@@ -29,6 +34,7 @@ from accounts.forms import (
     UserPermissionForm,
     UserAddForm,
     UserRolesForm,
+    EmailTemplateEditForm,
     StaffAddForm,
     StudentAddForm,
     StudentDocumentForm,
@@ -57,6 +63,7 @@ from accounts.forms import StudentEditForm
 from accounts.student_services import transition_student_status
 from audit.utils import log_activity
 from django.views.decorators.http import require_POST
+from django.views.decorators.clickjacking import xframe_options_sameorigin
 import random
 import string
 from .forms import RegistrarAddForm
@@ -91,6 +98,48 @@ from django.utils import timezone
 from datetime import timedelta
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
+
+
+logger = logging.getLogger(__name__)
+
+EMAIL_TEMPLATE_CATALOG = (
+    {
+        "key": "general-user",
+        "title": "General user account",
+        "template": "accounts/email/new_user_account_confirmation.html",
+        "description": "Credentials sent to general accounts created from the user directory.",
+    },
+    {
+        "key": "student",
+        "title": "Student account",
+        "template": "accounts/email/new_student_account_confirmation.html",
+        "description": "Credentials sent when a student account is created.",
+    },
+    {
+        "key": "lecturer",
+        "title": "Lecturer account",
+        "template": "accounts/email/new_lecturer_account_confirmation.html",
+        "description": "Credentials sent when a lecturer account is created.",
+    },
+    {
+        "key": "finance",
+        "title": "Finance account",
+        "template": "accounts/email/new_finance_account_confirmation.html",
+        "description": "Credentials sent to finance users created from the user directory.",
+    },
+    {
+        "key": "registrar",
+        "title": "Registrar account",
+        "template": "accounts/email/new_registrar_account_confirmation.html",
+        "description": "Credentials sent to registrars created from the user directory.",
+    },
+    {
+        "key": "faculty-admin",
+        "title": "Faculty administrator account",
+        "template": "accounts/email/new_faculty_admin_account_confirmation.html",
+        "description": "Credentials sent when a faculty administrator account is created.",
+    },
+)
 
 
 def custom_logout_view(request):
@@ -506,11 +555,143 @@ def user_add_view(request):
                 instance=user,
                 after={"username": user.username, "role": None},
             )
-            messages.success(request, "User created successfully.")
+            messages.success(
+                request,
+                "User created successfully. Login credentials will be emailed to the user.",
+            )
             return redirect("user_list")
     else:
         form = UserAddForm()
     return render(request, "accounts/user_form.html", {"form": form, "title": "Create User"})
+
+
+@login_required
+@admin_required
+def email_template_list_view(request):
+    return render(
+        request,
+        "accounts/email_template_list.html",
+        {"email_templates": EMAIL_TEMPLATE_CATALOG, "title": "Email Templates"},
+    )
+
+
+@login_required
+@admin_required
+def email_template_preview_view(request, template_key):
+    template_info = get_email_template_info(template_key)
+    if template_info is None:
+        raise Http404("Email template not found.")
+
+    template = get_template(template_info["template"])
+    if template.origin is None:
+        raise RuntimeError(f"Template origin is unavailable: {template_info['template']}")
+    source = Path(template.origin.name).read_text(encoding="utf-8")
+    return render(
+        request,
+        "accounts/email_template_preview.html",
+        {
+            "email_template": template_info,
+            "template_source": source,
+            "title": f"Preview: {template_info['title']}",
+        },
+    )
+
+
+def get_email_template_info(template_key):
+    return next(
+        (item for item in EMAIL_TEMPLATE_CATALOG if item["key"] == template_key),
+        None,
+    )
+
+
+@login_required
+@admin_required
+def email_template_edit_view(request, template_key):
+    template_info = get_email_template_info(template_key)
+    if template_info is None:
+        raise Http404("Email template not found.")
+
+    template = get_template(template_info["template"])
+    if template.origin is None:
+        raise RuntimeError(f"Template origin is unavailable: {template_info['template']}")
+    template_path = Path(template.origin.name)
+
+    if request.method == "POST":
+        form = EmailTemplateEditForm(request.POST)
+        if form.is_valid():
+            temporary_path = None
+            try:
+                with tempfile.NamedTemporaryFile(
+                    mode="w",
+                    encoding="utf-8",
+                    newline="",
+                    dir=template_path.parent,
+                    prefix=f".{template_path.name}.",
+                    suffix=".tmp",
+                    delete=False,
+                ) as temporary_file:
+                    temporary_path = Path(temporary_file.name)
+                    temporary_file.write(form.cleaned_data["source"])
+                os.replace(temporary_path, template_path)
+            except OSError:
+                logger.exception("Could not save email template %s.", template_info["template"])
+                messages.error(
+                    request,
+                    "The template could not be saved. Check that the application can write to its template directory.",
+                )
+                if temporary_path is not None:
+                    try:
+                        temporary_path.unlink(missing_ok=True)
+                    except OSError:
+                        logger.exception("Could not remove temporary email template file %s.", temporary_path)
+            else:
+                messages.success(request, "Email template saved successfully.")
+                return redirect("email_template_preview", template_key=template_key)
+    else:
+        form = EmailTemplateEditForm(
+            initial={"source": template_path.read_text(encoding="utf-8")}
+        )
+
+    return render(
+        request,
+        "accounts/email_template_edit.html",
+        {
+            "email_template": template_info,
+            "form": form,
+            "title": f"Edit: {template_info['title']}",
+        },
+    )
+
+
+@login_required
+@admin_required
+@xframe_options_sameorigin
+def email_template_render_view(request, template_key):
+    template_info = next(
+        (
+            item
+            for item in EMAIL_TEMPLATE_CATALOG
+            if item["key"] == template_key
+        ),
+        None,
+    )
+    if template_info is None:
+        raise Http404("Email template not found.")
+
+    return render(
+        request,
+        template_info["template"],
+        {
+            "user": User(
+                username="sample-user",
+                first_name="Jordan",
+                last_name="Example",
+                email="jordan@example.test",
+            ),
+            "password": "Example-Password-123",
+            "key": "sample-confirmation-key",
+        },
+    )
 
 
 @login_required
@@ -903,11 +1084,9 @@ def staff_add_view(request):
         if form.is_valid():
             lecturer = form.save()
             full_name = lecturer.get_full_name
-            email = lecturer.email
             messages.success(
                 request,
-                f"Account for lecturer {full_name} has been created. "
-                f"An email with account credentials will be sent to {email} within a minute.",
+                f"{full_name} has been assigned as a lecturer.",
             )
             return redirect("lecturer_list")
     else:

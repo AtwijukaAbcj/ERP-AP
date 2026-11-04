@@ -193,7 +193,8 @@ class QuizUserProgressView(TemplateView):
 )
 class QuizMarkingList(ListView):
     model = Sitting
-    template_name = "quiz/quiz_marking_list.html"
+    template_name = "quiz/sitting_list.html"
+    context_object_name = "sitting_list"
 
     def get_queryset(self):
         queryset = Sitting.objects.filter(complete=True)

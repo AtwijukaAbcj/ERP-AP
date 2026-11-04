@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from django import forms
 from django.test import TestCase, override_settings
 from django.urls import reverse
@@ -65,7 +67,9 @@ class AccessControlAdministrationTests(TestCase):
         self.assertEqual(event.target_model, "accounts.UserPermission")
         self.assertEqual(event.after["reason"], "Temporary access restriction")
 
-    def test_new_user_account_is_created_without_role_or_staff_access(self):
+    @patch("accounts.forms.send_new_account_email")
+    def test_new_user_account_gets_generated_password_and_email(self, send_email):
+        role = Role.objects.create(name="General Staff", slug="general-staff")
         form = UserAddForm(
             data={
                 "username": "base-account",
@@ -75,58 +79,50 @@ class AccessControlAdministrationTests(TestCase):
                 "gender": "M",
                 "address": "Campus",
                 "phone": "123456789",
-                "account_type": "user",
-                "password1": "Strong-test-password-2026!",
-                "password2": "Strong-test-password-2026!",
+                "roles": [role.pk],
             }
         )
 
         self.assertTrue(form.is_valid(), form.errors)
         user = form.save()
 
-        self.assertIsNone(user.role_id)
-        self.assertFalse(user.roles.exists())
+        self.assertEqual(user.role, role)
+        self.assertEqual(list(user.roles.all()), [role])
         self.assertFalse(user.is_staff)
-        self.assertTrue(user.check_password("Strong-test-password-2026!"))
+        self.assertFalse(user.is_student)
+        self.assertFalse(user.is_lecturer)
+        self.assertFalse(user.is_finance)
+        self.assertFalse(user.is_registrar)
+        self.assertNotIn("password1", form.fields)
+        self.assertNotIn("password2", form.fields)
+        self.assertTrue(user.check_password(form.generated_password))
+        send_email.assert_called_once_with(user, form.generated_password)
 
-    def test_user_creation_assigns_selected_account_type_and_student_profile(self):
-        test_cases = (
-            ("student", "student-account", "is_student"),
-            ("lecturer", "lecturer-account", "is_lecturer"),
-            ("finance", "finance-account", "is_finance"),
-            ("registrar", "registrar-account", "is_registrar"),
+    def test_user_creation_accepts_roles_without_setting_account_type_flags(self):
+        role = Role.objects.create(name="Finance Reviewer", slug="finance-reviewer")
+        form = UserAddForm(
+            data={
+                "username": "role-based-user",
+                "first_name": "Role",
+                "last_name": "Based",
+                "email": "role-based@example.test",
+                "gender": "M",
+                "address": "Campus",
+                "phone": "123456789",
+                "roles": [role.pk],
+            }
         )
-        for account_type, username, expected_flag in test_cases:
-            with self.subTest(account_type=account_type):
-                form = UserAddForm(
-                    data={
-                        "username": username,
-                        "first_name": "Test",
-                        "last_name": account_type.title(),
-                        "email": f"{username}@example.test",
-                        "gender": "M",
-                        "address": "Campus",
-                        "phone": "123456789",
-                        "account_type": account_type,
-                        "password1": "Strong-test-password-2026!",
-                        "password2": "Strong-test-password-2026!",
-                    }
-                )
 
-                self.assertTrue(form.is_valid(), form.errors)
-                user = form.save()
+        self.assertTrue(form.is_valid(), form.errors)
+        user = form.save()
 
-                self.assertTrue(getattr(user, expected_flag))
-                self.assertIsNotNone(user.pk)
-                self.assertIsNone(user.role_id)
-                self.assertFalse(user.roles.exists())
-                self.assertEqual(
-                    Student.objects.filter(student=user).exists(),
-                    account_type == "student",
-                )
-                if account_type == "student":
-                    student = Student.objects.get(student=user)
-                    self.assertTrue(student.registration_number)
+        self.assertEqual(user.roles.get(), role)
+        self.assertEqual(user.role, role)
+        self.assertFalse(user.is_student)
+        self.assertFalse(user.is_lecturer)
+        self.assertFalse(user.is_finance)
+        self.assertFalse(user.is_registrar)
+        self.assertFalse(Student.objects.filter(student=user).exists())
 
     def test_admin_can_assign_multiple_roles_to_an_existing_user(self):
         second_permission = Permission.objects.create(

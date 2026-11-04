@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <title>Your LMS account</title>
+  </head>
+  <body>
+    <h2>Welcome {{ user.get_full_name }}</h2>
+    <p>Your LMS account has been created.</p>
+    <p><strong>Username:</strong> {{ user.username }}</p>
+    <p><strong>Temporary password:</strong> {{ password }}</p>
+    <p>Please change your password after your first login.</p>
+    <p>Visit the LMS login page to sign in and change your password.</p>
+  </body>
+</html>

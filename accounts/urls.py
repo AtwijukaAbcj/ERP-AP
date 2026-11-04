@@ -38,6 +38,22 @@ urlpatterns = [
     path("student/add/", views.student_add_view, name="add_student"),
     path("users/", views.user_list, name="user_list"),
     path("users/add/", views.user_add_view, name="user_add"),
+    path("email-templates/", views.email_template_list_view, name="email_template_list"),
+    path(
+        "email-templates/<slug:template_key>/",
+        views.email_template_preview_view,
+        name="email_template_preview",
+    ),
+    path(
+        "email-templates/<slug:template_key>/render/",
+        views.email_template_render_view,
+        name="email_template_render",
+    ),
+    path(
+        "email-templates/<slug:template_key>/edit/",
+        views.email_template_edit_view,
+        name="email_template_edit",
+    ),
     path("users/<int:user_id>/roles/", views.user_roles_view, name="user_roles"),
     path("users/<int:user_id>/password/", views.user_password_reset, name="user_password_reset"),
     path("roles/", views.role_list_view, name="role_list"),

@@ -31,9 +31,9 @@
     --glass-border: rgba(148, 163, 184, 0.28);
 
     --border-color: #e2e8f0;
-    --border-radius: 12px;
-    --border-radius-sm: 8px;
-    --border-radius-lg: 16px;
+    --border-radius: 10px;
+    --border-radius-sm: 10px;
+    --border-radius-lg: 10px;
 
     --shadow-sm: 0 1px 2px 0 rgba(15, 23, 42, 0.04);
     --shadow: 0 6px 18px -10px rgba(15, 23, 42, 0.18), 0 2px 8px rgba(15, 23, 42, 0.06);
@@ -2041,6 +2041,68 @@ h4.fw-bold i {
         transition-duration: 0.01ms !important;
         scroll-behavior: auto !important;
     }
+}
+
+:where(
+    .btn,
+    .btn-vote,
+    .card,
+    .form-control,
+    .form-select,
+    input:not([type="checkbox"]):not([type="radio"]),
+    select,
+    textarea,
+    .alert,
+    .dropdown-menu,
+    .modal-content,
+    .breadcrumb,
+    .table-responsive,
+    .list-group,
+    .list-group-item,
+    .accordion-item,
+    .accordion-button,
+    .page-link,
+    .nav-link,
+    .menu-link,
+    .dropdown-content a,
+    .form-title,
+    .stat-card,
+    .toast,
+    .offcanvas,
+    .popover,
+    .pagination,
+    .input-group-text
+):not(.rounded-circle):not(.rounded-pill) {
+    border-radius: 10px !important;
+}
+
+.input-group > :first-child,
+.input-group > :first-child .form-control {
+    border-top-left-radius: 10px !important;
+    border-bottom-left-radius: 10px !important;
+}
+
+.input-group > :last-child,
+.input-group > :last-child .form-control {
+    border-top-right-radius: 10px !important;
+    border-bottom-right-radius: 10px !important;
+}
+
+.input-group > :not(:first-child):not(:last-child),
+.input-group > :not(:first-child):not(:last-child) .form-control {
+    border-radius: 0 !important;
+}
+
+.input-group > :first-child:not(:last-child),
+.input-group > :first-child:not(:last-child) .form-control {
+    border-top-right-radius: 0 !important;
+    border-bottom-right-radius: 0 !important;
+}
+
+.input-group > :last-child:not(:first-child),
+.input-group > :last-child:not(:first-child) .form-control {
+    border-top-left-radius: 0 !important;
+    border-bottom-left-radius: 0 !important;
 }
 
 #main-content .card:hover {

@@ -55,10 +55,18 @@ class EmailThread(threading.Thread):
 def send_new_account_email(user, password):
     if user.is_student:
         template_name = "accounts/email/new_student_account_confirmation.html"
-    else:
+    elif user.is_lecturer:
         template_name = "accounts/email/new_lecturer_account_confirmation.html"
+    elif user.is_finance:
+        template_name = "accounts/email/new_finance_account_confirmation.html"
+    elif user.is_registrar:
+        template_name = "accounts/email/new_registrar_account_confirmation.html"
+    elif user.is_faculty_admin:
+        template_name = "accounts/email/new_faculty_admin_account_confirmation.html"
+    else:
+        template_name = "accounts/email/new_user_account_confirmation.html"
     email = {
-        "subject": "Your lms account confirmation and credentials",
+        "subject": "Your LMS account confirmation and credentials",
         "recipient_list": [user.email],
         "template_name": template_name,
         "context": {"user": user, "password": password},

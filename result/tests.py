@@ -148,12 +148,18 @@ class AssessmentScoreEntryTests(TestCase):
         self.assertTrue(other_session.is_current_session)
 
     def test_student_assessment_hub_is_reachable(self):
+        ModulePermission.objects.create(
+            user=self.student_user,
+            module_name="results",
+        )
         self.client.force_login(self.student_user)
 
         response = self.client.get(reverse("assessment_hub"))
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Assessment")
+        self.assertContains(response, "css/assessment-hub.css")
+        self.assertContains(response, 'class="assessment-hub-page"')
 
     def test_results_module_grant_does_not_expose_student_grade_page_to_staff(self):
         staff_user = User.objects.create_user(

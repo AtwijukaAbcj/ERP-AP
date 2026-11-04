@@ -6,29 +6,47 @@ from django.template.loader import render_to_string
 from django.conf import settings
 from django.utils.crypto import get_random_string
 from django.utils import timezone
+from django.template import Template, TemplateSyntaxError
 import random
 import string
 
 from core.models import Semester
 from course.models import AcademicYear, Program, Faculty
 from .models import Role, Permission, RolePermission, UserPermission, User, Student, StudentDocument, Parent, RELATION_SHIP, GENDERS, RegistrarModulePermission, REGISTRAR_MODULES, ACTIVE_MODULE_CHOICES
+from .utils import generate_password, send_new_account_email
 
 
-class UserAddForm(UserCreationForm):
-    ACCOUNT_TYPE_CHOICES = (
-        ("user", "General User"),
-        ("student", "Student"),
-        ("lecturer", "Lecturer"),
-        ("finance", "Finance"),
-        ("registrar", "Registrar"),
+class EmailTemplateEditForm(forms.Form):
+    source = forms.CharField(
+        strip=False,
+        widget=forms.Textarea(
+            attrs={
+                "class": "form-control font-monospace",
+                "rows": 30,
+                "spellcheck": "false",
+            }
+        ),
+        label="Template HTML",
     )
 
-    account_type = forms.ChoiceField(
-        choices=ACCOUNT_TYPE_CHOICES,
-        initial="user",
-        widget=forms.Select(attrs={"class": "form-select"}),
-        label="Account type",
-        help_text="Choose the user's account type. Assign permission roles separately after creating the account.",
+    def clean_source(self):
+        source = self.cleaned_data["source"]
+        try:
+            Template(source)
+        except TemplateSyntaxError as exc:
+            raise forms.ValidationError(
+                f"Invalid Django template syntax: {exc}"
+            ) from exc
+        return source
+
+
+class UserAddForm(forms.ModelForm):
+    roles = forms.ModelMultipleChoiceField(
+        queryset=Role.objects.none(),
+        required=False,
+        widget=forms.CheckboxSelectMultiple,
+        label="Permission roles",
+        help_text="Roles grant permissions. Use the dedicated workflows to create student, lecturer, finance, or registrar accounts.",
     )
 
     username = forms.CharField(
@@ -75,19 +93,7 @@ class UserAddForm(UserCreationForm):
         label="Email",
     )
 
-    password1 = forms.CharField(
-        max_length=30,
-        widget=forms.PasswordInput(attrs={"class": "form-control"}),
-        label="Password",
-    )
-
-    password2 = forms.CharField(
-        max_length=30,
-        widget=forms.PasswordInput(attrs={"class": "form-control"}),
-        label="Password Confirmation",
-    )
-
-    class Meta(UserCreationForm.Meta):
+    class Meta:
         model = User
         fields = (
             "username",
@@ -97,28 +103,31 @@ class UserAddForm(UserCreationForm):
             "gender",
             "address",
             "phone",
-            "password1",
-            "password2",
+            "roles",
         )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["roles"].queryset = Role.objects.order_by("name")
 
     @transaction.atomic()
     def save(self, commit=True):
         user = super().save(commit=False)
-        account_type = self.cleaned_data["account_type"]
+        password = generate_password()
+        user.set_password(password)
         user.first_name = self.cleaned_data.get("first_name")
         user.last_name = self.cleaned_data.get("last_name")
         user.phone = self.cleaned_data.get("phone")
         user.address = self.cleaned_data.get("address")
         user.email = self.cleaned_data.get("email")
-        user.is_student = account_type == "student"
-        user.is_lecturer = account_type == "lecturer"
-        user.is_finance = account_type == "finance"
-        user.is_registrar = account_type == "registrar"
+        selected_roles = self.cleaned_data["roles"]
+        user.role = selected_roles.first() if selected_roles else None
 
         if commit:
             user.save()
-            if user.is_student:
-                Student.objects.create(student=user)
+            self.save_m2m()
+            send_new_account_email(user, password)
+            self.generated_password = password
 
         return user
 
@@ -218,100 +227,50 @@ class UserPermissionForm(forms.ModelForm):
         self.fields["permission"].queryset = Permission.objects.order_by("code")
 
 
-class StaffAddForm(UserAddForm):
-    username = forms.CharField(
-        max_length=30,
-        widget=forms.TextInput(attrs={"type": "text", "class": "form-control"}),
-        label="Username",
-        required=False,
+class UserWithEmailChoiceField(forms.ModelChoiceField):
+    def label_from_instance(self, user):
+        label = f"{user.get_full_name} ({user.username})"
+        if user.email:
+            label = f"{label} - {user.email}"
+        return label
+
+
+class LecturerAssignmentForm(forms.Form):
+    user = UserWithEmailChoiceField(
+        queryset=User.objects.none(),
+        widget=forms.Select(attrs={"class": "form-control"}),
+        label="User",
     )
 
-    first_name = forms.CharField(
-        max_length=30,
-        widget=forms.TextInput(attrs={"type": "text", "class": "form-control"}),
-        label="First Name",
-    )
+    def __init__(self, *args, faculty=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.faculty = faculty
+        self.fields["user"].queryset = User.objects.filter(
+            is_lecturer=False,
+            is_superuser=False,
+        ).order_by("last_name", "first_name", "username")
 
-    last_name = forms.CharField(
-        max_length=30,
-        widget=forms.TextInput(attrs={"type": "text", "class": "form-control"}),
-        label="Last Name",
-    )
+    @transaction.atomic
+    def save(self, faculty=None):
+        user = self.cleaned_data["user"]
+        user.is_lecturer = True
+        faculty = faculty if faculty is not None else self.faculty
+        if faculty is None:
+            faculty = self.cleaned_data.get("faculty")
+        update_fields = ["is_lecturer"]
+        if faculty is not None:
+            user.faculty = faculty
+            update_fields.append("faculty")
+        user.save(update_fields=update_fields)
+        return user
 
-    gender = forms.CharField(
-        widget=forms.Select(
-            choices=GENDERS,
-            attrs={"class": "browser-default custom-select form-control"},
-        ),
-    )
 
-    address = forms.CharField(
-        max_length=30,
-        widget=forms.TextInput(attrs={"type": "text", "class": "form-control"}),
-        label="Address",
-    )
-
-    phone = forms.CharField(
-        max_length=30,
-        widget=forms.TextInput(attrs={"type": "text", "class": "form-control"}),
-        label="Mobile No.",
-    )
-
-    email = forms.CharField(
-        max_length=30,
-        widget=forms.TextInput(attrs={"type": "text", "class": "form-control"}),
-        label="Email",
-    )
-
+class StaffAddForm(LecturerAssignmentForm):
     faculty = forms.ModelChoiceField(
         queryset=Faculty.objects.all(),
-        required=True,
         widget=forms.Select(attrs={"class": "form-control"}),
         label="Faculty",
     )
-
-    password1 = forms.CharField(
-        max_length=30,
-        widget=forms.TextInput(attrs={"type": "password", "class": "form-control"}),
-        label="Password",
-        required=False,
-    )
-
-    password2 = forms.CharField(
-        max_length=30,
-        widget=forms.TextInput(attrs={"type": "password", "class": "form-control"}),
-        label="Password Confirmation",
-        required=False,
-    )
-
-    class Meta(UserCreationForm.Meta):
-        model = User
-        fields = (
-            "username",
-            "first_name",
-            "last_name",
-            "email",
-            "gender",
-            "address",
-            "phone",
-            "faculty",
-        )
-
-    @transaction.atomic()
-    def save(self, commit=True):
-        user = super().save(commit=False)
-        user.is_lecturer = True
-        user.first_name = self.cleaned_data.get("first_name")
-        user.last_name = self.cleaned_data.get("last_name")
-        user.phone = self.cleaned_data.get("phone")
-        user.address = self.cleaned_data.get("address")
-        user.email = self.cleaned_data.get("email")
-        user.faculty = self.cleaned_data.get("faculty")
-
-        if commit:
-            user.save()
-
-        return user
 
 
 class UserRolesForm(forms.ModelForm):
@@ -350,29 +309,6 @@ class UserRolesForm(forms.ModelForm):
 # accounts/forms.py
 
 # accounts/forms.py
-
-class FacultyLecturerAddForm(UserCreationForm):
-    first_name = forms.CharField(widget=forms.TextInput(attrs={"class": "form-control"}))
-    last_name = forms.CharField(widget=forms.TextInput(attrs={"class": "form-control"}))
-    email = forms.EmailField(widget=forms.EmailInput(attrs={"class": "form-control"}))
-    gender = forms.ChoiceField(choices=GENDERS, widget=forms.Select(attrs={"class": "form-control"}))
-    phone = forms.CharField(widget=forms.TextInput(attrs={"class": "form-control"}))
-    address = forms.CharField(widget=forms.TextInput(attrs={"class": "form-control"}))
-
-    class Meta(UserCreationForm.Meta):
-        model = User
-        fields = ["first_name", "last_name", "email", "gender", "phone", "address"]
-
-    @transaction.atomic
-    def save(self, commit=True, faculty=None):
-        user = super().save(commit=False)
-        user.username = f"lec{get_random_string(5)}"
-        user.set_password(get_random_string(8))
-        user.is_lecturer = True
-        user.faculty = faculty
-        if commit:
-            user.save()
-        return user
 
 class StudentEditForm(forms.ModelForm):
     registration_number = forms.CharField(
@@ -1084,31 +1020,8 @@ class FacultyAdminAddForm(forms.ModelForm):
             user.save()
         return user
     
-class FacultyLecturerAddForm(forms.ModelForm):
-    gender = forms.ChoiceField(choices=GENDERS, widget=forms.Select(attrs={"class": "form-control"}))
-
-    class Meta:
-        model = User
-        fields = ['first_name', 'last_name', 'email', 'phone', 'address', 'gender']
-
-        widgets = {
-            'first_name': forms.TextInput(attrs={'class': 'form-control'}),
-            'last_name': forms.TextInput(attrs={'class': 'form-control'}),
-            'email': forms.EmailInput(attrs={'class': 'form-control'}),
-            'phone': forms.TextInput(attrs={'class': 'form-control'}),
-            'address': forms.TextInput(attrs={'class': 'form-control'}),
-        }
-
-    @transaction.atomic
-    def save(self, faculty, commit=True):
-        user = super().save(commit=False)
-        user.username = f"lec{User.objects.count() + 1}"
-        user.set_password("defaultpass123")  # Or use a random password
-        user.is_lecturer = True
-        user.faculty = faculty
-        if commit:
-            user.save()
-        return user
+class FacultyLecturerAddForm(LecturerAssignmentForm):
+    pass
     
 
 class FacultyLecturerEditForm(UserChangeForm):

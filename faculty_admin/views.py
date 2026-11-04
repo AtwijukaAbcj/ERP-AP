@@ -237,19 +237,14 @@ class AddLecturerView(CreateView):
     success_url = reverse_lazy('lecturer_list')
 
     def form_valid(self, form):
-        # Set lecturer and assign current faculty
-        form.instance.is_lecturer = True
-        form.instance.faculty = self.request.user.faculty
-        messages.success(self.request, f"Lecturer {form.instance.get_full_name} added successfully.")
-        return super().form_valid(form)
+        user = form.save(faculty=self.request.user.faculty)
+        messages.success(self.request, f"{user.get_full_name} has been assigned as a lecturer.")
+        return redirect(self.success_url)
 
-    def get_form(self, *args, **kwargs):
-        form = super().get_form(*args, **kwargs)
-        # Restrict faculty dropdown to the one of current admin (optional)
-        form.fields['faculty'].queryset = Faculty.objects.filter(id=self.request.user.faculty.id)
-        form.fields['faculty'].initial = self.request.user.faculty
-        form.fields['faculty'].widget.attrs['readonly'] = True
-        return form
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["faculty"] = self.request.user.faculty
+        return kwargs
 
 @method_decorator([login_required, faculty_admin_required], name='dispatch')
 class FacultyStudentListView(FilterView):
@@ -424,28 +419,14 @@ class FacultyLecturerAddView(CreateView):
     success_url = reverse_lazy('faculty_lecturer_list')
 
     def form_valid(self, form):
-        # Save lecturer with assigned faculty
-        user = form.save(commit=False, faculty=self.request.user.faculty)
-        password = get_random_string(8)
-        user.set_password(password)
-        user.save()
-
-        # Send welcome email using lecturer email template
-        subject = "Lecturer Account Created"
-        message = render_to_string("accounts/email/new_lecturer_account_confirmation.html", {
-            "user": user,
-            "password": password,
-        })
-        email = EmailMessage(subject, message, settings.EMAIL_FROM_ADDRESS, [user.email])
-        email.content_subtype = "html"
-        email.send(fail_silently=True)
-
-        messages.success(self.request, f"Lecturer {user.get_full_name} created successfully.")
+        user = form.save(faculty=self.request.user.faculty)
+        messages.success(self.request, f"{user.get_full_name} has been assigned as a lecturer.")
         return redirect(self.success_url)
 
-    def get_form(self, form_class=None):
-        form = super().get_form(form_class)
-        return form
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["faculty"] = self.request.user.faculty
+        return kwargs
 
 @method_decorator([login_required, faculty_admin_required], name='dispatch')
 class FacultyLecturerEditView(UpdateView):

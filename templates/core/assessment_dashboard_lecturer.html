@@ -324,7 +324,7 @@
                             <br>
                             <small class="text-muted">{{ sitting.quiz.title }} ({{ sitting.quiz.course.code }})</small>
                         </div>
-                        <a href="{% url 'quiz_marking_detail' sitting.pk sitting.quiz.pk %}" class="btn btn-sm btn-outline-warning">
+                        <a href="{% url 'quiz_marking_detail' pk=sitting.pk %}" class="btn btn-sm btn-outline-warning">
                             <i class="fas fa-pen"></i> {% trans 'Mark' %}
                         </a>
                     </div>
