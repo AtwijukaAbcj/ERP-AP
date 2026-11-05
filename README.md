@@ -83,6 +83,27 @@ pip install -r requirements.txt
 
 For local development, `DEBUG=True` uses a development-only fallback secret when `SECRET_KEY` is empty. Before deployment, set `DEBUG=False`, provide a long, randomly generated `SECRET_KEY`, and configure `ALLOWED_HOSTS` and `CSRF_TRUSTED_ORIGINS` for the deployment domains. For HTTPS-only deployments, also enable `SECURE_SSL_REDIRECT` and configure `SECURE_HSTS_SECONDS` after confirming HTTPS is enforced end to end.
 
+### Nginx media serving
+
+Site logos and the favicon are public branding assets stored under
+`MEDIA_ROOT/site/`. In production, serve only this directory directly through
+Nginx; do not expose the rest of `MEDIA_ROOT`, which may contain private
+uploads. The included Nginx snippet targets `/var/www/erp-ap/media/site/`:
+
+1. Copy `deploy/nginx/erp-ap-media.conf` to
+   `/etc/nginx/snippets/erp-ap-media.conf`.
+2. Add `include /etc/nginx/snippets/erp-ap-media.conf;` inside the active
+   site's `server` block.
+3. Ensure the Nginx worker can read files in
+   `/var/www/erp-ap/media/site/`, and that this directory is on persistent
+   storage included in backups.
+4. Run `sudo nginx -t` and, if it succeeds, reload Nginx with
+   `sudo systemctl reload nginx`.
+
+The configured logo files must exist under `/var/www/erp-ap/media/site/`.
+If the database has their names but the files are missing, restore the files
+from backup or upload them again in **System Settings → Branding & Logo**.
+
 Superusers can configure SMTP host, port, authentication, TLS/SSL, and sender details from **System Settings → Email Server**. Dashboard settings are disabled until explicitly enabled; otherwise the application uses the `EMAIL_*` values in `.env`. SMTP passwords entered in the dashboard are encrypted using `SECRET_KEY`, so protect backups of both the database and that key. Changing `SECRET_KEY` makes previously stored SMTP passwords unreadable; enter the password again after rotating the key.
 
 ```bash
