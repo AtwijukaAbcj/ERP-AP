@@ -1,6 +1,9 @@
+from io import BytesIO
 from io import StringIO
+import tempfile
 
 from django.core.management import call_command
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, TransactionTestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
@@ -42,6 +45,7 @@ from result.models import (
     Result,
     TakenCourse,
 )
+from PIL import Image
 
 from .email_backend import DatabaseConfiguredEmailBackend
 from .models import (
@@ -136,6 +140,65 @@ class EmailServerSettingsTests(TestCase):
         settings = SiteSettings.get_settings()
         self.assertEqual(settings.site_name, "Updated Falcon")
         self.assertEqual(settings.primary_color, "#123456")
+
+    def test_branding_page_converts_svg_logo_white_to_png(self):
+        svg = b"""<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32">
+            <!-- comments in SVGs should not prevent uploads -->
+            <script>window.alert('unsafe')</script>
+            <rect width="32" height="32" fill="#ffffff"/>
+            <image href="https://example.invalid/logo.png" width="32" height="32"/>
+        </svg>"""
+        with tempfile.TemporaryDirectory() as media_root:
+            with self.settings(MEDIA_ROOT=media_root):
+                response = self.client.post(
+                    reverse("site_settings_branding"),
+                    {
+                        "site_name": "Updated Falcon",
+                        "site_tagline": "A learning platform",
+                        "primary_color": "#123456",
+                        "logo_white": SimpleUploadedFile(
+                            "white-logo.svg",
+                            svg,
+                            content_type="image/svg+xml",
+                        ),
+                    },
+                )
+
+                self.assertRedirects(response, reverse("site_settings_branding"))
+                settings = SiteSettings.get_settings()
+                self.assertTrue(settings.logo_white.name.endswith(".png"))
+                self.assertTrue(
+                    settings.logo_white.storage.exists(settings.logo_white.name)
+                )
+                with Image.open(settings.logo_white.path) as converted:
+                    self.assertEqual(converted.format, "PNG")
+                    self.assertLessEqual(max(converted.size), 1024)
+
+    def test_branding_page_still_accepts_raster_logo_upload(self):
+        image_buffer = BytesIO()
+        Image.new("RGBA", (16, 16), color="white").save(image_buffer, format="PNG")
+
+        with tempfile.TemporaryDirectory() as media_root:
+            with self.settings(MEDIA_ROOT=media_root):
+                response = self.client.post(
+                    reverse("site_settings_branding"),
+                    {
+                        "site_name": "Updated Falcon",
+                        "site_tagline": "A learning platform",
+                        "primary_color": "#123456",
+                        "logo": SimpleUploadedFile(
+                            "logo.png",
+                            image_buffer.getvalue(),
+                            content_type="image/png",
+                        ),
+                    },
+                )
+
+                self.assertRedirects(response, reverse("site_settings_branding"))
+                settings = SiteSettings.get_settings()
+                self.assertTrue(settings.logo.name.endswith(".png"))
+                with Image.open(settings.logo.path) as uploaded:
+                    self.assertEqual(uploaded.size, (16, 16))
 
     def test_school_page_updates_only_school_information(self):
         response = self.client.get(reverse("site_settings_school"))

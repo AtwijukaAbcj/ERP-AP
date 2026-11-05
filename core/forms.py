@@ -1,6 +1,18 @@
+import base64
 import datetime
+import logging
+import re
+from io import BytesIO
+from pathlib import PurePath
+
 from django import forms
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
+from lxml import etree
+from PIL import Image
+from reportlab.graphics import renderPM
+from svglib.svglib import svg2rlg
 
 from accounts.models import Role
 from .constants import TIME_CHOICES  # ✅ No circular import
@@ -15,6 +27,184 @@ from .models import (
 )
 
 # from .views import TIME_CHOICES  
+
+logger = logging.getLogger(__name__)
+MAX_BRANDING_IMAGE_BYTES = 5 * 1024 * 1024
+MAX_BRANDING_IMAGE_DIMENSION = 1024
+_SVG_URL_PATTERN = re.compile(r"url\(\s*(['\"]?)(.*?)\1\s*\)", re.IGNORECASE)
+_SVG_IMPORT_PATTERN = re.compile(r"@import[^;]*;?", re.IGNORECASE)
+_SVG_RASTER_DATA_PATTERN = re.compile(
+    r"data:image/(?:png|jpeg|gif|webp);base64,([A-Za-z0-9+/=\s]+)",
+    re.IGNORECASE,
+)
+_SVG_ACTIVE_ELEMENTS = {
+    "script",
+    "foreignobject",
+    "iframe",
+    "object",
+    "embed",
+    "audio",
+    "video",
+}
+
+
+def _clean_svg(data):
+    if len(data) > MAX_BRANDING_IMAGE_BYTES:
+        raise ValidationError(_("SVG logos must be no larger than 5 MB."))
+    if re.search(rb"<!\s*(?:DOCTYPE|ENTITY)\b", data, re.IGNORECASE):
+        raise ValidationError(_("SVG logos with document types or entities are not supported."))
+
+    parser = etree.XMLParser(
+        resolve_entities=False,
+        no_network=True,
+        load_dtd=False,
+        huge_tree=False,
+    )
+    try:
+        root = etree.fromstring(data, parser)
+    except etree.XMLSyntaxError as exc:
+        raise ValidationError(_("Upload a valid SVG logo.")) from exc
+
+    if etree.QName(root).localname.lower() != "svg":
+        raise ValidationError(_("Upload a valid SVG logo."))
+
+    for element in list(root.iter()):
+        if not isinstance(element.tag, str):
+            continue
+        local_name = etree.QName(element).localname
+        if local_name.lower() in _SVG_ACTIVE_ELEMENTS:
+            parent = element.getparent()
+            if parent is not None:
+                parent.remove(element)
+            continue
+
+        for attribute, value in list(element.attrib.items()):
+            attribute_name = etree.QName(attribute).localname.lower()
+            if attribute_name.startswith("on"):
+                del element.attrib[attribute]
+                continue
+
+            if attribute_name in {"href", "src"}:
+                if value.startswith("#"):
+                    continue
+                data_match = (
+                    _SVG_RASTER_DATA_PATTERN.fullmatch(value)
+                    if local_name.lower() == "image"
+                    else None
+                )
+                if data_match:
+                    try:
+                        embedded_image = base64.b64decode(
+                            re.sub(r"\s+", "", data_match.group(1)),
+                            validate=True,
+                        )
+                        if len(embedded_image) > MAX_BRANDING_IMAGE_BYTES:
+                            raise ValueError("Embedded image exceeds the size limit.")
+                        with Image.open(BytesIO(embedded_image)) as image:
+                            if max(image.size) > 4096:
+                                raise ValueError(
+                                    "Embedded image dimensions exceed the size limit."
+                                )
+                            image.verify()
+                        continue
+                    except (
+                        OSError,
+                        ValueError,
+                        Image.DecompressionBombError,
+                    ) as exc:
+                        raise ValidationError(
+                            _("The SVG contains an invalid embedded image.")
+                        ) from exc
+                del element.attrib[attribute]
+                continue
+
+            if "url(" in value.lower():
+                element.attrib[attribute] = _SVG_URL_PATTERN.sub(
+                    lambda match: (
+                        match.group(0)
+                        if match.group(2).strip(" '\"").startswith("#")
+                        else "none"
+                    ),
+                    value,
+                )
+
+        if local_name.lower() == "style" and element.text:
+            element.text = _SVG_IMPORT_PATTERN.sub("", element.text)
+            element.text = _SVG_URL_PATTERN.sub(
+                lambda match: (
+                    match.group(0)
+                    if match.group(2).strip(" '\"").startswith("#")
+                    else "none"
+                ),
+                element.text,
+            )
+
+    return etree.tostring(root, encoding="utf-8")
+
+
+def _svg_to_png(upload):
+    safe_svg = _clean_svg(upload.read())
+    try:
+        drawing = svg2rlg(BytesIO(safe_svg))
+        if (
+            drawing is None
+            or drawing.width <= 0
+            or drawing.height <= 0
+            or max(drawing.width, drawing.height) > 4096
+        ):
+            raise ValueError("SVG has invalid or excessive dimensions.")
+
+        dpi = min(
+            72,
+            72 * MAX_BRANDING_IMAGE_DIMENSION / max(drawing.width, drawing.height),
+        )
+        png_data = renderPM.drawToString(
+            drawing,
+            fmt="PNG",
+            dpi=dpi,
+            backend="rlPyCairo",
+        )
+    except Exception as exc:
+        logger.exception("Could not convert uploaded branding SVG to PNG.")
+        raise ValidationError(
+            _("This SVG could not be processed. Please upload a PNG or JPEG instead.")
+        ) from exc
+
+    filename = PurePath(upload.name).with_suffix(".png").name
+    return SimpleUploadedFile(filename, png_data, content_type="image/png")
+
+
+class BrandingImageField(forms.FileField):
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault("required", False)
+        kwargs.setdefault(
+            "widget",
+            forms.ClearableFileInput(
+                attrs={
+                    "class": "form-control",
+                    "accept": "image/*,.svg",
+                }
+            ),
+        )
+        super().__init__(*args, **kwargs)
+
+    def clean(self, data, initial=None):
+        upload = super().clean(data, initial)
+        if not upload or isinstance(upload, str):
+            return upload
+        if upload.size > MAX_BRANDING_IMAGE_BYTES:
+            raise ValidationError(_("Logo files must be no larger than 5 MB."))
+
+        sample = upload.read(1024)
+        upload.seek(0)
+        is_svg = upload.name.lower().endswith(".svg") or (
+            b"<svg" in sample.lower()
+        )
+        if is_svg:
+            return _svg_to_png(upload)
+
+        return forms.ImageField(required=False).clean(upload)
+
 
 # news and events
 class NewsAndEventsForm(forms.ModelForm):
@@ -235,6 +425,10 @@ class SiteSettingsForm(forms.ModelForm):
 
 
 class BrandingSettingsForm(SiteSettingsForm):
+    logo = BrandingImageField(label=_("Logo"))
+    logo_white = BrandingImageField(label=_("Logo white"))
+    favicon = BrandingImageField(label=_("Favicon"))
+
     class Meta(SiteSettingsForm.Meta):
         fields = [
             "site_name",
